@@ -34,8 +34,8 @@ public:
 **/
 class InvalidActionException : public NimonException {
 public:
-    explicit InvalidActionException(const std::string& msg)
-        : NimonException(msg) {}
+    explicit InvalidActionException(const std::string& message)
+        : NimonException(message) {}
 };
 
 class InvalidTileException : public NimonException {
@@ -46,6 +46,6 @@ public:
 
 class FileException : public NimonException {
 public:
-    explicit FileException(const std::string& msg)
-        : NimonException(msg) {}
+    explicit FileException(const std::string& message)
+        : NimonException(message) {}
 };
