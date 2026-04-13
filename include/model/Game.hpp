@@ -91,5 +91,5 @@ public:
     WinConditionManager& getWinConditionManager();
     Dice& getDice();
     vector<Player>& getPlayers();
-    bool isGameOver() const;
+    bool isGameOver();
 };

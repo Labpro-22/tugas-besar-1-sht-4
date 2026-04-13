@@ -40,6 +40,10 @@ bool BankruptcyManager::hasLiquidationOptions(const Game& game, const Player& pl
     return false;
 }
 
+bool BankruptcyManager::isBankruptcyActive(){
+    return bankruptcyActive;
+}
+
 void BankruptcyManager::settleDebt(Game& game, Player& debtor) {}
 
 void BankruptcyManager::declareBankrupt(Game& game, Player& debtor, shared_ptr<Player> creditor) {}

@@ -2,7 +2,7 @@
 
 using namespace std;
 
-Game::Game() {}
+Game::Game(): currentTurn(0), maxTurn(100), isRunning(false) {}
 
 Game::Game(
     const Board& board,
@@ -24,22 +24,116 @@ Game::Game(
     int currentTurn,
     int maxTurn,
     bool isRunning
-) {}
+) : board(board),
+    players(players),
+    dice(dice),
+    turnManager(turnManager),
+    movementManager(movementManager),
+    propertyManager(propertyManager),
+    auctionManager(auctionManager),
+    cardManager(cardManager),
+    jailManager(jailManager),
+    bankruptcyManager(bankruptcyManager),
+    saveLoadManager(saveLoadManager),
+    configManager(configManager),
+    logManager(logManager),
+    taxManager(taxManager),
+    festivalManager(festivalManager),
+    winConditionManager(winConditionManager),
+    currentTurn(currentTurn),
+    maxTurn(maxTurn),
+    isRunning(isRunning)
+{}
 
-Game::Game(const Game& other) {}
+Game::Game(const Game& other) {
+    board=other.board;
+    players=other.players;
+    dice=other.dice;
+    turnManager=other.turnManager;
+    movementManager=other.movementManager;
+    propertyManager=other.propertyManager;
+    auctionManager=other.auctionManager;
+    cardManager=other.cardManager;
+    jailManager=other.jailManager;
+    bankruptcyManager=other.bankruptcyManager;
+    saveLoadManager=other.saveLoadManager;
+    configManager=other.configManager;
+    logManager=other.logManager;
+    taxManager=other.taxManager;
+    festivalManager=other.festivalManager;
+    winConditionManager=other.winConditionManager;
+    currentTurn=other.currentTurn;
+    maxTurn=other.maxTurn;
+    isRunning=other.isRunning;
+}
 
 Game::~Game() {}
 
 Game& Game::operator=(const Game& other) {
+    if (this!=&other){
+        board=other.board;
+        players=other.players;
+        dice=other.dice;
+        turnManager=other.turnManager;
+        movementManager=other.movementManager;
+        propertyManager=other.propertyManager;
+        auctionManager=other.auctionManager;
+        cardManager=other.cardManager;
+        jailManager=other.jailManager;
+        bankruptcyManager=other.bankruptcyManager;
+        saveLoadManager=other.saveLoadManager;
+        configManager=other.configManager;
+        logManager=other.logManager;
+        taxManager=other.taxManager;
+        festivalManager=other.festivalManager;
+        winConditionManager=other.winConditionManager;
+        currentTurn=other.currentTurn;
+        maxTurn=other.maxTurn;
+        isRunning=other.isRunning;
+    }
     return *this;
 }
 
-void Game::startNewGame() {}
+void Game::startNewGame() {
+    currentTurn=1;
+    isRunning=false;
+    bankruptcyManager=BankruptcyManager();
+    dice=Dice();
 
-void Game::loadGame(const string& filename) {}
+    configManager.loadAllConfigs();
+    board.initializeBoard();
+    cardManager.initializeDecks();
+
+    if (players.empty()) {
+        throw InvalidActionException("Belum ada pemain");
+    }
+
+    turnManager.initializeTurnOrder(static_cast<int>(players.size()));
+
+    isRunning=true;
+}
+
+void Game::loadGame(const string& filename) {
+    saveLoadManager.loadGame(*this, filename);
+
+    if (players.empty()) {
+        throw FileException("Tidak ada pemain.");
+    }
+
+    isRunning=true;   
+}
 
 Player& Game::getCurrentPlayer() {
-    return players.at(0);
+    if (players.empty()) {
+        throw InvalidActionException("Tidak ada pemain");
+    }
+
+    if (currentTurn <= 0) {
+        return players.at(0);
+    }
+
+    const int currentIndex=(currentTurn-1)%static_cast<int>(players.size());
+    return players.at(currentIndex);
 }
 
 Board& Game::getBoard() {
@@ -106,6 +200,6 @@ vector<Player>& Game::getPlayers() {
     return players;
 }
 
-bool Game::isGameOver() const {
-    return false;
+bool Game::isGameOver() {
+    return getBankruptcyManager().isBankruptcyActive() || currentTurn >= maxTurn;
 }
