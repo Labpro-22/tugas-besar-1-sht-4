@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <algorithm>
+#include "model/tiles/StreetTile.hpp"
 
 using namespace std;
 
@@ -26,5 +28,6 @@ public:
     shared_ptr<Tile> getTileByCode(const string& code) const;
     int getTileIndex(const string& code) const;
     int getNextPosition(int currentPos, int steps) const;
-    int size() const;
+    int getBoardSize() const;
+    vector<shared_ptr<StreetTile>> getStreetTileByColorGroup(const string& colorGroup) const;
 };
