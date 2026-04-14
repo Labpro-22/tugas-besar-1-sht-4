@@ -21,7 +21,7 @@ private:
     int money;
     int position;
     PlayerStatus status;
-    vector<shared_ptr<OwnableTile>> ownedProperties;
+    vector<OwnableTile*> ownedProperties;
     vector<shared_ptr<HandCard>> handCards;
     int failedJailRolls;
     bool usedHandCardThisTurn;
@@ -36,7 +36,7 @@ public:
         int money,
         int position,
         PlayerStatus status,
-        const vector<shared_ptr<OwnableTile>>& ownedProperties,
+        const vector<OwnableTile*>& ownedProperties,
         const vector<shared_ptr<HandCard>>& handCards,
         int failedJailRolls,
         bool usedHandCardThisTurn,
@@ -53,8 +53,8 @@ public:
     void addMoney(int amount);
     void deductMoney(int amount);
     void moveTo(int position);
-    void addProperty(shared_ptr<OwnableTile> property);
-    void removeProperty(shared_ptr<OwnableTile> property);
+    void addProperty(OwnableTile* property);
+    void removeProperty(OwnableTile* property);
     void addHandCard(shared_ptr<HandCard> card);
     void removeHandCard(int index);
     bool isBankrupt() const;
