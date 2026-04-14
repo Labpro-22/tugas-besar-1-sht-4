@@ -1,5 +1,7 @@
 #pragma once
 
+#include <random>
+#include "NimonException.hpp"
 using namespace std;
 
 class Dice {
