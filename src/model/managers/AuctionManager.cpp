@@ -6,14 +6,14 @@ AuctionManager::AuctionManager() {}
 
 AuctionManager::AuctionManager(
     int currentBid,
-    shared_ptr<Player> highestBidder,
-    const vector<shared_ptr<Player>>& participants,
+    Player* highestBidder,
+    const vector<Player*>& participants,
     int currentAuctionPlayerIndex,
     int consecutivePasses,
     bool auctionActive,
     bool hasAnyBid,
     shared_ptr<StreetTile> currentTile,
-    shared_ptr<Player> triggerPlayer
+    Player* triggerPlayer
 ) {}
 
 AuctionManager::AuctionManager(const AuctionManager& other) {}
@@ -24,9 +24,9 @@ AuctionManager& AuctionManager::operator=(const AuctionManager& other) {
     return *this;
 }
 
-void AuctionManager::initializeAuction(Game& game, StreetTile& tile, shared_ptr<Player> triggerPlayer) {}
+void AuctionManager::initializeAuction(Game& game, StreetTile& tile, Player* triggerPlayer) {}
 
-shared_ptr<Player> AuctionManager::getCurrentAuctionPlayer() const {
+Player* AuctionManager::getCurrentAuctionPlayer() const {
     return nullptr;
 }
 

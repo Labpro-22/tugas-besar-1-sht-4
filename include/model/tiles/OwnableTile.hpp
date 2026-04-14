@@ -18,7 +18,7 @@ enum class OwnershipStatus {
 
 class OwnableTile : public Tile {
 protected:
-    shared_ptr<Player> owner;
+    Player* owner;
     OwnershipStatus ownershipStatus;
     int purchasePrice;
     int mortgageValue;
@@ -29,7 +29,7 @@ public:
         int index,
         const string& code,
         const string& name,
-        shared_ptr<Player> owner,
+        Player* owner,
         OwnershipStatus ownershipStatus,
         int purchasePrice,
         int mortgageValue
@@ -39,8 +39,8 @@ public:
     OwnableTile& operator=(const OwnableTile& other);
 
     virtual void onLand(Game& game, Player& player) override = 0;
-    shared_ptr<Player> getOwner() const;
-    void setOwner(shared_ptr<Player> owner);
+    Player* getOwner() const;
+    void setOwner(Player* owner);
     bool isOwned() const;
     bool isMortgaged() const;
     void mortgage();

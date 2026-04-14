@@ -39,7 +39,7 @@ public:
     void handleStartTurn();
     void handleEndTurn();
     void handleStreetPurchase(StreetTile& tile);
-    void handleAuction(StreetTile& tile, shared_ptr<Player> triggerPlayer);
+    void handleAuction(StreetTile& tile, Player* triggerPlayer);
     void handleIncomeTax(IncomeTaxTile& tile);
     void handleLuxuryTax(LuxuryTaxTile& tile);
     void handleFestival(FestivalTile& tile);

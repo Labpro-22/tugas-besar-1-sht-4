@@ -8,7 +8,7 @@ RailroadTile::RailroadTile(
     int index,
     const string& code,
     const string& name,
-    shared_ptr<Player> owner,
+    Player* owner,
     OwnershipStatus ownershipStatus,
     int purchasePrice,
     int mortgageValue

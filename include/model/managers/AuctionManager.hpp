@@ -12,34 +12,34 @@ class StreetTile;
 class AuctionManager {
 private:
     int currentBid;
-    shared_ptr<Player> highestBidder;
-    vector<shared_ptr<Player>> participants;
+    Player* highestBidder;
+    vector<Player*> participants;
     int currentAuctionPlayerIndex;
     int consecutivePasses;
     bool auctionActive;
     bool hasAnyBid;
     shared_ptr<StreetTile> currentTile;
-    shared_ptr<Player> triggerPlayer;
+    Player* triggerPlayer;
 
 public:
     AuctionManager();
     AuctionManager(
         int currentBid,
-        shared_ptr<Player> highestBidder,
-        const vector<shared_ptr<Player>>& participants,
+        Player* highestBidder,
+        const vector<Player*>& participants,
         int currentAuctionPlayerIndex,
         int consecutivePasses,
         bool auctionActive,
         bool hasAnyBid,
         shared_ptr<StreetTile> currentTile,
-        shared_ptr<Player> triggerPlayer
+        Player* triggerPlayer
     );
     AuctionManager(const AuctionManager& other);
     ~AuctionManager();
     AuctionManager& operator=(const AuctionManager& other);
 
-    void initializeAuction(Game& game, StreetTile& tile, shared_ptr<Player> triggerPlayer);
-    shared_ptr<Player> getCurrentAuctionPlayer() const;
+    void initializeAuction(Game& game, StreetTile& tile, Player* triggerPlayer);
+    Player* getCurrentAuctionPlayer() const;
     bool canBid(const Player& player, int amount) const;
     void placeBid(Player& player, int amount);
     bool canPass() const;

@@ -6,10 +6,10 @@ BankruptcyManager::BankruptcyManager() {}
 
 BankruptcyManager::BankruptcyManager(
     int requiredAmount,
-    shared_ptr<Player> creditor,
+    Player* creditor,
     bool debtToBank,
     bool bankruptcyActive,
-    shared_ptr<Player> debtor
+    Player* debtor
 ) {}
 
 BankruptcyManager::BankruptcyManager(const BankruptcyManager& other) {}
@@ -46,9 +46,9 @@ bool BankruptcyManager::isBankruptcyActive() const {
 
 void BankruptcyManager::settleDebt(Game& game, Player& debtor) {}
 
-void BankruptcyManager::declareBankrupt(Game& game, Player& debtor, shared_ptr<Player> creditor) {}
+void BankruptcyManager::declareBankrupt(Game& game, Player& debtor, Player* creditor) {}
 
-void BankruptcyManager::beginBankruptcySession(Game& game, Player& player, shared_ptr<Player> creditor, int amount, bool debtToBank) {}
+void BankruptcyManager::beginBankruptcySession(Game& game, Player& player, Player* creditor, int amount, bool debtToBank) {}
 
 vector<shared_ptr<OwnableTile>> BankruptcyManager::getSellableProperties(const Game& game, const Player& player) const {
     return {};

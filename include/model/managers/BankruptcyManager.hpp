@@ -13,19 +13,19 @@ class OwnableTile;
 class BankruptcyManager {
 private:
     int requiredAmount;
-    shared_ptr<Player> creditor;
+    Player* creditor;
     bool debtToBank;
     bool bankruptcyActive;
-    shared_ptr<Player> debtor;
+    Player* debtor;
 
 public:
     BankruptcyManager();
     BankruptcyManager(
         int requiredAmount,
-        shared_ptr<Player> creditor,
+        Player* creditor,
         bool debtToBank,
         bool bankruptcyActive,
-        shared_ptr<Player> debtor
+        Player* debtor
     );
     BankruptcyManager(const BankruptcyManager& other);
     ~BankruptcyManager();
@@ -39,8 +39,8 @@ public:
     bool hasLiquidationOptions(const Game& game, const Player& player) const;
     bool isBankruptcyActive() const;
     void settleDebt(Game& game, Player& debtor);
-    void declareBankrupt(Game& game, Player& debtor, shared_ptr<Player> creditor);
-    void beginBankruptcySession(Game& game, Player& player, shared_ptr<Player> creditor, int amount, bool debtToBank);
+    void declareBankrupt(Game& game, Player& debtor, Player* creditor);
+    void beginBankruptcySession(Game& game, Player& player, Player* creditor, int amount, bool debtToBank);
     vector<shared_ptr<OwnableTile>> getSellableProperties(const Game& game, const Player& player) const;
     vector<shared_ptr<OwnableTile>> getMortgageableProperties(const Game& game, const Player& player) const;
     void resolveLiquidationAction(Game& game, Player& player, const string& action);

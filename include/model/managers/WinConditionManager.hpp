@@ -18,5 +18,5 @@ public:
     bool isGameOver(const Game& game) const;
     bool reachedMaxTurn(const Game& game) const;
     bool onlyOnePlayerLeft(const Game& game) const;
-    vector<shared_ptr<Player>> determineWinners(Game& game) const;
+    vector<Player*> determineWinners(Game& game) const;
 };

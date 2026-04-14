@@ -47,7 +47,7 @@ void GameController::handleEndTurn() {}
 
 void GameController::handleStreetPurchase(StreetTile& tile) {}
 
-void GameController::handleAuction(StreetTile& tile, shared_ptr<Player> triggerPlayer) {}
+void GameController::handleAuction(StreetTile& tile, Player* triggerPlayer) {}
 
 void GameController::handleIncomeTax(IncomeTaxTile& tile) {}
 

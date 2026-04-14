@@ -8,34 +8,60 @@ OwnableTile::OwnableTile(
     int index,
     const string& code,
     const string& name,
-    shared_ptr<Player> owner,
+    Player* owner,
     OwnershipStatus ownershipStatus,
     int purchasePrice,
     int mortgageValue
-) {}
+) 
+    : Tile(index, code, name), 
+    owner(owner), 
+    ownershipStatus(ownershipStatus), 
+    purchasePrice(purchasePrice), 
+    mortgageValue(mortgageValue)
+{}
 
-OwnableTile::OwnableTile(const OwnableTile& other) {}
+OwnableTile::OwnableTile(const OwnableTile& other) 
+    : Tile(other), 
+    owner(other.owner), 
+    ownershipStatus(other.ownershipStatus), 
+    purchasePrice(other.purchasePrice), 
+    mortgageValue(other.mortgageValue)  {}
 
 OwnableTile::~OwnableTile() {}
 
 OwnableTile& OwnableTile::operator=(const OwnableTile& other) {
+    if (this != &other) {
+        Tile::operator=(other);
+        this->owner = other.owner;
+        this->ownershipStatus = other.ownershipStatus;
+        this->purchasePrice = other.purchasePrice;
+        this->mortgageValue = other.mortgageValue;
+    }
     return *this;
 }
 
-shared_ptr<Player> OwnableTile::getOwner() const {
+Player* OwnableTile::getOwner() const {
     return owner;
 }
 
-void OwnableTile::setOwner(shared_ptr<Player> owner) {}
+void OwnableTile::setOwner(Player* owner) {
+    this->owner = owner;
+}
 
 bool OwnableTile::isOwned() const {
-    return false;
+    if (ownershipStatus == OwnershipStatus::OWNED) return true;
+    else return false;
 }
 
 bool OwnableTile::isMortgaged() const {
-    return false;
+    if (ownershipStatus == OwnershipStatus::MORTGAGED) return true;
+    else return false;
 }
 
-void OwnableTile::mortgage() {}
+void OwnableTile::mortgage() {
+    this->ownershipStatus = OwnershipStatus::MORTGAGED;
+}
 
-void OwnableTile::redeem() {}
+void OwnableTile::redeem() {
+    this->ownershipStatus = OwnershipStatus::OWNED;
+}

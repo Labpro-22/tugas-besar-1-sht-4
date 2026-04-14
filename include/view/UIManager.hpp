@@ -50,7 +50,7 @@ public:
     string readFestivalPropertyCode() const;
     void printFestivalActivated(const StreetTile& tile, int oldRent, int newRent, int duration) const;
     void printFestivalMaxed(const StreetTile& tile, int duration) const;
-    void printAuctionState(const StreetTile& tile, int currentBid, shared_ptr<Player> highestBidder, const Player& currentPlayer) const;
+    void printAuctionState(const StreetTile& tile, int currentBid, Player* highestBidder, const Player& currentPlayer) const;
     string readAuctionAction() const;
     int readBidAmount() const;
     void printAuctionWinner(const StreetTile& tile, const Player& winner, int finalBid) const;
@@ -70,5 +70,5 @@ public:
     int readJailChoice() const;
     string readFilename() const;
     bool confirmOverwrite(const string& filename) const;
-    void printGameOver(const vector<shared_ptr<Player>>& winners, bool byMaxTurn) const;
+    void printGameOver(const vector<Player*>& winners, bool byMaxTurn) const;
 };

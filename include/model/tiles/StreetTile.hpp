@@ -2,8 +2,11 @@
 
 #include <string>
 #include <vector>
+#include <algorithm>
 
 #include "model/tiles/OwnableTile.hpp"
+#include "model/Game.hpp"
+#include "model/NimonException.hpp"
 
 using namespace std;
 
@@ -26,7 +29,7 @@ public:
         int index,
         const string& code,
         const string& name,
-        shared_ptr<Player> owner,
+        Player* owner,
         OwnershipStatus ownershipStatus,
         int purchasePrice,
         int mortgageValue,
@@ -44,11 +47,13 @@ public:
 
     void onLand(Game& game, Player& player) override;
     int calculateRent(const Game& game, const Player& visitor) const override;
-    bool canBuild(const Game& game) const;
+    bool canBuildHouse(const Game& game) const;
+    bool canBuildHotel(const Game& game) const;
     void buildHouse();
     void buildHotel();
     bool hasHotel() const;
     int getBuildingLevel() const;
+    string getColorGroup() const;
     void sellBuildings();
     bool isMonopoly(const Game& game) const;
     void activateFestival();

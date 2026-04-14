@@ -82,7 +82,7 @@ void UIManager::printFestivalActivated(const StreetTile& tile, int oldRent, int 
 
 void UIManager::printFestivalMaxed(const StreetTile& tile, int duration) const {}
 
-void UIManager::printAuctionState(const StreetTile& tile, int currentBid, shared_ptr<Player> highestBidder, const Player& currentPlayer) const {}
+void UIManager::printAuctionState(const StreetTile& tile, int currentBid, Player* highestBidder, const Player& currentPlayer) const {}
 
 string UIManager::readAuctionAction() const {
     return "";
@@ -144,4 +144,4 @@ bool UIManager::confirmOverwrite(const string& filename) const {
     return false;
 }
 
-void UIManager::printGameOver(const vector<shared_ptr<Player>>& winners, bool byMaxTurn) const {}
+void UIManager::printGameOver(const vector<Player*>& winners, bool byMaxTurn) const {}

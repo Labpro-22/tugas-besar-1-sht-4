@@ -24,6 +24,6 @@ bool WinConditionManager::onlyOnePlayerLeft(const Game& game) const {
     return false;
 }
 
-vector<shared_ptr<Player>> WinConditionManager::determineWinners(Game& game) const {
+vector<Player*> WinConditionManager::determineWinners(Game& game) const {
     return {};
 }
