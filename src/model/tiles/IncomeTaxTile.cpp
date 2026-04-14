@@ -26,3 +26,11 @@ int IncomeTaxTile::calculateTax(const Game& game, const Player& player) const {
 }
 
 void IncomeTaxTile::onLand(Game& game, Player& player) {}
+
+int IncomeTaxTile::getFlatTax() const {
+    return flatTax;
+}
+
+int IncomeTaxTile::getPercentageTax() const {
+    return percentageTax;
+}

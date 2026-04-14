@@ -15,3 +15,8 @@ TaxTile& TaxTile::operator=(const TaxTile& other) {
 }
 
 void TaxTile::onLand(Game& game, Player& player) {}
+
+
+int TaxTile::getTaxAmount() const {
+    return taxAmount;
+}

@@ -21,4 +21,6 @@ public:
     CardTile& operator=(const CardTile& other);
 
     void onLand(Game& game, Player& player) override;
+
+    const string& getDeckType() const;
 };

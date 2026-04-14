@@ -28,4 +28,7 @@ public:
 
     int calculateTax(const Game& game, const Player& player) const override;
     void onLand(Game& game, Player& player) override;
+
+    int getFlatTax() const;
+    int getPercentageTax() const;
 };

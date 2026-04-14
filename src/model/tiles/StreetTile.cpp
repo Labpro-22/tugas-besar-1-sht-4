@@ -202,3 +202,23 @@ void StreetTile::acquire(Game& game, Player& player) {
 string StreetTile::getColorGroup() const {
     return this->colorGroup;
 }
+
+int StreetTile::getHouseBuildCost() const {
+    return houseBuildCost;
+}
+
+int StreetTile::getHotelBuildCost() const {
+    return hotelBuildCost;
+}
+
+const vector<int>& StreetTile::getRentLevels() const {
+    return rentLevels;
+}
+
+int StreetTile::getFestivalMultiplier() const {
+    return festivalMultiplier;
+}
+
+int StreetTile::getFestivalDuration() const {
+    return festivalDuration;
+}

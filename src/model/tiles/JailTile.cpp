@@ -15,3 +15,8 @@ JailTile& JailTile::operator=(const JailTile& other) {
 }
 
 void JailTile::onLand(Game& game, Player& player) {}
+
+
+int JailTile::getJailFine() const {
+    return jailFine;
+}

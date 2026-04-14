@@ -20,4 +20,6 @@ public:
 
     virtual int calculateTax(const Game& game, const Player& player) const = 0;
     void onLand(Game& game, Player& player) override;
+
+    int getTaxAmount() const;
 };

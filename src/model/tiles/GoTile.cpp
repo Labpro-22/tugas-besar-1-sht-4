@@ -15,3 +15,7 @@ GoTile& GoTile::operator=(const GoTile& other) {
 }
 
 void GoTile::onLand(Game& game, Player& player) {}
+
+int GoTile::getSalary() const {
+    return salary;
+}
