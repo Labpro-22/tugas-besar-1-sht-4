@@ -31,6 +31,14 @@ public:
         PropertyConfig(const PropertyConfig& other);
         ~PropertyConfig();
         PropertyConfig& operator=(const PropertyConfig& other);
+
+        const string& getCode() const;
+        const string& getName() const;
+        int getPurchasePrice() const;
+        int getMortgageValue() const;
+        const string& getColorGroup() const;
+        int getHouseBuildCost() const;
+        int getHotelBuildCost() const;
     };
 
 private:
@@ -70,4 +78,18 @@ public:
     void loadTaxConfig(const string& filename);
     void loadSpecialConfig(const string& filename);
     void loadMiscConfig(const string& filename);
+
+    const map<string, PropertyConfig>& getPropertyConfigs() const;
+    const PropertyConfig& getPropertyConfig(const string& code) const;
+    const map<int, int>& getRailroadRentTable() const;
+    int getRailroadRent(int railroadCount) const;
+    const map<int, int>& getUtilityMultiplierTable() const;
+    int getUtilityMultiplier(int utilityCount) const;
+    int getPphFlat() const;
+    int getPphPercent() const;
+    int getPbmFlat() const;
+    int getGoSalary() const;
+    int getJailFine() const;
+    int getMaxTurn() const;
+    int getInitialBalance() const;
 };

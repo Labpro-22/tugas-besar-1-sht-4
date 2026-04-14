@@ -24,6 +24,34 @@ ConfigManager::PropertyConfig& ConfigManager::PropertyConfig::operator=(
     return *this;
 }
 
+const string& ConfigManager::PropertyConfig::getCode() const {
+    return code;
+}
+
+const string& ConfigManager::PropertyConfig::getName() const {
+    return name;
+}
+
+int ConfigManager::PropertyConfig::getPurchasePrice() const {
+    return purchasePrice;
+}
+
+int ConfigManager::PropertyConfig::getMortgageValue() const {
+    return mortgageValue;
+}
+
+const string& ConfigManager::PropertyConfig::getColorGroup() const {
+    return colorGroup;
+}
+
+int ConfigManager::PropertyConfig::getHouseBuildCost() const {
+    return houseBuildCost;
+}
+
+int ConfigManager::PropertyConfig::getHotelBuildCost() const {
+    return hotelBuildCost;
+}
+
 ConfigManager::ConfigManager() {}
 
 ConfigManager::ConfigManager(
@@ -60,3 +88,55 @@ void ConfigManager::loadTaxConfig(const string& filename) {}
 void ConfigManager::loadSpecialConfig(const string& filename) {}
 
 void ConfigManager::loadMiscConfig(const string& filename) {}
+
+const map<string, ConfigManager::PropertyConfig>& ConfigManager::getPropertyConfigs() const {
+    return propertyConfigs;
+}
+
+const ConfigManager::PropertyConfig& ConfigManager::getPropertyConfig(const string& code) const {
+    return propertyConfigs.at(code);
+}
+
+const map<int, int>& ConfigManager::getRailroadRentTable() const {
+    return railroadRentTable;
+}
+
+int ConfigManager::getRailroadRent(int railroadCount) const {
+    return railroadRentTable.at(railroadCount);
+}
+
+const map<int, int>& ConfigManager::getUtilityMultiplierTable() const {
+    return utilityMultiplierTable;
+}
+
+int ConfigManager::getUtilityMultiplier(int utilityCount) const {
+    return utilityMultiplierTable.at(utilityCount);
+}
+
+int ConfigManager::getPphFlat() const {
+    return pphFlat;
+}
+
+int ConfigManager::getPphPercent() const {
+    return pphPercent;
+}
+
+int ConfigManager::getPbmFlat() const {
+    return pbmFlat;
+}
+
+int ConfigManager::getGoSalary() const {
+    return goSalary;
+}
+
+int ConfigManager::getJailFine() const {
+    return jailFine;
+}
+
+int ConfigManager::getMaxTurn() const {
+    return maxTurn;
+}
+
+int ConfigManager::getInitialBalance() const {
+    return initialBalance;
+}
