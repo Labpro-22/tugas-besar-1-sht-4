@@ -11,21 +11,32 @@ IncomeTaxTile::IncomeTaxTile(
     int taxAmount,
     int flatTax,
     int percentageTax
-) {}
+)
+    : TaxTile(index, code, name, taxAmount),
+    flatTax(flatTax),
+    percentageTax(percentageTax)
+{}
 
-IncomeTaxTile::IncomeTaxTile(const IncomeTaxTile& other) {}
+IncomeTaxTile::IncomeTaxTile(const IncomeTaxTile& other)
+    : TaxTile(other),
+    flatTax(other.flatTax),
+    percentageTax(other.percentageTax)
+{}
 
 IncomeTaxTile::~IncomeTaxTile() {}
 
 IncomeTaxTile& IncomeTaxTile::operator=(const IncomeTaxTile& other) {
+    if (this != &other) {
+        TaxTile::operator=(other);
+        this->flatTax = other.flatTax;
+        this->percentageTax = other.percentageTax;
+    }
     return *this;
 }
 
-int IncomeTaxTile::calculateTax(const Game& game, const Player& player) const {
-    return 0;
+void IncomeTaxTile::onLand(Game& game, Player& player) {
+    // TODO : perhaps implement ui or something
 }
-
-void IncomeTaxTile::onLand(Game& game, Player& player) {}
 
 int IncomeTaxTile::getFlatTax() const {
     return flatTax;
@@ -33,4 +44,13 @@ int IncomeTaxTile::getFlatTax() const {
 
 int IncomeTaxTile::getPercentageTax() const {
     return percentageTax;
+}
+
+int IncomeTaxTile::calculateFlatTax() const {
+    return flatTax;
+}
+
+int IncomeTaxTile::calculatePercentageTax(const Game& game, const Player& player) const {
+    // TODO : Make sure that total wealth is money + buildings 
+    return player.getTotalWealth() * percentageTax / 100;
 }

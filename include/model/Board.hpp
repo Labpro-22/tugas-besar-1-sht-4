@@ -6,6 +6,8 @@
 #include <vector>
 #include <algorithm>
 #include "model/tiles/StreetTile.hpp"
+#include "model/tiles/RailroadTile.hpp"
+#include "model/tiles/UtilityTile.hpp"
 
 using namespace std;
 
@@ -30,4 +32,6 @@ public:
     int getNextPosition(int currentPos, int steps) const;
     int getBoardSize() const;
     vector<shared_ptr<StreetTile>> getStreetTileByColorGroup(const string& colorGroup) const;
+    int countRailroadsOwned(const Player& player) const;
+    int countUtilitiesOwned(const Player& player) const;
 };

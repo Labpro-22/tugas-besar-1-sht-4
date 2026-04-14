@@ -69,3 +69,19 @@ vector<shared_ptr<StreetTile>> Board::getStreetTileByColorGroup(const string& co
     }
     return temp;
 }
+
+int Board::countRailroadsOwned(const Player& player) const {
+    return count_if(tiles.begin(), tiles.end(), [&](const shared_ptr<Tile>& tile) {
+        shared_ptr<RailroadTile> railroad = dynamic_pointer_cast<RailroadTile>(tile);
+        if (railroad != nullptr) return railroad->getOwner() == &player;
+        return false;
+    });
+}
+
+int Board::countUtilitiesOwned(const Player& player) const {
+    return count_if(tiles.begin(), tiles.end(), [&](const shared_ptr<Tile>& tile) {
+        shared_ptr<UtilityTile> utility = dynamic_pointer_cast<UtilityTile>(tile);
+        if (utility != nullptr) return utility->getOwner() == &player;
+        return false;
+    });
+}

@@ -4,18 +4,27 @@ using namespace std;
 
 LuxuryTaxTile::LuxuryTaxTile() {}
 
-LuxuryTaxTile::LuxuryTaxTile(int index, const string& code, const string& name, int taxAmount) {}
+LuxuryTaxTile::LuxuryTaxTile(int index, const string& code, const string& name, int taxAmount)
+    : TaxTile(index, code, name, taxAmount)
+{}
 
-LuxuryTaxTile::LuxuryTaxTile(const LuxuryTaxTile& other) {}
+LuxuryTaxTile::LuxuryTaxTile(const LuxuryTaxTile& other)
+    : TaxTile(other)
+{}
 
 LuxuryTaxTile::~LuxuryTaxTile() {}
 
 LuxuryTaxTile& LuxuryTaxTile::operator=(const LuxuryTaxTile& other) {
+    if (this != &other) {
+        TaxTile::operator=(other);
+    }
     return *this;
 }
 
-int LuxuryTaxTile::calculateTax(const Game& game, const Player& player) const {
-    return 0;
+void LuxuryTaxTile::onLand(Game& game, Player& player) {
+    // TODO : do the ui and stuff, perhaps later with controller
 }
 
-void LuxuryTaxTile::onLand(Game& game, Player& player) {}
+int LuxuryTaxTile::calculateLuxuryTax() const {
+    return taxAmount;
+}

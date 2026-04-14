@@ -1,6 +1,7 @@
 #pragma once
 
 #include "model/tiles/OwnableTile.hpp"
+#include "model/Game.hpp"
 
 using namespace std;
 
