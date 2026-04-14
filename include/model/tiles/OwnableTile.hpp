@@ -47,4 +47,8 @@ public:
     void redeem();
     virtual int calculateRent(const Game& game, const Player& visitor) const = 0;
     virtual void acquire(Game& game, Player& player) = 0;
+
+    OwnershipStatus getOwnershipStatus() const;
+    int getPurchasePrice() const;
+    int getMortgageValue() const;
 };

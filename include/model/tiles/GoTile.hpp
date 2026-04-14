@@ -19,4 +19,6 @@ public:
     GoTile& operator=(const GoTile& other);
 
     void onLand(Game& game, Player& player) override;
+
+    int getSalary() const;
 };

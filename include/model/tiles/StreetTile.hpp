@@ -59,4 +59,10 @@ public:
     void activateFestival();
     void decrementFestivalDuration();
     void acquire(Game& game, Player& player) override;
+
+    int getHouseBuildCost() const;
+    int getHotelBuildCost() const;
+    const vector<int>& getRentLevels() const;
+    int getFestivalMultiplier() const;
+    int getFestivalDuration() const;
 };

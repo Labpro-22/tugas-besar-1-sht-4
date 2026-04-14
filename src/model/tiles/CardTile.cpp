@@ -15,3 +15,7 @@ CardTile& CardTile::operator=(const CardTile& other) {
 }
 
 void CardTile::onLand(Game& game, Player& player) {}
+
+const string& CardTile::getDeckType() const {
+    return deckType;
+}

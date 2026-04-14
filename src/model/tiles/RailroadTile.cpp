@@ -12,13 +12,20 @@ RailroadTile::RailroadTile(
     OwnershipStatus ownershipStatus,
     int purchasePrice,
     int mortgageValue
-) {}
+)
+    : OwnableTile(index, code, name, owner, ownershipStatus, purchasePrice, mortgageValue)
+{}
 
-RailroadTile::RailroadTile(const RailroadTile& other) {}
+RailroadTile::RailroadTile(const RailroadTile& other)
+    : OwnableTile(other)
+{}
 
 RailroadTile::~RailroadTile() {}
 
 RailroadTile& RailroadTile::operator=(const RailroadTile& other) {
+    if (this != &other) {
+        OwnableTile::operator=(other);
+    }
     return *this;
 }
 

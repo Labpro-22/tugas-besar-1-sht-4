@@ -139,10 +139,12 @@ bool StreetTile::canBuildHotel(const Game& game) const {
     return true;
 }
 
+// no error checking, check yourself
 void StreetTile::buildHouse() {
     buildingLevel++;
 }
 
+// no error checking, check yourself
 void StreetTile::buildHotel() {
     buildingLevel = 5;
 }
@@ -181,22 +183,42 @@ void StreetTile::activateFestival() {
 }
 
 void StreetTile::decrementFestivalDuration() {
-    if (festivalDuration == 0) throw InvalidTileException("Festival already 0");
-    festivalDuration--;
+    if (festivalDuration >= 0) festivalDuration--;
 }
 
-// TODO : finish
 void StreetTile::acquire(Game& game, Player& player) {
-    if (this->getOwner() != nullptr) throw InvalidTileException("Property already has an owner");
-    if (this->ownershipStatus != OwnershipStatus::BANK) throw InvalidTileException("Property is not in BANK status");
-    if (player.getMoney() < this->purchasePrice) throw InvalidTileException("User does not have enough money");
+    if (this->getOwner() != nullptr) throw InvalidActionException("Property already has an owner");
+    if (this->ownershipStatus != OwnershipStatus::BANK) throw InvalidActionException("Property is not in BANK status");
+    if (player.getMoney() < this->purchasePrice) throw InsufficientFundsException(this->purchasePrice, player.getMoney());
     player.deductMoney(this->purchasePrice);
-    this->setOwner(player);
-    
+    this->setOwner(&player);
+    this->ownershipStatus = OwnershipStatus::OWNED;
+    player.addProperty(this);
+    // TODO : might add log, check later
 
     
 }
 
 string StreetTile::getColorGroup() const {
     return this->colorGroup;
+}
+
+int StreetTile::getHouseBuildCost() const {
+    return houseBuildCost;
+}
+
+int StreetTile::getHotelBuildCost() const {
+    return hotelBuildCost;
+}
+
+const vector<int>& StreetTile::getRentLevels() const {
+    return rentLevels;
+}
+
+int StreetTile::getFestivalMultiplier() const {
+    return festivalMultiplier;
+}
+
+int StreetTile::getFestivalDuration() const {
+    return festivalDuration;
 }

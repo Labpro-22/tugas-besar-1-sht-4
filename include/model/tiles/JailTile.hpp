@@ -19,4 +19,6 @@ public:
     JailTile& operator=(const JailTile& other);
 
     void onLand(Game& game, Player& player) override;
+
+    int getJailFine() const;
 };

@@ -65,3 +65,15 @@ void OwnableTile::mortgage() {
 void OwnableTile::redeem() {
     this->ownershipStatus = OwnershipStatus::OWNED;
 }
+
+OwnershipStatus OwnableTile::getOwnershipStatus() const {
+    return ownershipStatus;
+}
+
+int OwnableTile::getPurchasePrice() const {
+    return purchasePrice;
+}
+
+int OwnableTile::getMortgageValue() const {
+    return mortgageValue;
+}
