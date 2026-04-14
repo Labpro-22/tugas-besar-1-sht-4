@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 
@@ -50,8 +51,6 @@ public:
 
     const string& getUsername() const;
     int getMoney() const;
-    void addMoney(int amount);
-    void deductMoney(int amount);
     void moveTo(int position);
     void addProperty(OwnableTile* property);
     void removeProperty(OwnableTile* property);
