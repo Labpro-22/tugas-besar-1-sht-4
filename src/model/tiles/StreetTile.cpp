@@ -222,3 +222,13 @@ int StreetTile::getFestivalMultiplier() const {
 int StreetTile::getFestivalDuration() const {
     return festivalDuration;
 }
+
+int StreetTile::getBuildingValue() const  {
+    if (buildingLevel >= 1 && buildingLevel <= 4) return buildingLevel * houseBuildCost;
+    if (buildingLevel == 5) return hotelBuildCost;
+    return 0;
+}
+
+int StreetTile::getSelltoBankValue() const  {
+    return purchasePrice + getBuildingValue() / 2;
+}

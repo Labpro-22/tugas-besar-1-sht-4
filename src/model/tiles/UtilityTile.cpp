@@ -29,3 +29,11 @@ int UtilityTile::calculateRent(const Game& game, const Player& visitor) const {
 void UtilityTile::onLand(Game& game, Player& player) {}
 
 void UtilityTile::acquire(Game& game, Player& player) {}
+
+int UtilityTile::getBuildingValue() const {
+    return 0;
+}
+
+int UtilityTile::getSelltoBankValue() const {
+    return purchasePrice;
+}

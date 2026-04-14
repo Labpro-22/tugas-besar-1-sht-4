@@ -36,3 +36,11 @@ int RailroadTile::calculateRent(const Game& game, const Player& visitor) const {
 void RailroadTile::onLand(Game& game, Player& player) {}
 
 void RailroadTile::acquire(Game& game, Player& player) {}
+
+int RailroadTile::getBuildingValue() const {
+    return 0;
+}
+
+int RailroadTile::getSelltoBankValue() const {
+    return purchasePrice;
+}

@@ -51,4 +51,7 @@ public:
     OwnershipStatus getOwnershipStatus() const;
     int getPurchasePrice() const;
     int getMortgageValue() const;
+
+    virtual int getBuildingValue() const = 0;
+    virtual int getSelltoBankValue() const = 0;
 };

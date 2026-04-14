@@ -65,4 +65,7 @@ public:
     const vector<int>& getRentLevels() const;
     int getFestivalMultiplier() const;
     int getFestivalDuration() const;
+
+    int getBuildingValue() const override;
+    int getSelltoBankValue() const override;
 };

@@ -26,4 +26,7 @@ public:
     int calculateRent(const Game& game, const Player& visitor) const override;
     void onLand(Game& game, Player& player) override;
     void acquire(Game& game, Player& player) override;
+
+    int getBuildingValue() const override;
+    int getSelltoBankValue() const override;
 };
