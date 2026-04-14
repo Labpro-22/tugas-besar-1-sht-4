@@ -75,21 +75,56 @@ public:
     void loadGame(const string& filename);
 
     Player& getCurrentPlayer();
+    const Player& getCurrentPlayer() const;
+
     Board& getBoard();
+    const Board& getBoard() const;
+
     TurnManager& getTurnManager();
+    const TurnManager& getTurnManager() const;
+
     MovementManager& getMovementManager();
+    const MovementManager& getMovementManager() const;
+
     PropertyManager& getPropertyManager();
+    const PropertyManager& getPropertyManager() const;
+
     AuctionManager& getAuctionManager();
+    const AuctionManager& getAuctionManager() const;
+
     CardManager& getCardManager();
+    const CardManager& getCardManager() const;
+
     JailManager& getJailManager();
+    const JailManager& getJailManager() const;
+
     BankruptcyManager& getBankruptcyManager();
+    const BankruptcyManager& getBankruptcyManager() const;
+
     SaveLoadManager& getSaveLoadManager();
+    const SaveLoadManager& getSaveLoadManager() const;
+
     ConfigManager& getConfigManager();
+    const ConfigManager& getConfigManager() const;
+
     LogManager& getLogManager();
+    const LogManager& getLogManager() const;
+
     TaxManager& getTaxManager();
+    const TaxManager& getTaxManager() const;
+
     FestivalManager& getFestivalManager();
+    const FestivalManager& getFestivalManager() const;
+
     WinConditionManager& getWinConditionManager();
+    const WinConditionManager& getWinConditionManager() const;
+
     Dice& getDice();
+    const Dice& getDice() const;
+
     vector<Player>& getPlayers();
+    const vector<Player>& getPlayers() const;
+
     bool isGameOver();
+    bool isGameOver() const;
 };

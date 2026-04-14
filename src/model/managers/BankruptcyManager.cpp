@@ -40,7 +40,7 @@ bool BankruptcyManager::hasLiquidationOptions(const Game& game, const Player& pl
     return false;
 }
 
-bool BankruptcyManager::isBankruptcyActive(){
+bool BankruptcyManager::isBankruptcyActive() const {
     return bankruptcyActive;
 }
 

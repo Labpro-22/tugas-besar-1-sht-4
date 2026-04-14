@@ -140,7 +140,15 @@ Board& Game::getBoard() {
     return board;
 }
 
+const Board& Game::getBoard() const {
+    return board;
+}
+
 TurnManager& Game::getTurnManager() {
+    return turnManager;
+}
+
+const TurnManager& Game::getTurnManager() const {
     return turnManager;
 }
 
@@ -148,7 +156,15 @@ MovementManager& Game::getMovementManager() {
     return movementManager;
 }
 
+const MovementManager& Game::getMovementManager() const {
+    return movementManager;
+}
+
 PropertyManager& Game::getPropertyManager() {
+    return propertyManager;
+}
+
+const PropertyManager& Game::getPropertyManager() const {
     return propertyManager;
 }
 
@@ -156,7 +172,15 @@ AuctionManager& Game::getAuctionManager() {
     return auctionManager;
 }
 
+const AuctionManager& Game::getAuctionManager() const {
+    return auctionManager;
+}
+
 CardManager& Game::getCardManager() {
+    return cardManager;
+}
+
+const CardManager& Game::getCardManager() const {
     return cardManager;
 }
 
@@ -164,7 +188,15 @@ JailManager& Game::getJailManager() {
     return jailManager;
 }
 
+const JailManager& Game::getJailManager() const {
+    return jailManager;
+}
+
 BankruptcyManager& Game::getBankruptcyManager() {
+    return bankruptcyManager;
+}
+
+const BankruptcyManager& Game::getBankruptcyManager() const {
     return bankruptcyManager;
 }
 
@@ -172,7 +204,15 @@ SaveLoadManager& Game::getSaveLoadManager() {
     return saveLoadManager;
 }
 
+const SaveLoadManager& Game::getSaveLoadManager() const {
+    return saveLoadManager;
+}
+
 ConfigManager& Game::getConfigManager() {
+    return configManager;
+}
+
+const ConfigManager& Game::getConfigManager() const {
     return configManager;
 }
 
@@ -180,7 +220,15 @@ LogManager& Game::getLogManager() {
     return logManager;
 }
 
+const LogManager& Game::getLogManager() const {
+    return logManager;
+}
+
 TaxManager& Game::getTaxManager() {
+    return taxManager;
+}
+
+const TaxManager& Game::getTaxManager() const {
     return taxManager;
 }
 
@@ -188,7 +236,15 @@ FestivalManager& Game::getFestivalManager() {
     return festivalManager;
 }
 
+const FestivalManager& Game::getFestivalManager() const {
+    return festivalManager;
+}
+
 WinConditionManager& Game::getWinConditionManager() {
+    return winConditionManager;
+}
+
+const WinConditionManager& Game::getWinConditionManager() const {
     return winConditionManager;
 }
 
@@ -196,10 +252,22 @@ Dice& Game::getDice() {
     return dice;
 }
 
+const Dice& Game::getDice() const {
+    return dice;
+}
+
 vector<Player>& Game::getPlayers() {
     return players;
 }
 
+const vector<Player>& Game::getPlayers() const {
+    return players;
+}
+
 bool Game::isGameOver() {
+    return getBankruptcyManager().isBankruptcyActive() || currentTurn >= maxTurn;
+}
+
+bool Game::isGameOver() const {
     return getBankruptcyManager().isBankruptcyActive() || currentTurn >= maxTurn;
 }

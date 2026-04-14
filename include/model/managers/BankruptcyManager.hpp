@@ -37,7 +37,7 @@ public:
     void processDebtToBank(Game& game, Player& debtor, int amount);
     bool isDebtCovered(const Player& player) const;
     bool hasLiquidationOptions(const Game& game, const Player& player) const;
-    bool isBankruptcyActive();
+    bool isBankruptcyActive() const;
     void settleDebt(Game& game, Player& debtor);
     void declareBankrupt(Game& game, Player& debtor, shared_ptr<Player> creditor);
     void beginBankruptcySession(Game& game, Player& player, shared_ptr<Player> creditor, int amount, bool debtToBank);
