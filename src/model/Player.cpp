@@ -116,12 +116,16 @@ bool Player::isJailed() const {
 }
 
 void Player::setJailed(bool jailed) {
-    this->status = PlayerStatus::JAILED;
+    if (jailed) {
+        this->status = PlayerStatus::JAILED;
+    } else {
+        this->status = PlayerStatus::ACTIVE;
+    }
 }
 
 int Player::getTotalWealth() const {
     //TODO : hitungn total wealth dengan hitung money + harga tiap properti
-
+    int wealth = money;
     // int wealth = money;
     // for (const auto& property : ownedProperties) {
     //     wealth += property->purchasePrice;
@@ -171,4 +175,12 @@ bool Player::operator<(const Player& other) const {
         return this->money < other.money;
     }
     return false;
+}
+
+vector<OwnableTile*> Player::getOwnedProperties() const {
+    return ownedProperties;
+}
+
+vector<shared_ptr<HandCard>> Player::getHandCards() const {
+    return handCards;
 }

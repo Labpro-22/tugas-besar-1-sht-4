@@ -5,9 +5,9 @@
 
 using namespace std;
 
-class Game;
-class Player;
-class StreetTile;
+#include "model/tiles/StreetTile.hpp"
+#include "model/Player.hpp"
+#include "model/Game.hpp"
 
 class AuctionManager {
 private:

@@ -4,12 +4,12 @@
 #include <string>
 #include <vector>
 
+#include "model/tiles/OwnableTile.hpp"
+#include "model/tiles/StreetTile.hpp"
+#include "model/Player.hpp"
+#include "model/Game.hpp"
 using namespace std;
 
-class Game;
-class Player;
-class OwnableTile;
-class StreetTile;
 
 class PropertyManager {
 public:

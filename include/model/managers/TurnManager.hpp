@@ -4,8 +4,8 @@
 
 using namespace std;
 
-class Game;
-class Player;
+#include "model/Game.hpp"
+#include "model/Player.hpp"
 
 class TurnManager {
 private:
