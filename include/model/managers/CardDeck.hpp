@@ -19,11 +19,41 @@ public:
     ~CardDeck() = default;
     CardDeck<T>& operator=(const CardDeck<T>& other) = default;
 
-    void addCard(shared_ptr<T> card) {}
-    shared_ptr<T> drawCard() { return nullptr; }
-    void discardCard(shared_ptr<T> card) {}
-    void shuffle() {}
-    void reshuffleDiscardIntoDrawPile() {}
-    bool isEmpty() const { return false; }
-    int size() const { return 0; }
+    void addCard(shared_ptr<T> card) {
+        drawPile.push_back(card);
+    }
+    shared_ptr<T> drawCard() {
+        if(drawPile.empty()) {
+            reshuffleDiscardIntoDrawPile();
+        }
+        shared_ptr<T> card = drawPile.back();
+        drawPile.pop_back();
+        return card;
+    }
+    void discardCard(shared_ptr<T> card) {
+        discardPile.push_back(card);
+    }
+
+    void shuffle() {
+        for (int i = (int)drawPile.size() - 1; i > 0; i--) {
+            int j = rand() % (i + 1);
+            swap(drawPile[i], drawPile[j]);
+        }
+    }
+
+    void reshuffleDiscardIntoDrawPile() {
+        for (auto& card : discardPile) {
+            drawPile.push_back(card);
+        }
+        discardPile.clear();
+        shuffle();
+    }
+
+    bool isEmpty() const {
+        return drawPile.empty();
+    }
+
+    int size() const {
+        return (int)drawPile.size();
+    }
 };
