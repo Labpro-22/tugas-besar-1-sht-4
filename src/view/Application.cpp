@@ -3,7 +3,7 @@
 using namespace std;
 
 Application::Application()
-    : controller(game, uiManager) {}
+    : controller(game, uiManager), running(true) {}
 
 Application::Application(Game game, UIManager uiManager, bool running)
     : game(game), uiManager(uiManager), controller(this->game, this->uiManager), running(running) {}
@@ -14,21 +14,63 @@ Application::Application(const Application& other)
 Application::~Application() {}
 
 Application& Application::operator=(const Application& other) {
+    if (this != &other) {
+        game = other.game;
+        uiManager = other.uiManager;
+        running = other.running;
+        controller = GameController(game, uiManager);
+    }
     return *this;
 }
 
-void Application::run() {}
+void Application::run() {
+    initialize();
 
-void Application::initialize() {}
+    while (running) {
+        showMainMenu();
+        int choice = getMainMenuChoice();
 
-void Application::showMainMenu() {}
-
-int Application::getMainMenuChoice() {
-    return 0;
+        switch (choice) {
+            case 1:
+                handleNewGame();
+                break;
+            case 2:
+                handleLoadGame();
+                break;
+            case 3:
+                exitApplication();
+                break;
+            default:
+                uiManager.printError("Pilihan tidak valid.");
+                break;
+        }
+    }
 }
 
-void Application::handleNewGame() {}
+void Application::initialize() {
+    running = true;
+}
 
-void Application::handleLoadGame() {}
+void Application::showMainMenu() {
+    uiManager.showMainMenu();
+}
 
-void Application::exitApplication() {}
+int Application::getMainMenuChoice() {
+    return uiManager.readMainMenuChoice();
+}
+
+void Application::handleNewGame() {
+    game.startNewGame();
+    controller.runGameLoop();
+}
+
+void Application::handleLoadGame() {
+    string filename = uiManager.readFilename();
+    game.loadGame(filename);
+    controller.runGameLoop();
+}
+
+void Application::exitApplication() {
+    running = false;
+    uiManager.printMessage("Terima kasih telah bermain.");
+}

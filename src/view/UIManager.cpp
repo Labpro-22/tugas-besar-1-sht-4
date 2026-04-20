@@ -1,5 +1,8 @@
 #include "view/UIManager.hpp"
 
+#include <iostream>
+#include <limits>
+
 using namespace std;
 
 UIManager::UIManager() {}
@@ -9,30 +12,105 @@ UIManager::UIManager(const UIManager& other) {}
 UIManager::~UIManager() {}
 
 UIManager& UIManager::operator=(const UIManager& other) {
+    if (this != &other) {
+    }
     return *this;
 }
 
-void UIManager::showMainMenu() const {}
+void UIManager::showMainMenu() const {
+    cout << "=================================\n";
+    cout << "        NIMONSPOLI CLI\n";
+    cout << "=================================\n";
+    cout << "1. New Game\n";
+    cout << "2. Load Game\n";
+    cout << "3. Exit\n";
+    cout << "=================================\n";
+}
 
 int UIManager::readMainMenuChoice() const {
-    return 0;
+    int choice;
+
+    while (true) {
+        cout << "Pilih menu (1-3): ";
+        cin >> choice;
+
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Input harus berupa angka.\n";
+            continue;
+        }
+
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        if (choice >= 1 && choice <= 3) {
+            return choice;
+        }
+
+        cout << "Pilihan hanya boleh 1 sampai 3.\n";
+    }
 }
 
 int UIManager::readPlayerCount() const {
-    return 0;
+    int count;
+
+    while (true) {
+        cout << "Masukkan jumlah pemain (2-4): ";
+        cin >> count;
+
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Input harus berupa angka.\n";
+            continue;
+        }
+
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        if (count >= 2 && count <= 4) {
+            return count;
+        }
+
+        cout << "Jumlah pemain harus antara 2 sampai 4.\n";
+    }
 }
 
 vector<string> UIManager::readUsernames(int playerCount) const {
-    return {};
+    vector<string> usernames;
+
+    for (int i = 0; i < playerCount; i++) {
+        string username;
+
+        while (true) {
+            cout << "Masukkan username pemain " << (i + 1) << ": ";
+            getline(cin, username);
+
+            if (!username.empty()) {
+                usernames.push_back(username);
+                break;
+            }
+
+            cout << "Username tidak boleh kosong.\n";
+        }
+    }
+
+    return usernames;
 }
 
 string UIManager::readCommand() const {
-    return "";
+    string command;
+    cout << "> ";
+    getline(cin, command);
+    return command;
 }
 
-void UIManager::printMessage(const string& msg) const {}
+void UIManager::printMessage(const string& msg) const {
+    cout << msg << '\n';
+}
 
-void UIManager::printError(const string& msg) const {}
+void UIManager::printError(const string& msg) const {
+    cerr << "Error: " << msg << '\n';
+}
 
 void UIManager::printBoard(const Game& game) const {}
 
@@ -137,7 +215,18 @@ int UIManager::readJailChoice() const {
 }
 
 string UIManager::readFilename() const {
-    return "";
+    string filename;
+
+    while (true) {
+        cout << "Masukkan nama file: ";
+        getline(cin, filename);
+
+        if (!filename.empty()) {
+            return filename;
+        }
+
+        cout << "Nama file tidak boleh kosong.\n";
+    }
 }
 
 bool UIManager::confirmOverwrite(const string& filename) const {
