@@ -6,9 +6,9 @@
 
 using namespace std;
 
-class Game;
-class Player;
-class OwnableTile;
+#include "model/Game.hpp"
+#include "model/Player.hpp"`
+#include "model/tiles/OwnableTile.hpp"
 
 class BankruptcyManager {
 private:

@@ -2,9 +2,9 @@
 
 using namespace std;
 
-class Game;
-class Player;
-class StreetTile;
+#include "model/Game.hpp"
+#include "model/Player.hpp"
+#include "model/tiles/StreetTile.hpp"
 
 class FestivalManager {
 public:

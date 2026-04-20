@@ -2,28 +2,49 @@
 
 using namespace std;
 
+// not used?
 WinConditionManager::WinConditionManager() {}
-
+// not used?
 WinConditionManager::WinConditionManager(const WinConditionManager& other) {}
-
+// not used?
 WinConditionManager::~WinConditionManager() {}
-
+// not used?
 WinConditionManager& WinConditionManager::operator=(const WinConditionManager& other) {
     return *this;
 }
 
 bool WinConditionManager::isGameOver(const Game& game) const {
-    return false;
+    if (onlyOnePlayerLeft(game)) {
+        return true;
+    }
+    // cek turn belum ditambahin
+    // if (game.getTurn() >= game.getMaxTurns()) {
+    return true;
 }
 
 bool WinConditionManager::reachedMaxTurn(const Game& game) const {
+    if (game.currentTurn >= game.maxTurn) {
+        return true;
+    }
     return false;
 }
 
 bool WinConditionManager::onlyOnePlayerLeft(const Game& game) const {
-    return false;
+    int remainingPlayers = 0;
+    for (const Player& player : game.getPlayers()) {
+        if (!player.isBankrupt()) {
+            remainingPlayers++;
+        }
+    }
+    return remainingPlayers == 1;
 }
 
 vector<Player*> WinConditionManager::determineWinners(Game& game) const {
-    return {};
+    vector<Player*> winners;
+    for (const Player& player : game.getPlayers()) {
+        if (!player.isBankrupt()) {
+            winners.push_back(const_cast<Player*>(&player));
+        }
+    }
+    return winners;
 }

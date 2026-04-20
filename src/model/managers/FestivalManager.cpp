@@ -2,20 +2,30 @@
 
 using namespace std;
 
+//not used?
 FestivalManager::FestivalManager() {}
-
+//not used?
 FestivalManager::FestivalManager(const FestivalManager& other) {}
-
+//not used?
 FestivalManager::~FestivalManager() {}
-
+//not used?
 FestivalManager& FestivalManager::operator=(const FestivalManager& other) {
     return *this;
 }
 
-void FestivalManager::activateFestival(Game& game, Player& player, StreetTile& tile) {}
+void FestivalManager::activateFestival(Game& game, Player& player, StreetTile& tile) {
+    tile.activateFestival();
+}
 
 void FestivalManager::strengthenFestival(StreetTile& tile) {}
 
-void FestivalManager::decrementFestivalDurations(Player& owner) {}
+void FestivalManager::decrementFestivalDurations(Player& owner) {
+    for (OwnableTile* property : owner.getOwnedProperties()) {
+        StreetTile* street = dynamic_cast<StreetTile*>(property);
+        if (street != nullptr) {
+            street->decrementFestivalDuration();
+        }
+    }
+}
 
 void FestivalManager::clearExpiredFestival(StreetTile& tile) {}
