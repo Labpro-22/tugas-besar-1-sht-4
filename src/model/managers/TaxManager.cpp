@@ -14,13 +14,13 @@ TaxManager& TaxManager::operator=(const TaxManager& other) {
 }
 
 
-int TaxManager::calculateTotalWealth(const Game& game, const Player& player) const {
+int TaxManager::calculateTotalWealth(const Player& player) const {
     return player.getTotalWealth();
 }
 
-void TaxManager::processTaxPayment(Game& game, Player& player, int taxAmount) {
+void TaxManager::processTaxPayment(Player& player, int taxAmount) {
     if (taxAmount > player.getMoney()) {
-        throw InsufficientFundsException(taxAmount, player.getMoney());
+        throw ForcedInsufficientFundsException(taxAmount, player.getMoney());
     }
     player -= taxAmount;
 }

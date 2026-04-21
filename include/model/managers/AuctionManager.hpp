@@ -6,8 +6,7 @@
 using namespace std;
 
 #include "model/tiles/StreetTile.hpp"
-#include "model/Player.hpp"
-#include "model/Game.hpp"
+#include "model/GameContext.hpp"
 
 class AuctionManager {
 private:
@@ -38,7 +37,7 @@ public:
     ~AuctionManager();
     AuctionManager& operator=(const AuctionManager& other);
 
-    void initializeAuction(Game& game, StreetTile& tile, Player* triggerPlayer);
+    void initializeAuction(GameContext& gameContext, StreetTile& tile, Player* triggerPlayer);
     Player* getCurrentAuctionPlayer() const;
     bool canBid(const Player& player, int amount) const;
     void placeBid(Player& player, int amount);
@@ -46,6 +45,6 @@ public:
     void pass(Player& player);
     bool isAuctionOver() const;
     void advanceToNextAuctionPlayer();
-    void finalizeAuction(Game& game, StreetTile& tile);
+    void finalizeAuction(StreetTile& tile);
     bool requiresForcedOpeningBid() const;
 };

@@ -2,8 +2,8 @@
 
 using namespace std;
 
-class Game;
-class Player;
+#include "model/GameContext.hpp"
+#include "model/NimonException.hpp"
 
 class TaxManager {
 public:
@@ -12,6 +12,6 @@ public:
     ~TaxManager();
     TaxManager& operator=(const TaxManager& other);
 
-    int calculateTotalWealth(const Game& game, const Player& player) const;
-    void processTaxPayment(Game& game, Player& player, int taxAmount);
+    int calculateTotalWealth(const Player& player) const;
+    void processTaxPayment(Player& player, int taxAmount);
 };

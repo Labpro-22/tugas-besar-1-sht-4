@@ -4,8 +4,7 @@
 
 using namespace std;
 
-#include "model/Game.hpp"
-#include "model/Player.hpp"
+#include "model/GameContext.hpp"
 
 class TurnManager {
 private:
@@ -23,11 +22,11 @@ public:
     TurnManager& operator=(const TurnManager& other);
 
     void initializeTurnOrder(int playerCount);
-    Player& getCurrentPlayer(Game& game);
-    void nextPlayer(Game& game);
-    void startTurn(Game& game);
-    void endTurn(Game& game);
+    Player& getCurrentPlayer(GameContext& gameContext);
+    void nextPlayer(GameContext& gameContext);
+    void startTurn(GameContext& gameContext);
+    void endTurn(GameContext& gameContext);
     void registerDiceResult(bool isDouble);
     bool canRollDice() const;
-    void updateTurnEffects(Game& game, Player& player);
+    void updateTurnEffects(GameContext& gameContext, Player& player);
 };

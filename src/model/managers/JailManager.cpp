@@ -16,17 +16,18 @@ JailManager& JailManager::operator=(const JailManager& other) {
     return *this;
 }
 
-void JailManager::sendToJail(Game& game, Player& player) {
+void JailManager::sendToJail(Player& player) {
     player.setJailed(true);
 }
 
-void JailManager::payJailFine(Game& game, Player& player) {
-    //TODO : check amount
-    player -= 
+void JailManager::payJailFine(Player& player, int amount) {
+    if (player.getMoney() < amount){
+        throw ForcedInsufficientFundsException(amount, player.getMoney());
+    }
+    player -= amount;
 }
 
-bool JailManager::tryRollForRelease(Game& game, Player& player) {
-    Dice& dice = game.getDice();
+bool JailManager::tryRollForRelease(Dice& dice, Player& player) {
     dice.roll();
     if (dice.isDouble()) {
         releaseFromJail(player);
@@ -39,6 +40,6 @@ void JailManager::releaseFromJail(Player& player) {
     player.setJailed(false);
 }
 
-void JailManager::beginJailDecision(Game& game, Player& player) {}
+void JailManager::beginJailDecision(Player& player) {}
 
-void JailManager::resolveJailDecision(Game& game, Player& player, const string& action) {}
+void JailManager::resolveJailDecision(Player& player, const string& action) {}

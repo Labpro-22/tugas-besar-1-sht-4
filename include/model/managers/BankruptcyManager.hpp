@@ -6,8 +6,7 @@
 
 using namespace std;
 
-#include "model/Game.hpp"
-#include "model/Player.hpp"`
+#include "model/GameContext.hpp"
 #include "model/tiles/OwnableTile.hpp"
 
 class BankruptcyManager {
@@ -33,15 +32,13 @@ public:
 
     bool canCoverDebt(const Player& player, int amount) const;
     int estimateLiquidationValue(const Player& player) const;
-    void processDebtToPlayer(Game& game, Player& debtor, Player& creditor, int amount);
-    void processDebtToBank(Game& game, Player& debtor, int amount);
+    void processDebtToPlayer(Player& debtor, Player& creditor, int amount);
+    void processDebtToBank(Player& debtor, int amount);
     bool isDebtCovered(const Player& player) const;
-    bool hasLiquidationOptions(const Game& game, const Player& player) const;
+    bool hasLiquidationOptions(const Player& player) const;
     bool isBankruptcyActive() const;
-    void settleDebt(Game& game, Player& debtor);
-    void declareBankrupt(Game& game, Player& debtor, Player* creditor);
-    void beginBankruptcySession(Game& game, Player& player, Player* creditor, int amount, bool debtToBank);
-    vector<shared_ptr<OwnableTile>> getSellableProperties(const Game& game, const Player& player) const;
-    vector<shared_ptr<OwnableTile>> getMortgageableProperties(const Game& game, const Player& player) const;
-    void resolveLiquidationAction(Game& game, Player& player, const string& action);
+    void settleDebt(Player& debtor);
+    void declareBankrupt(Player& debtor, Player* creditor);
+    void beginBankruptcySession(Player& player, Player* creditor, int amount, bool debtToBank);
+    void resolveLiquidationAction(Player& player, const string& action);
 };

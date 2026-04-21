@@ -56,11 +56,11 @@ AuctionManager& AuctionManager::operator=(const AuctionManager& other) {
     return *this;
 }
 
-void AuctionManager::initializeAuction(Game& game, StreetTile& tile, Player* triggerPlayer) {
+void AuctionManager::initializeAuction(GameContext& gameContext, StreetTile& tile, Player* triggerPlayer) {
     this->currentBid = 0;
     this->highestBidder = nullptr;
     this->participants.clear();
-    for (Player& player : game.getPlayers()) {
+    for (Player& player : gameContext.getPlayers()) {
         if (!player.isBankrupt()) {
             participants.push_back(&player);
         }
@@ -109,7 +109,7 @@ void AuctionManager::advanceToNextAuctionPlayer() {
     currentAuctionPlayerIndex = (currentAuctionPlayerIndex + 1) % participants.size();
 }
 
-void AuctionManager::finalizeAuction(Game& game, StreetTile& tile) {
+void AuctionManager::finalizeAuction(StreetTile& tile) {
     if (hasAnyBid && highestBidder != nullptr) {
         *highestBidder -= currentBid;
         tile.setOwner(highestBidder);

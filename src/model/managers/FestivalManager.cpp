@@ -13,11 +13,13 @@ FestivalManager& FestivalManager::operator=(const FestivalManager& other) {
     return *this;
 }
 
-void FestivalManager::activateFestival(Game& game, Player& player, StreetTile& tile) {
+void FestivalManager::activateFestival(StreetTile& tile) {
     tile.activateFestival();
 }
 
-void FestivalManager::strengthenFestival(StreetTile& tile) {}
+void FestivalManager::strengthenFestival(StreetTile& tile) {
+    tile.activateFestival();
+}
 
 void FestivalManager::decrementFestivalDurations(Player& owner) {
     for (OwnableTile* property : owner.getOwnedProperties()) {

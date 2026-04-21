@@ -4,8 +4,7 @@
 
 using namespace std;
 
-class Game;
-class Player;
+#include "Game.hpp"
 
 class JailManager {
 public:
@@ -14,10 +13,10 @@ public:
     ~JailManager();
     JailManager& operator=(const JailManager& other);
 
-    void sendToJail(Game& game, Player& player);
-    void payJailFine(Game& game, Player& player);
-    bool tryRollForRelease(Game& game, Player& player);
+    void sendToJail(Player& player);
+    void payJailFine(Player& player, int amount);
+    bool tryRollForRelease(Player& player);
     void releaseFromJail(Player& player);
-    void beginJailDecision(Game& game, Player& player);
-    void resolveJailDecision(Game& game, Player& player, const string& action);
+    void beginJailDecision(Player& player);
+    void resolveJailDecision(Player& player, const string& action);
 };

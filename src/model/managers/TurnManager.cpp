@@ -29,25 +29,31 @@ TurnManager& TurnManager::operator=(const TurnManager& other) {
 }
 
 void TurnManager::initializeTurnOrder(int playerCount) {
-
+    vector<int> order(playerCount);
+    for (int i = 0; i < playerCount; i++) {
+        order[i] = i;
+    }
 }
 
-Player& TurnManager::getCurrentPlayer(Game& game) {
-    return game.getPlayers().at(turnOrder.at(currentPlayerIndex));  
+Player& TurnManager::getCurrentPlayer(GameContext& gameContext) {
+    return gameContext.getPlayers().at(turnOrder.at(currentPlayerIndex));  
     // // CHECK (?)
     // throw;
 }
 
-void TurnManager::nextPlayer(Game& game) {
-
+void TurnManager::nextPlayer(GameContext& gameContext) {
+    // initialize next player. Tergantung turnCount
 }
 
-void TurnManager::startTurn(Game& game) {}
+void TurnManager::startTurn(GameContext& gameContext) {}
 
-void TurnManager::endTurn(Game& game) {
+void TurnManager::endTurn(GameContext& gameContext) {
+    if (currentPlayerIndex == turnOrder.back()){
+        gameContext.setCurrentTurn(gameContext.getCurrentTurn()+1);
+    }
     rolledThisTurn = true;
     consecutiveDoubles = 0;
-
+    nextPlayer(gameContext);
 }
 
 void TurnManager::registerDiceResult(bool isDouble) {
@@ -63,6 +69,6 @@ bool TurnManager::canRollDice() const {
     return (!rolledThisTurn);
 }
 
-void TurnManager::updateTurnEffects(Game& game, Player& player) {
+void TurnManager::updateTurnEffects(GameContext& gameContext, Player& player) {
 
 }

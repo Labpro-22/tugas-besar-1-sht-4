@@ -6,8 +6,7 @@
 
 #include "model/tiles/OwnableTile.hpp"
 #include "model/tiles/StreetTile.hpp"
-#include "model/Player.hpp"
-#include "model/Game.hpp"
+#include "model/GameContext.hpp"
 using namespace std;
 
 
@@ -18,14 +17,14 @@ public:
     ~PropertyManager();
     PropertyManager& operator=(const PropertyManager& other);
 
-    void payRent(Game& game, Player& player, OwnableTile& tile);
-    void mortgageProperty(Game& game, Player& player, OwnableTile& tile);
-    void redeemProperty(Game& game, Player& player, OwnableTile& tile);
-    void buildOnStreet(Game& game, Player& player, StreetTile& tile);
-    void sellBuildingsInColorGroup(Game& game, Player& player, const string& colorGroup);
-    bool canMortgage(const Game& game, const Player& player, const OwnableTile& tile) const;
-    bool canBuild(const Game& game, const Player& player, const StreetTile& tile) const;
-    void sellPropertyToBank(Game& game, Player& player, OwnableTile& tile);
+    void payRent(Player& player, OwnableTile& tile);
+    void mortgageProperty(Player& player, OwnableTile& tile);
+    void redeemProperty(Player& player, OwnableTile& tile);
+    void buildOnStreet(Player& player, StreetTile& tile);
+    void sellBuildingsInColorGroup(Player& player, const string& colorGroup);
+    bool canMortgage(const Player& player, const OwnableTile& tile) const;
+    bool canBuild(const Player& player, const StreetTile& tile) const;
+    void sellPropertyToBank(Player& player, OwnableTile& tile);
     int calculateSellToBankValue(const OwnableTile& tile) const;
     vector<shared_ptr<OwnableTile>> getMortgageableProperties(const Game& game, const Player& player) const;
     vector<shared_ptr<OwnableTile>> getRedeemableProperties(const Game& game, const Player& player) const;

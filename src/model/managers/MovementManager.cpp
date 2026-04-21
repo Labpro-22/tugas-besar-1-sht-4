@@ -12,16 +12,26 @@ MovementManager& MovementManager::operator=(const MovementManager& other) {
     return *this;
 }
 
-void MovementManager::movePlayer(Game& game, Player& player, int steps) {}
+void MovementManager::movePlayer(Player& player, int steps) {
+    player.moveTo(player.getPosition() + steps);
+}
 
-void MovementManager::movePlayerTo(Game& game, Player& player, int targetPosition) {}
+void MovementManager::movePlayerTo(Player& player, int targetPosition) {
+    player.moveTo(targetPosition);
+}
 
-void MovementManager::movePlayerToNearestRailroad(Game& game, Player& player) {}
+void MovementManager::movePlayerToNearestRailroad(Player& player) {
 
-void MovementManager::movePlayerBack(Game& game, Player& player, int steps) {}
+}
 
-bool MovementManager::passedGo(const Board& board, int oldPos, int newPos) const {
+void MovementManager::movePlayerBack(Player& player, int steps) {
+    player.moveTo(player.getPosition() - steps);
+}
+
+bool MovementManager::passedGo(const Board& board, int newPos) const {
+    int boardSize = board.getBoardSize();
+    if (newPos > boardSize) return true;
     return false;
 }
 
-void MovementManager::resolveLanding(Game& game, Player& player) {}
+void MovementManager::resolveLanding(Player& player) {}

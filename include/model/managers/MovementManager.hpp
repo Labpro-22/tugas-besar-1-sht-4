@@ -2,9 +2,7 @@
 
 using namespace std;
 
-class Game;
-class Player;
-class Board;
+#include "model/GameContext.hpp"
 
 class MovementManager {
 public:
@@ -13,10 +11,10 @@ public:
     ~MovementManager();
     MovementManager& operator=(const MovementManager& other);
 
-    void movePlayer(Game& game, Player& player, int steps);
-    void movePlayerTo(Game& game, Player& player, int targetPosition);
-    void movePlayerToNearestRailroad(Game& game, Player& player);
-    void movePlayerBack(Game& game, Player& player, int steps);
-    bool passedGo(const Board& board, int oldPos, int newPos) const;
-    void resolveLanding(Game& game, Player& player);
+    void movePlayer(Player& player, int steps);
+    void movePlayerTo(Player& player, int targetPosition);
+    void movePlayerToNearestRailroad(Player& player);
+    void movePlayerBack(Player& player, int steps);
+    bool passedGo(const Board& board, int newPos) const;
+    void resolveLanding(Player& player);
 };
