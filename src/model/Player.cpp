@@ -9,6 +9,7 @@ Player::Player(
         int money,
         int position,
         PlayerStatus status,
+        // Owned properties hapus, refaktor dengan add di property manager
         const vector<OwnableTile*>& ownedProperties,
         const vector<shared_ptr<HandCard>>& handCards,
         int failedJailRolls,
@@ -177,10 +178,10 @@ bool Player::operator<(const Player& other) const {
     return false;
 }
 
-vector<OwnableTile*> Player::getOwnedProperties() const {
-    return ownedProperties;
-}
+// vector<OwnableTile*> Player::getOwnedProperties() const {
+//     return ownedProperties;
+// }
 
-vector<shared_ptr<HandCard>> Player::getHandCards() const {
-    return handCards;
-}
+// vector<shared_ptr<HandCard>> Player::getHandCards() const {
+//     return handCards;
+// }

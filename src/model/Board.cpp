@@ -1,5 +1,16 @@
 #include "model/Board.hpp"
+#include "model/managers/ConfigManager.hpp"
+
 #include "model/tiles/Tile.hpp"
+#include "model/tiles/GoTile.hpp"
+#include "model/tiles/JailTile.hpp"
+#include "model/tiles/FreeParkingTile.hpp"
+#include "model/tiles/GoToJailTile.hpp"
+#include "model/tiles/IncomeTaxTile.hpp"
+#include "model/tiles/LuxuryTaxTile.hpp"
+#include "model/tiles/FestivalTile.hpp"
+#include "model/tiles/ChanceTile.hpp"
+#include "model/tiles/CommunityChestTile.hpp"
 
 using namespace std;
 
@@ -23,8 +34,117 @@ Board& Board::operator=(const Board& other) {
     return *this;
 }
 
-void Board::initializeBoard() {
-    // TODO : might have to initialize by config, not sure yet check configmanager
+void Board::initializeBoard(const ConfigManager& configManager) {
+    tiles.clear();
+    tileIndexByCode.clear();
+
+    auto addTile = [&](const shared_ptr<Tile>& tile) {
+        tiles.push_back(tile);
+
+        if (tileIndexByCode.find(tile->getCode()) == tileIndexByCode.end()) {
+            tileIndexByCode[tile->getCode()] = tile->getIndex();
+        }
+    };
+
+    auto addPropertyById = [&](int id) {
+        const ConfigManager::PropertyConfig& cfg = configManager.getPropertyConfigById(id);
+
+        if (id == 6 || id == 16 || id == 26 || id == 36) {
+            addTile(make_shared<RailroadTile>(
+                id,
+                cfg.getCode(),
+                cfg.getName(),
+                nullptr,
+                OwnershipStatus::BANK,
+                cfg.getPurchasePrice(),
+                cfg.getMortgageValue()
+            ));
+            return;
+        }
+
+        if (id == 13 || id == 29) {
+            addTile(make_shared<UtilityTile>(
+                id,
+                cfg.getCode(),
+                cfg.getName(),
+                nullptr,
+                OwnershipStatus::BANK,
+                cfg.getPurchasePrice(),
+                cfg.getMortgageValue()
+            ));
+            return;
+        }
+
+        addTile(make_shared<StreetTile>(
+            id,
+            cfg.getCode(),
+            cfg.getName(),
+            nullptr,
+            OwnershipStatus::BANK,
+            cfg.getPurchasePrice(),
+            cfg.getMortgageValue(),
+            cfg.getColorGroup(),
+            cfg.getHouseBuildCost(),
+            cfg.getHotelBuildCost(),
+            cfg.getRentLevels(),
+            0,
+            1,
+            0
+        ));
+    };
+
+    addTile(make_shared<GoTile>(1, "GO", "Petak Mulai", configManager.getGoSalary()));
+    addPropertyById(2);
+    addTile(make_shared<CommunityChestTile>(3, "DNU", "Dana Umum", "COMMUNITY_CHEST"));
+    addPropertyById(4);
+    addTile(make_shared<IncomeTaxTile>(
+        5,
+        "PPH",
+        "Pajak Penghasilan",
+        configManager.getPphFlat(),
+        configManager.getPphFlat(),
+        configManager.getPphPercent()
+    ));
+    addPropertyById(6);
+    addPropertyById(7);
+    addTile(make_shared<FestivalTile>(8, "FES", "Festival"));
+    addPropertyById(9);
+    addPropertyById(10);
+    addTile(make_shared<JailTile>(11, "PEN", "Penjara", configManager.getJailFine()));
+    addPropertyById(12);
+    addPropertyById(13);
+    addPropertyById(14);
+    addPropertyById(15);
+    addPropertyById(16);
+    addPropertyById(17);
+    addTile(make_shared<CommunityChestTile>(18, "DNU", "Dana Umum", "COMMUNITY_CHEST"));
+    addPropertyById(19);
+    addPropertyById(20);
+    addTile(make_shared<FreeParkingTile>(21, "BBP", "Bebas Parkir"));
+    addPropertyById(22);
+    addTile(make_shared<ChanceTile>(23, "KSP", "Kesempatan", "CHANCE"));
+    addPropertyById(24);
+    addPropertyById(25);
+    addPropertyById(26);
+    addPropertyById(27);
+    addPropertyById(28);
+    addPropertyById(29);
+    addPropertyById(30);
+    addTile(make_shared<GoToJailTile>(31, "PPJ", "Petak Pergi ke Penjara"));
+    addPropertyById(32);
+    addPropertyById(33);
+    addTile(make_shared<FestivalTile>(34, "FES", "Festival"));
+    addPropertyById(35);
+    addPropertyById(36);
+    addTile(make_shared<ChanceTile>(37, "KSP", "Kesempatan", "CHANCE"));
+    addPropertyById(38);
+    addTile(make_shared<LuxuryTaxTile>(
+        39,
+        "PBM",
+        "Pajak Barang Mewah",
+        configManager.getPbmFlat()
+    ));
+    addPropertyById(40);
 }
 
 shared_ptr<Tile> Board::getTile(int index) const {

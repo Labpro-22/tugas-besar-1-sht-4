@@ -101,7 +101,7 @@ void Game::startNewGame() {
     dice=Dice();
 
     configManager.loadAllConfigs();
-    board.initializeBoard();
+    board.initializeBoard(configManager);
     cardManager.initializeDecks();
 
     if (players.empty()) {

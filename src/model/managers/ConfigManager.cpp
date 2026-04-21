@@ -209,9 +209,10 @@ map<string, int> parseScalarConfig(
 
 ConfigManager::PropertyConfig::PropertyConfig()
     : purchasePrice(0),
-    mortgageValue(0),
-    houseBuildCost(0),
-    hotelBuildCost(0)
+      mortgageValue(0),
+      houseBuildCost(0),
+      hotelBuildCost(0),
+      rentLevels()
 {}
 
 ConfigManager::PropertyConfig::PropertyConfig(
@@ -221,25 +222,28 @@ ConfigManager::PropertyConfig::PropertyConfig(
     int mortgageValue,
     const string& colorGroup,
     int houseBuildCost,
-    int hotelBuildCost
+    int hotelBuildCost,
+    const vector<int>& rentLevels
 )
     : code(code),
-    name(name),
-    purchasePrice(purchasePrice),
-    mortgageValue(mortgageValue),
-    colorGroup(colorGroup),
-    houseBuildCost(houseBuildCost),
-    hotelBuildCost(hotelBuildCost)
+      name(name),
+      purchasePrice(purchasePrice),
+      mortgageValue(mortgageValue),
+      colorGroup(colorGroup),
+      houseBuildCost(houseBuildCost),
+      hotelBuildCost(hotelBuildCost),
+      rentLevels(rentLevels)
 {}
 
 ConfigManager::PropertyConfig::PropertyConfig(const ConfigManager::PropertyConfig& other)
     : code(other.code),
-    name(other.name),
-    purchasePrice(other.purchasePrice),
-    mortgageValue(other.mortgageValue),
-    colorGroup(other.colorGroup),
-    houseBuildCost(other.houseBuildCost),
-    hotelBuildCost(other.hotelBuildCost)
+      name(other.name),
+      purchasePrice(other.purchasePrice),
+      mortgageValue(other.mortgageValue),
+      colorGroup(other.colorGroup),
+      houseBuildCost(other.houseBuildCost),
+      hotelBuildCost(other.hotelBuildCost),
+      rentLevels(other.rentLevels)
 {}
 
 ConfigManager::PropertyConfig::~PropertyConfig() {}
@@ -255,6 +259,7 @@ ConfigManager::PropertyConfig& ConfigManager::PropertyConfig::operator=(
         colorGroup = other.colorGroup;
         houseBuildCost = other.houseBuildCost;
         hotelBuildCost = other.hotelBuildCost;
+        rentLevels = other.rentLevels;
     }
     return *this;
 }
@@ -287,18 +292,23 @@ int ConfigManager::PropertyConfig::getHotelBuildCost() const {
     return hotelBuildCost;
 }
 
+const vector<int>& ConfigManager::PropertyConfig::getRentLevels() const {
+    return rentLevels;
+}
+
 ConfigManager::ConfigManager()
     : pphFlat(0),
-    pphPercent(0),
-    pbmFlat(0),
-    goSalary(0),
-    jailFine(0),
-    maxTurn(0),
-    initialBalance(0)
+      pphPercent(0),
+      pbmFlat(0),
+      goSalary(0),
+      jailFine(0),
+      maxTurn(0),
+      initialBalance(0)
 {}
 
 ConfigManager::ConfigManager(
     const map<string, ConfigManager::PropertyConfig>& propertyConfigs,
+    const map<int, string>& propertyCodeById,
     const map<int, int>& railroadRentTable,
     const map<int, int>& utilityMultiplierTable,
     int pphFlat,
@@ -310,28 +320,30 @@ ConfigManager::ConfigManager(
     int initialBalance
 )
     : propertyConfigs(propertyConfigs),
-    railroadRentTable(railroadRentTable),
-    utilityMultiplierTable(utilityMultiplierTable),
-    pphFlat(pphFlat),
-    pphPercent(pphPercent),
-    pbmFlat(pbmFlat),
-    goSalary(goSalary),
-    jailFine(jailFine),
-    maxTurn(maxTurn),
-    initialBalance(initialBalance)
+      propertyCodeById(propertyCodeById),
+      railroadRentTable(railroadRentTable),
+      utilityMultiplierTable(utilityMultiplierTable),
+      pphFlat(pphFlat),
+      pphPercent(pphPercent),
+      pbmFlat(pbmFlat),
+      goSalary(goSalary),
+      jailFine(jailFine),
+      maxTurn(maxTurn),
+      initialBalance(initialBalance)
 {}
 
 ConfigManager::ConfigManager(const ConfigManager& other)
     : propertyConfigs(other.propertyConfigs),
-    railroadRentTable(other.railroadRentTable),
-    utilityMultiplierTable(other.utilityMultiplierTable),
-    pphFlat(other.pphFlat),
-    pphPercent(other.pphPercent),
-    pbmFlat(other.pbmFlat),
-    goSalary(other.goSalary),
-    jailFine(other.jailFine),
-    maxTurn(other.maxTurn),
-    initialBalance(other.initialBalance)
+      propertyCodeById(other.propertyCodeById),
+      railroadRentTable(other.railroadRentTable),
+      utilityMultiplierTable(other.utilityMultiplierTable),
+      pphFlat(other.pphFlat),
+      pphPercent(other.pphPercent),
+      pbmFlat(other.pbmFlat),
+      goSalary(other.goSalary),
+      jailFine(other.jailFine),
+      maxTurn(other.maxTurn),
+      initialBalance(other.initialBalance)
 {}
 
 ConfigManager::~ConfigManager() {}
@@ -339,6 +351,7 @@ ConfigManager::~ConfigManager() {}
 ConfigManager& ConfigManager::operator=(const ConfigManager& other) {
     if (this != &other) {
         propertyConfigs = other.propertyConfigs;
+        propertyCodeById = other.propertyCodeById;
         railroadRentTable = other.railroadRentTable;
         utilityMultiplierTable = other.utilityMultiplierTable;
         pphFlat = other.pphFlat;
@@ -354,6 +367,7 @@ ConfigManager& ConfigManager::operator=(const ConfigManager& other) {
 
 void ConfigManager::loadAllConfigs() {
     propertyConfigs.clear();
+    propertyCodeById.clear();
     railroadRentTable.clear();
     utilityMultiplierTable.clear();
     pphFlat = 0;
@@ -375,6 +389,7 @@ void ConfigManager::loadAllConfigs() {
 void ConfigManager::loadPropertyConfig(const string& filename) {
     const vector<vector<string>> rows = readTokenRows(filename);
 
+    size_t idIndex = 0;
     size_t codeIndex = 1;
     size_t nameIndex = 2;
     size_t colorIndex = 4;
@@ -382,13 +397,15 @@ void ConfigManager::loadPropertyConfig(const string& filename) {
     size_t mortgageValueIndex = 6;
     size_t houseBuildCostIndex = 7;
     size_t hotelBuildCostIndex = 8;
+    size_t rentStartIndex = 9;
     size_t dataStartIndex = 0;
 
     if (hasHeaderFields(rows[0], {
-        "KODE", "NAMA", "WARNA", "HARGA_LAHAN",
+        "ID", "KODE", "NAMA", "WARNA", "HARGA_LAHAN",
         "NILAI_GADAI", "UPG_RUMAH", "UPG_HT"
     })) {
         const map<string, size_t> headerIndex = buildHeaderIndex(rows[0]);
+        idIndex = headerIndex.at("ID");
         codeIndex = headerIndex.at("KODE");
         nameIndex = headerIndex.at("NAMA");
         colorIndex = headerIndex.at("WARNA");
@@ -396,10 +413,12 @@ void ConfigManager::loadPropertyConfig(const string& filename) {
         mortgageValueIndex = headerIndex.at("NILAI_GADAI");
         houseBuildCostIndex = headerIndex.at("UPG_RUMAH");
         hotelBuildCostIndex = headerIndex.at("UPG_HT");
+        rentStartIndex = hotelBuildCostIndex + 1;
         dataStartIndex = 1;
     }
 
     const size_t requiredIndex = max({
+        idIndex,
         codeIndex,
         nameIndex,
         colorIndex,
@@ -416,11 +435,14 @@ void ConfigManager::loadPropertyConfig(const string& filename) {
             continue;
         }
 
+        const string& idToken = row[idIndex];
         const string& purchasePriceToken = row[purchasePriceIndex];
         const string& mortgageToken = row[mortgageValueIndex];
         const string& houseCostToken = row[houseBuildCostIndex];
         const string& hotelCostToken = row[hotelBuildCostIndex];
+
         if (
+            !isIntegerToken(idToken) ||
             !isIntegerToken(purchasePriceToken) ||
             !isIntegerToken(mortgageToken) ||
             !isIntegerToken(houseCostToken) ||
@@ -429,12 +451,25 @@ void ConfigManager::loadPropertyConfig(const string& filename) {
             continue;
         }
 
+        const int id = parseInt(idToken, filename, "ID");
         const string code = row[codeIndex];
+
         if (code.empty()) {
             throw FileException("Kode properti kosong pada file " + filename);
         }
         if (propertyConfigs.find(code) != propertyConfigs.end()) {
             throw FileException("Kode properti duplikat pada file " + filename + ": " + code);
+        }
+        if (propertyCodeById.find(id) != propertyCodeById.end()) {
+            throw FileException("ID properti duplikat pada file " + filename + ": " + idToken);
+        }
+
+        vector<int> rentLevels;
+        for (size_t i = rentStartIndex; i < row.size(); i++) {
+            if (!isIntegerToken(row[i])) {
+                continue;
+            }
+            rentLevels.push_back(parseInt(row[i], filename, "RENT_LEVEL"));
         }
 
         propertyConfigs[code] = PropertyConfig(
@@ -444,8 +479,11 @@ void ConfigManager::loadPropertyConfig(const string& filename) {
             parseInt(mortgageToken, filename, "NILAI_GADAI"),
             row[colorIndex],
             parseInt(houseCostToken, filename, "UPG_RUMAH"),
-            parseInt(hotelCostToken, filename, "UPG_HT")
+            parseInt(hotelCostToken, filename, "UPG_HT"),
+            rentLevels
         );
+
+        propertyCodeById[id] = code;
         parsedRowCount++;
     }
 
@@ -577,6 +615,22 @@ const map<string, ConfigManager::PropertyConfig>& ConfigManager::getPropertyConf
 
 const ConfigManager::PropertyConfig& ConfigManager::getPropertyConfig(const string& code) const {
     return propertyConfigs.at(code);
+}
+
+const map<int, string>& ConfigManager::getPropertyCodeByIdMap() const {
+    return propertyCodeById;
+}
+
+const string& ConfigManager::getPropertyCodeById(int id) const {
+    return propertyCodeById.at(id);
+}
+
+const ConfigManager::PropertyConfig& ConfigManager::getPropertyConfigById(int id) const {
+    return getPropertyConfig(getPropertyCodeById(id));
+}
+
+bool ConfigManager::hasPropertyId(int id) const {
+    return propertyCodeById.find(id) != propertyCodeById.end();
 }
 
 const map<int, int>& ConfigManager::getRailroadRentTable() const {
