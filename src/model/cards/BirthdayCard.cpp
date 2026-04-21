@@ -35,15 +35,15 @@ void BirthdayCard::apply(Game& game, Player& player) {
         if (other.isBankrupt()) continue;
 
         int pay = min(amount, other.getMoney());
-        other.deductMoney(pay);
-        player.addMoney(pay);
+        other -= pay;
+        player += pay;
         totalReceived += pay;
 
         cout << other.getUsername() << " membayar M" << pay
              << " kepada " << player.getUsername() << "." << endl;
 
         game.getLogManager().addLog(
-            game.getTurnManager().getCurrentTurn(),
+            game.getCurrentTurn(),
             other.getUsername(),
             "KARTU",
             "Membayar ulang tahun M" + to_string(pay) + " ke " + player.getUsername()
@@ -54,7 +54,7 @@ void BirthdayCard::apply(Game& game, Player& player) {
          << totalReceived << " dari hadiah ulang tahun." << endl;
 
     game.getLogManager().addLog(
-        game.getTurnManager().getCurrentTurn(),
+        game.getCurrentTurn(),
         player.getUsername(),
         "KARTU",
         "Menerima hadiah ulang tahun total M" + to_string(totalReceived)

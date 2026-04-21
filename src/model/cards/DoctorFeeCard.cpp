@@ -29,12 +29,12 @@ void DoctorFeeCard::apply(Game& game, Player& player) {
     cout << "Kartu: \"Biaya dokter. Bayar M" << fee << ".\"" << endl;
 
     if (player.getMoney() >= fee) {
-        player.deductMoney(fee);
+        player -= fee;
         cout << "Kamu membayar M" << fee << " ke Bank. "
              << "Sisa Uang = M" << player.getMoney() << "." << endl;
 
         game.getLogManager().addLog(
-            game.getTurnManager().getCurrentTurn(),
+            game.getCurrentTurn(),
             player.getUsername(),
             "KARTU",
             "Membayar biaya dokter M" + to_string(fee) + " ke Bank"
@@ -44,12 +44,12 @@ void DoctorFeeCard::apply(Game& game, Player& player) {
         cout << "Uang kamu saat ini: M" << player.getMoney() << endl;
 
         game.getLogManager().addLog(
-            game.getTurnManager().getCurrentTurn(),
+            game.getCurrentTurn(),
             player.getUsername(),
             "BANGKRUT",
             "Tidak mampu membayar biaya dokter M" + to_string(fee)
         );
 
-        game.getBankruptcyManager().beginBankruptcySession(game, player, nullptr, fee, true);
+        game.getBankruptcyManager().beginBankruptcySession(player, nullptr, fee, true);
     }
 }

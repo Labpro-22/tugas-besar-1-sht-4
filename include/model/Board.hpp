@@ -11,6 +11,8 @@
 
 using namespace std;
 
+class ConfigManager;
+class Player;
 class Tile;
 
 class Board {

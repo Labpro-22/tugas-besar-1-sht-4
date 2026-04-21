@@ -7,6 +7,8 @@
 
 using namespace std;
 
+class HandCard;
+class OwnableTile;
 
 enum class PlayerStatus {
     ACTIVE,

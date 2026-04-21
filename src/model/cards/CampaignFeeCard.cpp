@@ -43,13 +43,13 @@ void CampaignFeeCard::apply(Game& game, Player& player) {
         cout << "Uang kamu saat ini: M" << player.getMoney() << endl;
 
         game.getLogManager().addLog(
-            game.getTurnManager().getCurrentTurn(),
+            game.getCurrentTurn(),
             player.getUsername(),
             "BANGKRUT",
             "Tidak mampu membayar biaya kampanye M" + to_string(totalOwed)
         );
 
-        game.getBankruptcyManager().beginBankruptcySession(game, player, nullptr, totalOwed, true);
+        game.getBankruptcyManager().beginBankruptcySession(player, nullptr, totalOwed, true);
         return;
     }
 
@@ -57,14 +57,14 @@ void CampaignFeeCard::apply(Game& game, Player& player) {
         if (other.getUsername() == player.getUsername()) continue;
         if (other.isBankrupt()) continue;
 
-        player.deductMoney(amountPerPlayer);
-        other.addMoney(amountPerPlayer);
+        player -= amountPerPlayer;
+        other += amountPerPlayer;
 
         cout << player.getUsername() << " membayar M" << amountPerPlayer
              << " kepada " << other.getUsername() << "." << endl;
 
         game.getLogManager().addLog(
-            game.getTurnManager().getCurrentTurn(),
+            game.getCurrentTurn(),
             player.getUsername(),
             "KARTU",
             "Membayar biaya kampanye M" + to_string(amountPerPlayer) + " ke " + other.getUsername()
