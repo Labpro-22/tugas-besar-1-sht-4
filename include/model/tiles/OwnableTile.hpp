@@ -9,6 +9,7 @@ using namespace std;
 
 class Game;
 class Player;
+class RentContext;
 
 enum class OwnershipStatus {
     BANK,
@@ -38,15 +39,15 @@ public:
     virtual ~OwnableTile();
     OwnableTile& operator=(const OwnableTile& other);
 
-    virtual void onLand(Game& game, Player& player) override = 0;
+    virtual TileType onLand() const override = 0;
     Player* getOwner() const;
     void setOwner(Player* owner);
     bool isOwned() const;
     bool isMortgaged() const;
     void mortgage();
     void redeem();
-    virtual int calculateRent(const Game& game, const Player& visitor) const = 0;
-    virtual void acquire(Game& game, Player& player) = 0;
+    virtual int calculateRent(const RentContext& rentContext) const = 0;
+    virtual void acquire(Player& player) = 0;
 
     OwnershipStatus getOwnershipStatus() const;
     int getPurchasePrice() const;

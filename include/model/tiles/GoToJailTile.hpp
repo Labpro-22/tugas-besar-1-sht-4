@@ -4,9 +4,6 @@
 
 using namespace std;
 
-class Game;
-class Player;
-
 class GoToJailTile : public SpecialTile {
 public:
     GoToJailTile();
@@ -15,5 +12,5 @@ public:
     ~GoToJailTile();
     GoToJailTile& operator=(const GoToJailTile& other);
 
-    void onLand(Game& game, Player& player) override;
+    TileType onLand() const override;
 };

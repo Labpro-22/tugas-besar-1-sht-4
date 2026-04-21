@@ -22,8 +22,8 @@ GoTile& GoTile::operator=(const GoTile& other) {
     return *this;
 }
 
-void GoTile::onLand(Game& game, Player& player) {
-    // TODO : do this with ui later 
+Tile::TileType GoTile::onLand() const {
+    return TileType::Go;
 }
 
 int GoTile::getSalary() const {

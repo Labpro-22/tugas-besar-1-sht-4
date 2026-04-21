@@ -1,5 +1,5 @@
 #include "model/tiles/StreetTile.hpp"
-#include "model/Game.hpp"
+#include "model/RentContext.hpp"
 #include "model/Player.hpp"
 
 using namespace std;
@@ -59,86 +59,22 @@ StreetTile& StreetTile::operator=(const StreetTile& other) {
     return *this;
 }
 
-void StreetTile::onLand(Game& game, Player& player) {
-    // TODO : implement ui maybe
+Tile::TileType StreetTile::onLand() const {
+    return TileType::Street;
 }
 
-// TODO : edit the game object to include constant methods
-int StreetTile::calculateRent(const Game& game, const Player& visitor) const {
+int StreetTile::calculateRent(const RentContext& rentContext) const {
     // TODO : make sure post build rent rules 
     if (ownershipStatus == OwnershipStatus::MORTGAGED) return 0;
     int rent = 0;
     if (buildingLevel == 0) {
         rent = rentLevels[0];
-        if (isMonopoly(game)) rent *= 2;
+        if (rentContext.getOwnerHasColorGroup()) rent *= 2;
     }
     else rent = rentLevels[buildingLevel];
 
     rent *= festivalMultiplier;
     return rent;
-}
-
-// TODO : change back into const function and const game, after adding game const board getter
-bool StreetTile::canBuildHouse(const Game& game) const {
-    // check if owned
-    if (this->getOwner() == nullptr) return false;
-
-    // check if owned all colors
-    vector<shared_ptr<StreetTile>> temp = game.getBoard().getStreetTileByColorGroup(this->colorGroup);
-
-    if (temp.empty()) return false;
-
-    if (!all_of(temp.begin(), temp.end(), [&](const shared_ptr<StreetTile>& streetTile) {
-        return streetTile->getOwner() == this->getOwner();
-    })) return false;
-
-    // check if already hotel
-    if (this->hasHotel()) return false;
-
-    // check if distribution is even 
-    int minBuildingLevel = min_element(temp.begin(), temp.end(), [](const shared_ptr<StreetTile>& streetTile1, const shared_ptr<StreetTile>& streetTile2) {
-        return streetTile1->getBuildingLevel() < streetTile2->getBuildingLevel();
-    })->get()->getBuildingLevel();
-
-    if (this->buildingLevel != minBuildingLevel) return false;
-
-    // check if enough money
-    if (this->getOwner()->getMoney() < houseBuildCost) return false;
-
-    // check if already 4
-    if (this->getBuildingLevel() == 4) return false;
-
-    return true;
-}
-
-bool StreetTile::canBuildHotel(const Game& game) const {
-    // check if owned
-    if (this->getOwner() == nullptr) return false;
-
-    // check if owned all colors
-    vector<shared_ptr<StreetTile>> temp = game.getBoard().getStreetTileByColorGroup(this->colorGroup);
-
-    if (temp.empty()) return false;
-
-    if (!all_of(temp.begin(), temp.end(), [&](const shared_ptr<StreetTile>& streetTile) {
-        return streetTile->getOwner() == this->getOwner();
-    })) return false;
-
-    // check if already hotel
-    if (this->hasHotel()) return false;
-
-    // check if distribution is even 
-    int minBuildingLevel = min_element(temp.begin(), temp.end(), [](const shared_ptr<StreetTile>& streetTile1, const shared_ptr<StreetTile>& streetTile2) {
-        return streetTile1->getBuildingLevel() < streetTile2->getBuildingLevel();
-    })->get()->getBuildingLevel();
-
-    if (minBuildingLevel != 4) return false;
-    if (this->getBuildingLevel() != 4) return false;
-
-    // check if enough money
-    if (this->getOwner()->getMoney() < hotelBuildCost) return false;
-
-    return true;
 }
 
 // no error checking, check yourself
@@ -164,20 +100,6 @@ void StreetTile::sellBuildings() {
     this->buildingLevel == 0;
 }
 
-// TODO : after adding const function into game, edit this back into const game and function
-bool StreetTile::isMonopoly(const Game& game) const {
-    if (this->getOwner() == nullptr) return false;
-    vector<shared_ptr<StreetTile>> temp = game.getBoard().getStreetTileByColorGroup(this->colorGroup);
-
-    if (temp.empty()) return false;
-
-    if (!all_of(temp.begin(), temp.end(), [&](const shared_ptr<StreetTile>& streetTile) {
-        return streetTile->getOwner() == this->getOwner();
-    })) return false;
-
-    return true;
-}
-
 void StreetTile::activateFestival() {
     if (festivalMultiplier < 2) festivalMultiplier = 2;
     else if (festivalMultiplier < 8) festivalMultiplier *= 2;
@@ -188,11 +110,11 @@ void StreetTile::decrementFestivalDuration() {
     if (festivalDuration >= 0) festivalDuration--;
 }
 
-void StreetTile::acquire(Game& game, Player& player) {
+void StreetTile::acquire(Player& player) {
     if (this->getOwner() != nullptr) throw InvalidActionException("Property already has an owner");
     if (this->ownershipStatus != OwnershipStatus::BANK) throw InvalidActionException("Property is not in BANK status");
     if (player.getMoney() < this->purchasePrice) throw InsufficientFundsException(this->purchasePrice, player.getMoney());
-    player.deductMoney(this->purchasePrice);
+    player -= this->purchasePrice;
     this->setOwner(&player);
     this->ownershipStatus = OwnershipStatus::OWNED;
     player.addProperty(this);

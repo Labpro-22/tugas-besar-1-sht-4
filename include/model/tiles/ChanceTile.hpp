@@ -4,9 +4,6 @@
 
 using namespace std;
 
-class Game;
-class Player;
-
 class ChanceTile : public CardTile {
 public:
     ChanceTile();
@@ -15,5 +12,5 @@ public:
     ~ChanceTile();
     ChanceTile& operator=(const ChanceTile& other);
 
-    void onLand(Game& game, Player& player) override;
+    TileType onLand() const override;
 };

@@ -21,6 +21,6 @@ CommunityChestTile& CommunityChestTile::operator=(const CommunityChestTile& othe
     return *this;
 }
 
-void CommunityChestTile::onLand(Game& game, Player& player) {
-    // TODO : implement ui or something
+Tile::TileType CommunityChestTile::onLand() const {
+    return TileType::CommunityChest;
 }

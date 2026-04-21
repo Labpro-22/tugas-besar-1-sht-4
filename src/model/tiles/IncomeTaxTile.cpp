@@ -1,4 +1,5 @@
 #include "model/tiles/IncomeTaxTile.hpp"
+#include "model/Player.hpp"
 
 using namespace std;
 
@@ -34,8 +35,8 @@ IncomeTaxTile& IncomeTaxTile::operator=(const IncomeTaxTile& other) {
     return *this;
 }
 
-void IncomeTaxTile::onLand(Game& game, Player& player) {
-    // TODO : perhaps implement ui or something
+Tile::TileType IncomeTaxTile::onLand() const {
+    return TileType::IncomeTax;
 }
 
 int IncomeTaxTile::getFlatTax() const {

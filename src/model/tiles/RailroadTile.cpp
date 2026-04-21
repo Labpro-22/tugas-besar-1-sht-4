@@ -1,5 +1,5 @@
 #include "model/tiles/RailroadTile.hpp"
-#include "model/Game.hpp"
+#include "model/RentContext.hpp"
 #include "model/NimonException.hpp"
 #include "model/Player.hpp"
 
@@ -32,22 +32,21 @@ RailroadTile& RailroadTile::operator=(const RailroadTile& other) {
     return *this;
 }
 
-int RailroadTile::calculateRent(const Game& game, const Player& visitor) const {
+int RailroadTile::calculateRent(const RentContext& rentContext) const {
     if (this->getOwner() == nullptr) return 0;
     if (this->getOwnershipStatus() == OwnershipStatus::MORTGAGED) return 0;
-    int count = game.getBoard().countRailroadsOwned(*this->getOwner());
-    return game.getConfigManager().getRailroadRent(count);  
+    return rentContext.getRailroadRent();
 }
 
-void RailroadTile::onLand(Game& game, Player& player) {
-    // TODO : implement ui or something
+Tile::TileType RailroadTile::onLand() const {
+    return TileType::Railroad;
 }
 
-void RailroadTile::acquire(Game& game, Player& player) {
+void RailroadTile::acquire(Player& player) {
     if (this->getOwner() != nullptr) throw InvalidActionException("Railroad already has an owner");
     if (this->getOwnershipStatus() != OwnershipStatus::BANK) throw InvalidActionException("Railroad is not in BANK status");
     this->setOwner(&player);
-    this->ownershipStatus == OwnershipStatus::OWNED;
+    this->ownershipStatus = OwnershipStatus::OWNED;
     player.addProperty(this);
 
     // TODO : add log if needed

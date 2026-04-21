@@ -22,10 +22,6 @@ CardTile& CardTile::operator=(const CardTile& other) {
     return *this;
 }
 
-void CardTile::onLand(Game& game, Player& player) {
-    // TODO : implement ui or something later, check controller
-}
-
 const string& CardTile::getDeckType() const {
     return deckType;
 }

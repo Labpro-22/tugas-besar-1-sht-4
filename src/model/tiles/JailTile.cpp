@@ -22,8 +22,8 @@ JailTile& JailTile::operator=(const JailTile& other) {
     return *this;
 }
 
-void JailTile::onLand(Game& game, Player& player) {
-    // TODO : implement this with ui later 
+Tile::TileType JailTile::onLand() const {
+    return TileType::Jail;
 }
 
 

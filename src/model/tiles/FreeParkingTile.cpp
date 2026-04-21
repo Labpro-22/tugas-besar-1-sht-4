@@ -21,6 +21,6 @@ FreeParkingTile& FreeParkingTile::operator=(const FreeParkingTile& other) {
     return *this;
 }
 
-void FreeParkingTile::onLand(Game& game, Player& player) {
-    // TODO : implemnet this later 
+Tile::TileType FreeParkingTile::onLand() const {
+    return TileType::FreeParking;
 }

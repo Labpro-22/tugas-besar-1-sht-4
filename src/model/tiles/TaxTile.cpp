@@ -22,11 +22,6 @@ TaxTile& TaxTile::operator=(const TaxTile& other) {
     return *this;
 }
 
-void TaxTile::onLand(Game& game, Player& player) {
-    // TODO : implement ui or something 
-}
-
-
 int TaxTile::getTaxAmount() const {
     return taxAmount;
 }

@@ -20,6 +20,6 @@ GoToJailTile& GoToJailTile::operator=(const GoToJailTile& other) {
     }
     return *this;
 }
-void GoToJailTile::onLand(Game& game, Player& player) {
-    // TODO : do this later 
+Tile::TileType GoToJailTile::onLand() const {
+    return TileType::GoToJail;
 }

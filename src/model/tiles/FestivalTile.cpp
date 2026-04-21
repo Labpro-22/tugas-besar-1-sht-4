@@ -21,6 +21,6 @@ FestivalTile& FestivalTile::operator=(const FestivalTile& other) {
     return *this;
 }
 
-void FestivalTile::onLand(Game& game, Player& player) {
-    // TODO : implement ui or something
+Tile::TileType FestivalTile::onLand() const {
+    return TileType::Festival;
 }

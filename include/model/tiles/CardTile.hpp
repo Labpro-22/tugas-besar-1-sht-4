@@ -6,9 +6,6 @@
 
 using namespace std;
 
-class Game;
-class Player;
-
 class CardTile : public ActionTile {
 protected:
     string deckType;
@@ -20,7 +17,7 @@ public:
     ~CardTile();
     CardTile& operator=(const CardTile& other);
 
-    void onLand(Game& game, Player& player) override;
+    virtual TileType onLand() const override = 0;
 
     const string& getDeckType() const;
 };

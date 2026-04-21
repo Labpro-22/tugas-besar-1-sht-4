@@ -1,8 +1,6 @@
 #pragma once
 
 #include "model/tiles/TaxTile.hpp"
-#include "model/Game.hpp"
-#include "model/Player.hpp"
 
 using namespace std;
 
@@ -28,7 +26,7 @@ public:
     ~IncomeTaxTile();
     IncomeTaxTile& operator=(const IncomeTaxTile& other);
 
-    void onLand(Game& game, Player& player) override;
+    TileType onLand() const override;
 
     int getFlatTax() const;
     int getPercentageTax() const;

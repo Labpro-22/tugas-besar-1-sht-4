@@ -6,6 +6,7 @@ using namespace std;
 
 class Game;
 class Player;
+class RentContext;
 
 class RailroadTile : public OwnableTile {
 public:
@@ -23,9 +24,9 @@ public:
     ~RailroadTile();
     RailroadTile& operator=(const RailroadTile& other);
 
-    int calculateRent(const Game& game, const Player& visitor) const override;
-    void onLand(Game& game, Player& player) override;
-    void acquire(Game& game, Player& player) override;
+    int calculateRent(const RentContext& rentContext) const override;
+    TileType onLand() const override;
+    void acquire(Player& player) override;
 
     int getBuildingValue() const override;
     int getSelltoBankValue() const override;

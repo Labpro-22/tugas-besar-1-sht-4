@@ -4,9 +4,6 @@
 
 using namespace std;
 
-class Game;
-class Player;
-
 class CommunityChestTile : public CardTile {
 public:
     CommunityChestTile();
@@ -15,5 +12,5 @@ public:
     ~CommunityChestTile();
     CommunityChestTile& operator=(const CommunityChestTile& other);
 
-    void onLand(Game& game, Player& player) override;
+    TileType onLand() const override;
 };

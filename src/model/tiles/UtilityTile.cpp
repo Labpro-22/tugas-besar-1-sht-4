@@ -1,5 +1,5 @@
 #include "model/tiles/UtilityTile.hpp"
-#include "model/Game.hpp"
+#include "model/RentContext.hpp"
 #include "model/NimonException.hpp"
 #include "model/Player.hpp"
 
@@ -32,20 +32,18 @@ UtilityTile& UtilityTile::operator=(const UtilityTile& other) {
     return *this;
 }
 
-int UtilityTile::calculateRent(const Game& game, const Player& visitor) const {
+int UtilityTile::calculateRent(const RentContext& rentContext) const {
     if (this->getOwner() == nullptr) return 0;
     if (this->getOwnershipStatus() == OwnershipStatus::MORTGAGED) return 0;
 
-    int count = game.getBoard().countUtilitiesOwned(*this->getOwner());
-    // TODO : make sure get total is correct for getting dice
-    return game.getDice().getTotal() * game.getConfigManager().getUtilityMultiplier(count);
+    return rentContext.getDiceTotal() * rentContext.getUtilityMultiplier();
 }
 
-void UtilityTile::onLand(Game& game, Player& player) {
-    // TODO : implement ui later or something, decide later 
+Tile::TileType UtilityTile::onLand() const {
+    return TileType::Utility;
 }
 
-void UtilityTile::acquire(Game& game, Player& player) {
+void UtilityTile::acquire(Player& player) {
     if (this->getOwner() != nullptr) throw InvalidActionException("Utility already has an owner");
     if (this->getOwnershipStatus() != OwnershipStatus::BANK) throw InvalidActionException("Utility is not in BANK status");
     this->setOwner(&player);

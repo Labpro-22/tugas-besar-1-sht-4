@@ -21,6 +21,6 @@ ChanceTile& ChanceTile::operator=(const ChanceTile& other) {
     return *this;
 }
 
-void ChanceTile::onLand(Game& game, Player& player) {
-    // TODO : implement ui or something, decide later
+Tile::TileType ChanceTile::onLand() const {
+    return TileType::Chance;
 }

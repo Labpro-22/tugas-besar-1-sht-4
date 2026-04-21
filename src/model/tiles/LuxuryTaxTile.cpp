@@ -21,8 +21,8 @@ LuxuryTaxTile& LuxuryTaxTile::operator=(const LuxuryTaxTile& other) {
     return *this;
 }
 
-void LuxuryTaxTile::onLand(Game& game, Player& player) {
-    // TODO : do the ui and stuff, perhaps later with controller
+Tile::TileType LuxuryTaxTile::onLand() const {
+    return TileType::LuxuryTax;
 }
 
 int LuxuryTaxTile::calculateLuxuryTax() const {

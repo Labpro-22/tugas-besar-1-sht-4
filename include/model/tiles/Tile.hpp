@@ -4,10 +4,23 @@
 
 using namespace std;
 
-class Game;
-class Player;
-
 class Tile {
+public:
+    enum class TileType {
+        Festival = 0,
+        Street,
+        Railroad,
+        Utility,
+        IncomeTax,
+        LuxuryTax,
+        Chance,
+        CommunityChest,
+        Go,
+        Jail,
+        GoToJail,
+        FreeParking
+    };
+
 protected:
     int index;
     string code;
@@ -20,7 +33,7 @@ public:
     virtual ~Tile();
     Tile& operator=(const Tile& other);
 
-    virtual void onLand(Game& game, Player& player) = 0;
+    virtual TileType onLand() const = 0;
 
     int getIndex() const;
     string getCode() const;

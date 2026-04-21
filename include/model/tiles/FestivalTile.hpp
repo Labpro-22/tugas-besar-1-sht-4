@@ -4,9 +4,6 @@
 
 using namespace std;
 
-class Game;
-class Player;
-
 class FestivalTile : public ActionTile {
 public:
     FestivalTile();
@@ -15,5 +12,5 @@ public:
     ~FestivalTile();
     FestivalTile& operator=(const FestivalTile& other);
 
-    void onLand(Game& game, Player& player) override;
+    TileType onLand() const override;
 };

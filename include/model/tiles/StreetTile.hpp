@@ -11,6 +11,7 @@ using namespace std;
 
 class Game;
 class Player;
+class RentContext;
 
 class StreetTile : public OwnableTile {
 private:
@@ -44,20 +45,17 @@ public:
     ~StreetTile();
     StreetTile& operator=(const StreetTile& other);
 
-    void onLand(Game& game, Player& player) override;
-    int calculateRent(const Game& game, const Player& visitor) const override;
-    bool canBuildHouse(const Game& game) const;
-    bool canBuildHotel(const Game& game) const;
+    TileType onLand() const override;
+    int calculateRent(const RentContext& rentContext) const override;
     void buildHouse();
     void buildHotel();
     bool hasHotel() const;
     int getBuildingLevel() const;
     string getColorGroup() const;
     void sellBuildings();
-    bool isMonopoly(const Game& game) const;
     void activateFestival();
     void decrementFestivalDuration();
-    void acquire(Game& game, Player& player) override;
+    void acquire(Player& player) override;
 
     int getHouseBuildCost() const;
     int getHotelBuildCost() const;
