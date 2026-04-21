@@ -5,7 +5,6 @@
 #include <algorithm>
 
 #include "model/tiles/OwnableTile.hpp"
-#include "model/Game.hpp"
 #include "model/NimonException.hpp"
 
 using namespace std;

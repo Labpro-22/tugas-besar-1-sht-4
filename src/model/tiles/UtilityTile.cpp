@@ -1,4 +1,7 @@
 #include "model/tiles/UtilityTile.hpp"
+#include "model/Game.hpp"
+#include "model/NimonException.hpp"
+#include "model/Player.hpp"
 
 using namespace std;
 

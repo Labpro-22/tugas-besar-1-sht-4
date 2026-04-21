@@ -1,12 +1,13 @@
 #include "model/Game.hpp"
 
+#include "model/NimonException.hpp"
+
 using namespace std;
 
-Game::Game(): currentTurn(0), maxTurn(100), isRunning(false) {}
+Game::Game() : gameContext() {}
 
 Game::Game(
-    const Board& board,
-    const vector<Player>& players,
+    const GameContext& gameContext,
     const Dice& dice,
     const TurnManager& turnManager,
     const MovementManager& movementManager,
@@ -20,12 +21,8 @@ Game::Game(
     const LogManager& logManager,
     const TaxManager& taxManager,
     const FestivalManager& festivalManager,
-    const WinConditionManager& winConditionManager,
-    int currentTurn,
-    int maxTurn,
-    bool isRunning
-) : board(board),
-    players(players),
+    const WinConditionManager& winConditionManager
+) : gameContext(gameContext),
     dice(dice),
     turnManager(turnManager),
     movementManager(movementManager),
@@ -39,109 +36,140 @@ Game::Game(
     logManager(logManager),
     taxManager(taxManager),
     festivalManager(festivalManager),
-    winConditionManager(winConditionManager),
-    currentTurn(currentTurn),
-    maxTurn(maxTurn),
-    isRunning(isRunning)
-{}
+    winConditionManager(winConditionManager) {}
 
 Game::Game(const Game& other) {
-    board=other.board;
-    players=other.players;
-    dice=other.dice;
-    turnManager=other.turnManager;
-    movementManager=other.movementManager;
-    propertyManager=other.propertyManager;
-    auctionManager=other.auctionManager;
-    cardManager=other.cardManager;
-    jailManager=other.jailManager;
-    bankruptcyManager=other.bankruptcyManager;
-    saveLoadManager=other.saveLoadManager;
-    configManager=other.configManager;
-    logManager=other.logManager;
-    taxManager=other.taxManager;
-    festivalManager=other.festivalManager;
-    winConditionManager=other.winConditionManager;
-    currentTurn=other.currentTurn;
-    maxTurn=other.maxTurn;
-    isRunning=other.isRunning;
+    gameContext = other.gameContext;
+    dice = other.dice;
+    turnManager = other.turnManager;
+    movementManager = other.movementManager;
+    propertyManager = other.propertyManager;
+    auctionManager = other.auctionManager;
+    cardManager = other.cardManager;
+    jailManager = other.jailManager;
+    bankruptcyManager = other.bankruptcyManager;
+    saveLoadManager = other.saveLoadManager;
+    configManager = other.configManager;
+    logManager = other.logManager;
+    taxManager = other.taxManager;
+    festivalManager = other.festivalManager;
+    winConditionManager = other.winConditionManager;
 }
 
 Game::~Game() {}
 
 Game& Game::operator=(const Game& other) {
-    if (this!=&other){
-        board=other.board;
-        players=other.players;
-        dice=other.dice;
-        turnManager=other.turnManager;
-        movementManager=other.movementManager;
-        propertyManager=other.propertyManager;
-        auctionManager=other.auctionManager;
-        cardManager=other.cardManager;
-        jailManager=other.jailManager;
-        bankruptcyManager=other.bankruptcyManager;
-        saveLoadManager=other.saveLoadManager;
-        configManager=other.configManager;
-        logManager=other.logManager;
-        taxManager=other.taxManager;
-        festivalManager=other.festivalManager;
-        winConditionManager=other.winConditionManager;
-        currentTurn=other.currentTurn;
-        maxTurn=other.maxTurn;
-        isRunning=other.isRunning;
+    if (this != &other) {
+        gameContext = other.gameContext;
+        dice = other.dice;
+        turnManager = other.turnManager;
+        movementManager = other.movementManager;
+        propertyManager = other.propertyManager;
+        auctionManager = other.auctionManager;
+        cardManager = other.cardManager;
+        jailManager = other.jailManager;
+        bankruptcyManager = other.bankruptcyManager;
+        saveLoadManager = other.saveLoadManager;
+        configManager = other.configManager;
+        logManager = other.logManager;
+        taxManager = other.taxManager;
+        festivalManager = other.festivalManager;
+        winConditionManager = other.winConditionManager;
     }
     return *this;
 }
 
 void Game::startNewGame() {
-    currentTurn=1;
-    isRunning=false;
-    bankruptcyManager=BankruptcyManager();
-    dice=Dice();
+    gameContext.setCurrentTurn(1);
+    gameContext.setIsRunning(false);
+    bankruptcyManager = BankruptcyManager();
+    dice = Dice();
 
     configManager.loadAllConfigs();
-    board.initializeBoard();
+    gameContext.getBoard().initializeBoard();
     cardManager.initializeDecks();
 
-    if (players.empty()) {
+    if (gameContext.getPlayers().empty()) {
         throw InvalidActionException("Belum ada pemain");
     }
 
-    turnManager.initializeTurnOrder(static_cast<int>(players.size()));
+    turnManager.initializeTurnOrder(static_cast<int>(gameContext.getPlayers().size()));
 
-    isRunning=true;
+    gameContext.setIsRunning(true);
 }
 
 void Game::loadGame(const string& filename) {
     saveLoadManager.loadGame(*this, filename);
 
-    if (players.empty()) {
+    if (gameContext.getPlayers().empty()) {
         throw FileException("Tidak ada pemain.");
     }
 
-    isRunning=true;   
+    gameContext.setIsRunning(true);
 }
 
 Player& Game::getCurrentPlayer() {
+    vector<Player>& players = gameContext.getPlayers();
     if (players.empty()) {
         throw InvalidActionException("Tidak ada pemain");
     }
 
-    if (currentTurn <= 0) {
+    if (gameContext.getCurrentTurn() <= 0) {
         return players.at(0);
     }
 
-    const int currentIndex=(currentTurn-1)%static_cast<int>(players.size());
+    const int currentIndex = (gameContext.getCurrentTurn() - 1) % static_cast<int>(players.size());
+    return players.at(currentIndex);
+}
+
+const Player& Game::getCurrentPlayer() const {
+    const vector<Player>& players = gameContext.getPlayers();
+    if (players.empty()) {
+        throw InvalidActionException("Tidak ada pemain");
+    }
+
+    if (gameContext.getCurrentTurn() <= 0) {
+        return players.at(0);
+    }
+
+    const int currentIndex = (gameContext.getCurrentTurn() - 1) % static_cast<int>(players.size());
     return players.at(currentIndex);
 }
 
 Board& Game::getBoard() {
-    return board;
+    return gameContext.getBoard();
 }
 
 const Board& Game::getBoard() const {
-    return board;
+    return gameContext.getBoard();
+}
+
+GameContext& Game::getGameContext() {
+    return gameContext;
+}
+
+const GameContext& Game::getGameContext() const {
+    return gameContext;
+}
+
+int Game::getCurrentTurn() const {
+    return gameContext.getCurrentTurn();
+}
+
+int Game::getMaxTurn() const {
+    return gameContext.getMaxTurn();
+}
+
+bool Game::isGameRunning() const {
+    return gameContext.isGameRunning();
+}
+
+void Game::setCurrentTurn(int currentTurn) {
+    gameContext.setCurrentTurn(currentTurn);
+}
+
+void Game::setGameRunning(bool isRunning) {
+    gameContext.setIsRunning(isRunning);
 }
 
 TurnManager& Game::getTurnManager() {
@@ -257,17 +285,17 @@ const Dice& Game::getDice() const {
 }
 
 vector<Player>& Game::getPlayers() {
-    return players;
+    return gameContext.getPlayers();
 }
 
 const vector<Player>& Game::getPlayers() const {
-    return players;
+    return gameContext.getPlayers();
 }
 
 bool Game::isGameOver() {
-    return getBankruptcyManager().isBankruptcyActive() || currentTurn >= maxTurn;
+    return getBankruptcyManager().isBankruptcyActive() || gameContext.getCurrentTurn() >= gameContext.getMaxTurn();
 }
 
 bool Game::isGameOver() const {
-    return getBankruptcyManager().isBankruptcyActive() || currentTurn >= maxTurn;
+    return getBankruptcyManager().isBankruptcyActive() || gameContext.getCurrentTurn() >= gameContext.getMaxTurn();
 }

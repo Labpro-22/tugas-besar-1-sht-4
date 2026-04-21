@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "model/Board.hpp"
+#include "model/GameContext.hpp"
 #include "model/Dice.hpp"
 #include "model/Player.hpp"
 #include "model/managers/TurnManager.hpp"
@@ -24,8 +25,8 @@ using namespace std;
 
 class Game {
 private:
-    Board board;
-    vector<Player> players;
+
+    GameContext gameContext;
     Dice dice;
     TurnManager turnManager;
     MovementManager movementManager;
@@ -40,15 +41,11 @@ private:
     TaxManager taxManager;
     FestivalManager festivalManager;
     WinConditionManager winConditionManager;
-    int currentTurn;
-    int maxTurn;
-    bool isRunning;
 
 public:
     Game();
     Game(
-        const Board& board,
-        const vector<Player>& players,
+        const GameContext& gameContext,
         const Dice& dice,
         const TurnManager& turnManager,
         const MovementManager& movementManager,
@@ -62,10 +59,7 @@ public:
         const LogManager& logManager,
         const TaxManager& taxManager,
         const FestivalManager& festivalManager,
-        const WinConditionManager& winConditionManager,
-        int currentTurn,
-        int maxTurn,
-        bool isRunning
+        const WinConditionManager& winConditionManager
     );
     Game(const Game& other);
     ~Game();
@@ -79,6 +73,14 @@ public:
 
     Board& getBoard();
     const Board& getBoard() const;
+
+    GameContext& getGameContext();
+    const GameContext& getGameContext() const;
+    int getCurrentTurn() const;
+    int getMaxTurn() const;
+    bool isGameRunning() const;
+    void setCurrentTurn(int currentTurn);
+    void setGameRunning(bool isRunning);
 
     TurnManager& getTurnManager();
     const TurnManager& getTurnManager() const;

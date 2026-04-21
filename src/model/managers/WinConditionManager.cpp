@@ -1,5 +1,8 @@
 #include "model/managers/WinConditionManager.hpp"
 
+#include "model/Game.hpp"
+#include "model/Player.hpp"
+
 using namespace std;
 
 // not used?
@@ -23,10 +26,7 @@ bool WinConditionManager::isGameOver(const Game& game) const {
 }
 
 bool WinConditionManager::reachedMaxTurn(const Game& game) const {
-    if (game.currentTurn >= game.maxTurn) {
-        return true;
-    }
-    return false;
+    return game.getCurrentTurn() >= game.getMaxTurn();
 }
 
 bool WinConditionManager::onlyOnePlayerLeft(const Game& game) const {

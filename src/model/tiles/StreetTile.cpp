@@ -1,4 +1,6 @@
 #include "model/tiles/StreetTile.hpp"
+#include "model/Game.hpp"
+#include "model/Player.hpp"
 
 using namespace std;
 
