@@ -1,9 +1,11 @@
 #pragma once
 
+#include <vector>
+
 using namespace std;
 
-#include "model/GameContext.hpp"
-#include "model/tiles/StreetTile.hpp"
+class OwnableTile;
+class StreetTile;
 
 class FestivalManager {
 public:
@@ -14,6 +16,6 @@ public:
 
     void activateFestival(StreetTile& tile);
     void strengthenFestival(StreetTile& tile);
-    void decrementFestivalDurations(Player& owner);
+    void decrementFestivalDurations(const vector<OwnableTile*>& ownedProperties);
     void clearExpiredFestival(StreetTile& tile);
 };

@@ -37,6 +37,9 @@ public:
     bool isMonopoly(const Board& board, const StreetTile& tile) const;
     void sellPropertyToBank(Player& player, OwnableTile& tile);
     int calculateSellToBankValue(const OwnableTile& tile) const;
+    vector<OwnableTile*> getOwnedProperties(const Board& board, const Player& player) const;
+    int countOwnedProperties(const Board& board, const Player& player) const;
+    int calculateTotalWealth(const Board& board, const Player& player) const;
     vector<OwnableTile*> getMortgageableProperties(const Game& game, const Player& player) const;
     vector<OwnableTile*> getRedeemableProperties(const Game& game, const Player& player) const;
     vector<string> getBuildableColorGroups(const Game& game, const Player& player) const;

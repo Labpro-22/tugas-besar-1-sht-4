@@ -174,9 +174,41 @@ int PropertyManager::calculateSellToBankValue(const OwnableTile& tile) const {
     return tile.getSelltoBankValue();
 }
 
+vector<OwnableTile*> PropertyManager::getOwnedProperties(const Board& board, const Player& player) const {
+    vector<OwnableTile*> ownedProperties;
+    for (int index = 1; index <= board.getBoardSize(); index++) {
+        shared_ptr<Tile> tile = board.getTile(index);
+        shared_ptr<OwnableTile> property = dynamic_pointer_cast<OwnableTile>(tile);
+        if (property != nullptr && property->getOwner() == &player) {
+            ownedProperties.push_back(property.get());
+        }
+    }
+    return ownedProperties;
+}
+
+int PropertyManager::countOwnedProperties(const Board& board, const Player& player) const {
+    return static_cast<int>(getOwnedProperties(board, player).size());
+}
+
+int PropertyManager::calculateTotalWealth(const Board& board, const Player& player) const {
+//     //TODO : hitungn total wealth dengan hitung money + harga tiap properti
+    int wealth = player.getMoney();
+    for (const auto& property : getOwnedProperties(board, player)) {
+        if (property != nullptr) {
+            wealth += property->getPurchasePrice();
+        }
+    }
+//     // int wealth = money;
+//     // for (const auto& property : ownedProperties) {
+//     //     wealth += property->purchasePrice;
+//     // }
+//     // return wealth;
+    return wealth;
+}
+
 vector<OwnableTile*> PropertyManager::getMortgageableProperties(const Game& game, const Player& player) const {
     vector<OwnableTile*> mortgageableProperties;
-    for (OwnableTile* property : player.getOwnedProperties()) {
+    for (OwnableTile* property : getOwnedProperties(game.getBoard(), player)) {
         if (property != nullptr && canMortgage(player, *property)) {
             mortgageableProperties.push_back(property);
         }
@@ -186,7 +218,7 @@ vector<OwnableTile*> PropertyManager::getMortgageableProperties(const Game& game
 
 vector<OwnableTile*> PropertyManager::getRedeemableProperties(const Game& game, const Player& player) const {
     vector<OwnableTile*> redeemableProperties;
-    for (OwnableTile* property : player.getOwnedProperties()) {
+    for (OwnableTile* property : getOwnedProperties(game.getBoard(), player)) {
         if (property != nullptr && property->isMortgaged()) {
             redeemableProperties.push_back(property);
         }
@@ -196,7 +228,7 @@ vector<OwnableTile*> PropertyManager::getRedeemableProperties(const Game& game, 
 
 vector<string> PropertyManager::getBuildableColorGroups(const Game& game, const Player& player) const {
     vector<string> buildableColorGroups;
-    for (const auto& property : player.getOwnedProperties()) {
+    for (const auto& property : getOwnedProperties(game.getBoard(), player)) {
         StreetTile* street = dynamic_cast<StreetTile*>(property);
         if (street != nullptr && canBuild(game.getBoard(), player, *street)) {
             if (find(buildableColorGroups.begin(), buildableColorGroups.end(), street->getColorGroup()) == buildableColorGroups.end()) {
@@ -209,7 +241,7 @@ vector<string> PropertyManager::getBuildableColorGroups(const Game& game, const 
 
 vector<StreetTile*> PropertyManager::getBuildableStreets(const Game& game, const Player& player, const string& colorGroup) const {
     vector<StreetTile*> buildableStreets;
-    for (OwnableTile* property : player.getOwnedProperties()) {
+    for (OwnableTile* property : getOwnedProperties(game.getBoard(), player)) {
         StreetTile* street = dynamic_cast<StreetTile*>(property);
         if (street != nullptr && canBuild(game.getBoard(), player, *street) && street->getColorGroup() == colorGroup) {
             buildableStreets.push_back(street);

@@ -1,9 +1,11 @@
 #pragma once
 
+#include <vector>
+
 using namespace std;
 
-#include "model/GameContext.hpp"
-#include "model/NimonException.hpp"
+class OwnableTile;
+class Player;
 
 class TaxManager {
 public:
@@ -12,6 +14,6 @@ public:
     ~TaxManager();
     TaxManager& operator=(const TaxManager& other);
 
-    int calculateTotalWealth(const Player& player) const;
+    int calculateTotalWealth(int playerMoney, const vector<OwnableTile*>& ownedProperties) const;
     void processTaxPayment(Player& player, int taxAmount);
 };

@@ -1,5 +1,8 @@
 #include "model/managers/FestivalManager.hpp"
 
+#include "model/tiles/OwnableTile.hpp"
+#include "model/tiles/StreetTile.hpp"
+
 using namespace std;
 
 //not used?
@@ -21,8 +24,8 @@ void FestivalManager::strengthenFestival(StreetTile& tile) {
     tile.activateFestival();
 }
 
-void FestivalManager::decrementFestivalDurations(Player& owner) {
-    for (OwnableTile* property : owner.getOwnedProperties()) {
+void FestivalManager::decrementFestivalDurations(const vector<OwnableTile*>& ownedProperties) {
+    for (OwnableTile* property : ownedProperties) {
         StreetTile* street = dynamic_cast<StreetTile*>(property);
         if (street != nullptr) {
             street->decrementFestivalDuration();

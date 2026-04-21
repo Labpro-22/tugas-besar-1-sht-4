@@ -1,5 +1,9 @@
 #include "model/managers/TaxManager.hpp"
 
+#include "model/NimonException.hpp"
+#include "model/Player.hpp"
+#include "model/tiles/OwnableTile.hpp"
+
 using namespace std;
 
 //not used?
@@ -14,8 +18,14 @@ TaxManager& TaxManager::operator=(const TaxManager& other) {
 }
 
 
-int TaxManager::calculateTotalWealth(const Player& player) const {
-    return player.getTotalWealth();
+int TaxManager::calculateTotalWealth(int playerMoney, const vector<OwnableTile*>& ownedProperties) const {
+    int totalWealth = playerMoney;
+    for (OwnableTile* property : ownedProperties) {
+        if (property != nullptr) {
+            totalWealth += property->getPurchasePrice();
+        }
+    }
+    return totalWealth;
 }
 
 void TaxManager::processTaxPayment(Player& player, int taxAmount) {

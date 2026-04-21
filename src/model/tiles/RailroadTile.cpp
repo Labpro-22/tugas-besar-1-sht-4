@@ -47,7 +47,6 @@ void RailroadTile::acquire(Player& player) {
     if (this->getOwnershipStatus() != OwnershipStatus::BANK) throw InvalidActionException("Railroad is not in BANK status");
     this->setOwner(&player);
     this->ownershipStatus = OwnershipStatus::OWNED;
-    player.addProperty(this);
 
     // TODO : add log if needed
 }

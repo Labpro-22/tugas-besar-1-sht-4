@@ -4,9 +4,6 @@
 
 using namespace std;
 
-class Game;
-class Player;
-
 class IncomeTaxTile : public TaxTile {
 private:
     int flatTax;
@@ -31,5 +28,5 @@ public:
     int getFlatTax() const;
     int getPercentageTax() const;
     int calculateFlatTax() const;
-    int calculatePercentageTax(const Game& game, const Player& player) const;
+    int calculatePercentageTax(int playerWealth) const;
 };

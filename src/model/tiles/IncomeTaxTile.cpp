@@ -1,5 +1,4 @@
 #include "model/tiles/IncomeTaxTile.hpp"
-#include "model/Player.hpp"
 
 using namespace std;
 
@@ -51,7 +50,7 @@ int IncomeTaxTile::calculateFlatTax() const {
     return flatTax;
 }
 
-int IncomeTaxTile::calculatePercentageTax(const Game& game, const Player& player) const {
+int IncomeTaxTile::calculatePercentageTax(int playerWealth) const {
     // TODO : Make sure that total wealth is money + buildings 
-    return player.getTotalWealth() * percentageTax / 100;
+    return playerWealth * percentageTax / 100;
 }

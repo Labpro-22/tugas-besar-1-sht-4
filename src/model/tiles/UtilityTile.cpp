@@ -48,7 +48,6 @@ void UtilityTile::acquire(Player& player) {
     if (this->getOwnershipStatus() != OwnershipStatus::BANK) throw InvalidActionException("Utility is not in BANK status");
     this->setOwner(&player);
     this->ownershipStatus = OwnershipStatus::OWNED;
-    player.addProperty(this);
 }
 
 int UtilityTile::getBuildingValue() const {

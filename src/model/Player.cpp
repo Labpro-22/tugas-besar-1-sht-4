@@ -32,6 +32,7 @@ Player::Player(const Player& other) {
     this->money = other.money;
     this->position = other.position;
     this->status = other.status;
+    this->handCards = other.handCards;
     this->failedJailRolls = other.failedJailRolls;
     this->usedHandCardThisTurn = other.usedHandCardThisTurn;
     this->shieldActive = other.shieldActive;
@@ -47,6 +48,7 @@ Player& Player::operator=(const Player& other) {
         this->money = other.money;
         this->position = other.position;
         this->status = other.status;
+        this->handCards = other.handCards;
         this->failedJailRolls = other.failedJailRolls;
         this->usedHandCardThisTurn = other.usedHandCardThisTurn;
         this->shieldActive = other.shieldActive;
@@ -73,30 +75,17 @@ void Player::moveTo(int position) {
     this->position = position;
 }
 
-// void Player::addProperty(OwnableTile* property) {
-//     if (property != nullptr) {
-//         ownedProperties.push_back(property);
-//     }
-// }
+void Player::addHandCard(shared_ptr<HandCard> card) {
+    if (card != nullptr) {
+        handCards.push_back(card);
+    }
+}
 
-// void Player::removeProperty(OwnableTile* property) {
-//     auto it = find(ownedProperties.begin(), ownedProperties.end(), property);
-//     if (it != ownedProperties.end()) {
-//         ownedProperties.erase(it);
-//     }
-// }
-
-// void Player::addHandCard(shared_ptr<HandCard> card) {
-//     if (card != nullptr) {
-//         handCards.push_back(card);
-//     }
-// }
-
-// void Player::removeHandCard(int index) {
-//     if (index >= 0 && index < handCards.size()) {
-//         handCards.erase(handCards.begin() + index);
-//     }
-// }
+void Player::removeHandCard(int index) {
+    if (index >= 0 && index < static_cast<int>(handCards.size())) {
+        handCards.erase(handCards.begin() + index);
+    }
+}
 
 bool Player::isBankrupt() const {
     if (status == PlayerStatus::BANKRUPT) {
@@ -120,26 +109,9 @@ void Player::setJailed(bool jailed) {
     }
 }
 
-int Player::getTotalWealth() const {
-//     //TODO : hitungn total wealth dengan hitung money + harga tiap properti
-//     int wealth = money;
-//     for (const auto& property : ownedProperties) {
-//         wealth += property->getPurchasePrice();
-//     }
-//     // int wealth = money;
-//     // for (const auto& property : ownedProperties) {
-//     //     wealth += property->purchasePrice;
-//     // }
-//     // return wealth;
-// }
-
-// int Player::countProperties() const {
-//     return ownedProperties.size();
+int Player::countCards() const {
+    return static_cast<int>(handCards.size());
 }
-
-// int Player::countCards() const {
-//     return handCards.size();
-// }
 
 Player& Player::operator+=(int amount) {
     this->money += amount;
@@ -177,10 +149,6 @@ bool Player::operator<(const Player& other) const {
     return false;
 }
 
-// vector<OwnableTile*> Player::getOwnedProperties() const {
-//     return ownedProperties;
-// }
-
-// vector<shared_ptr<HandCard>> Player::getHandCards() const {
-//     return handCards;
-// }
+vector<shared_ptr<HandCard>> Player::getHandCards() const {
+    return handCards;
+}

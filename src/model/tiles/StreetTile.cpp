@@ -117,7 +117,6 @@ void StreetTile::acquire(Player& player) {
     player -= this->purchasePrice;
     this->setOwner(&player);
     this->ownershipStatus = OwnershipStatus::OWNED;
-    player.addProperty(this);
     // TODO : might add log, check later
 
     

@@ -8,7 +8,6 @@
 using namespace std;
 
 class HandCard;
-class OwnableTile;
 
 enum class PlayerStatus {
     ACTIVE,
@@ -50,16 +49,12 @@ public:
     int getMoney() const;
     int getPosition() const;
     void moveTo(int position);
-    // void addProperty(OwnableTile* property);
-    // void removeProperty(OwnableTile* property);
-    // void addHandCard(shared_ptr<HandCard> card);
-    // void removeHandCard(int index);
+    void addHandCard(shared_ptr<HandCard> card);
+    void removeHandCard(int index);
     bool isBankrupt() const;
     bool isJailed() const;
     void setJailed(bool jailed);
-    int getTotalWealth() const;
-    // int countProperties() const;
-    // int countCards() const;
+    int countCards() const;
 
     Player& operator+=(int amount);
     Player& operator-=(int amount);
@@ -67,6 +62,5 @@ public:
     Player operator-(int amount) const;
     bool operator>(const Player& other) const;
     bool operator<(const Player& other) const;
-    // vector<OwnableTile*> getOwnedProperties() const;
-    // vector<shared_ptr<HandCard>> getHandCards() const;
+    vector<shared_ptr<HandCard>> getHandCards() const;
 };
