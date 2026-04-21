@@ -26,5 +26,5 @@ GoToNearestRailroadCard& GoToNearestRailroadCard::operator=(const GoToNearestRai
 
 void GoToNearestRailroadCard::apply(Game& game, Player& player) {
     cout << "Kartu: \"Pergi ke stasiun terdekat.\"" << endl;
-    game.getMovementManager().movePlayerToNearestRailroad(game, player);
+    game.getMovementManager().movePlayerToNearestRailroad(player);
 }

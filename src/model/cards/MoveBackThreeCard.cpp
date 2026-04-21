@@ -26,5 +26,5 @@ MoveBackThreeCard& MoveBackThreeCard::operator=(const MoveBackThreeCard& other) 
 
 void MoveBackThreeCard::apply(Game& game, Player& player) {
     cout << "Kartu: \"Mundur 3 petak.\"" << endl;
-    game.getMovementManager().movePlayerBack(game, player, 3);
+    game.getMovementManager().movePlayerBack(player, 3);
 }
