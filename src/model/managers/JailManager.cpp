@@ -1,5 +1,9 @@
 #include "model/managers/JailManager.hpp"
 
+#include "model/Dice.hpp"
+#include "model/NimonException.hpp"
+#include "model/Player.hpp"
+
 using namespace std;
 
 //Ga perlu

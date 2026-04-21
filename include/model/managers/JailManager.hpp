@@ -4,7 +4,8 @@
 
 using namespace std;
 
-#include "model/Game.hpp"
+class Dice;
+class Player;
 
 class JailManager {
 public:
@@ -15,7 +16,7 @@ public:
 
     void sendToJail(Player& player);
     void payJailFine(Player& player, int amount);
-    bool tryRollForRelease(Player& player);
+    bool tryRollForRelease(Dice& dice, Player& player);
     void releaseFromJail(Player& player);
     void beginJailDecision(Player& player);
     void resolveJailDecision(Player& player, const string& action);
