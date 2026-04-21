@@ -25,7 +25,7 @@ public:
     ~Board();
     Board& operator=(const Board& other);
 
-    void initializeBoard();
+    void initializeBoard(const ConfigManager& configManager);
     shared_ptr<Tile> getTile(int index) const;
     shared_ptr<Tile> getTileByCode(const string& code) const;
     int getTileIndex(const string& code) const;

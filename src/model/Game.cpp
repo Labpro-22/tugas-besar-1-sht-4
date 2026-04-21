@@ -86,7 +86,7 @@ void Game::startNewGame() {
     dice = Dice();
 
     configManager.loadAllConfigs();
-    gameContext.getBoard().initializeBoard();
+    gameContext.getBoard().initializeBoard(configManager);
     cardManager.initializeDecks();
 
     if (gameContext.getPlayers().empty()) {

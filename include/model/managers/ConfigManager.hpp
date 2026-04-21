@@ -2,6 +2,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -16,6 +17,7 @@ public:
         string colorGroup;
         int houseBuildCost;
         int hotelBuildCost;
+        vector<int> rentLevels;
 
     public:
         PropertyConfig();
@@ -26,7 +28,8 @@ public:
             int mortgageValue,
             const string& colorGroup,
             int houseBuildCost,
-            int hotelBuildCost
+            int hotelBuildCost,
+            const vector<int>& rentLevels
         );
         PropertyConfig(const PropertyConfig& other);
         ~PropertyConfig();
@@ -39,10 +42,12 @@ public:
         const string& getColorGroup() const;
         int getHouseBuildCost() const;
         int getHotelBuildCost() const;
+        const vector<int>& getRentLevels() const;
     };
 
 private:
     map<string, PropertyConfig> propertyConfigs;
+    map<int, string> propertyCodeById;
     map<int, int> railroadRentTable;
     map<int, int> utilityMultiplierTable;
     int pphFlat;
@@ -57,6 +62,7 @@ public:
     ConfigManager();
     ConfigManager(
         const map<string, PropertyConfig>& propertyConfigs,
+        const map<int, string>& propertyCodeById,
         const map<int, int>& railroadRentTable,
         const map<int, int>& utilityMultiplierTable,
         int pphFlat,
@@ -81,6 +87,12 @@ public:
 
     const map<string, PropertyConfig>& getPropertyConfigs() const;
     const PropertyConfig& getPropertyConfig(const string& code) const;
+
+    const map<int, string>& getPropertyCodeByIdMap() const;
+    const string& getPropertyCodeById(int id) const;
+    const PropertyConfig& getPropertyConfigById(int id) const;
+    bool hasPropertyId(int id) const;
+
     const map<int, int>& getRailroadRentTable() const;
     int getRailroadRent(int railroadCount) const;
     const map<int, int>& getUtilityMultiplierTable() const;
