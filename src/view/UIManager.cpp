@@ -190,19 +190,19 @@ int UIManager::readBuildGroupChoice() const {
     return 0;
 }
 
-void UIManager::printBuildableTiles(const string& colorGroup, const vector<shared_ptr<StreetTile>>& tiles) const {}
+void UIManager::printBuildableTiles(const string& colorGroup, const vector<StreetTile*>& tiles) const {}
 
 int UIManager::readBuildTileChoice() const {
     return 0;
 }
 
-void UIManager::printRedeemOptions(const Player& player, const vector<shared_ptr<OwnableTile>>& redeemableProperties) const {}
+void UIManager::printRedeemOptions(const Player& player, const vector<OwnableTile*>& redeemableProperties) const {}
 
 int UIManager::readRedeemChoice() const {
     return 0;
 }
 
-void UIManager::printMortgageOptions(const Player& player, const vector<shared_ptr<OwnableTile>>& mortgageableProperties) const {}
+void UIManager::printMortgageOptions(const Player& player, const vector<OwnableTile*>& mortgageableProperties) const {}
 
 int UIManager::readMortgageChoice() const {
     return 0;

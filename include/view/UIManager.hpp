@@ -60,11 +60,11 @@ public:
     int readForceDropChoice(int maxIndex) const;
     void printBuildOptions(const Player& player, const vector<string>& eligibleGroups) const;
     int readBuildGroupChoice() const;
-    void printBuildableTiles(const string& colorGroup, const vector<shared_ptr<StreetTile>>& tiles) const;
+    void printBuildableTiles(const string& colorGroup, const vector<StreetTile*>& tiles) const;
     int readBuildTileChoice() const;
-    void printRedeemOptions(const Player& player, const vector<shared_ptr<OwnableTile>>& redeemableProperties) const;
+    void printRedeemOptions(const Player& player, const vector<OwnableTile*>& redeemableProperties) const;
     int readRedeemChoice() const;
-    void printMortgageOptions(const Player& player, const vector<shared_ptr<OwnableTile>>& mortgageableProperties) const;
+    void printMortgageOptions(const Player& player, const vector<OwnableTile*>& mortgageableProperties) const;
     int readMortgageChoice() const;
     void printJailOptions(const Player& player, int jailFine, int failedRolls) const;
     int readJailChoice() const;
