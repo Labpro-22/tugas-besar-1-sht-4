@@ -26,5 +26,5 @@ GoToJailCard& GoToJailCard::operator=(const GoToJailCard& other) {
 
 void GoToJailCard::apply(Game& game, Player& player) {
     cout << "Kartu: \"Masuk Penjara.\"" << endl;
-    game.getJailManager().sendToJail(game, player);
+    game.getJailManager().sendToJail(player);
 }
