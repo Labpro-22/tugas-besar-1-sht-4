@@ -219,6 +219,4 @@ void CardManager::dropHandCard(Player& player, int cardIndex) {
 
 vector<shared_ptr<HandCard>> CardManager::getHandCards(const Player& player) const {
     return player.getHandCards();
-:getHandCards(const Player& player) const {
-    return {};
 }
