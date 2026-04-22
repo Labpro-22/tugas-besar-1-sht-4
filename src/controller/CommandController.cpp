@@ -481,6 +481,8 @@ bool CommandController::processCommand(const string& input) {
             handlePrintLog(parseRecentLogCount(input));
         } else if (command == "GUNAKAN_KEMAMPUAN") {
             handleUseCard();
+        } else if (command == "HELP") {
+            handleHelp();
         } else {
             uiManager.printError("Perintah tidak dikenal.");
             return false;
@@ -491,6 +493,10 @@ bool CommandController::processCommand(const string& input) {
     }
 
     return true;
+}
+
+void CommandController::handleHelp() {
+    uiManager.printHelp();
 }
 
 void CommandController::handleRollDice() {

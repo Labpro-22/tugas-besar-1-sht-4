@@ -59,6 +59,7 @@ public:
     void handleSave(const string& filename);
     void handlePrintLog(int recentCount = -1);
     void handleUseCard();
+    void handleHelp();
 
     int parseRecentLogCount(const string& input) const;
 };

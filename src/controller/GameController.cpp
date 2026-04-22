@@ -226,5 +226,6 @@ bool GameController::isCommandValidThisTurn(const string& input) const {
            command == "BANGUN" ||
            command == "SIMPAN" ||
            command == "CETAK_LOG" ||
-           command == "GUNAKAN_KEMAMPUAN";
+           command == "GUNAKAN_KEMAMPUAN" ||
+           command == "HELP";
 }

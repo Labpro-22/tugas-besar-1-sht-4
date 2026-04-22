@@ -402,6 +402,23 @@ void UIManager::printError(const string& msg) const {
     cerr << msg << '\n';
 }
 
+void UIManager::printHelp() const {
+    cout << "=== Daftar Command ===\n";
+    cout << "HELP                         : Menampilkan daftar command.\n";
+    cout << "CETAK_PAPAN                  : Menampilkan papan, posisi pemain, dan status petak.\n";
+    cout << "LEMPAR_DADU                  : Melempar dadu dan memindahkan pemain aktif.\n";
+    cout << "ATUR_DADU <X> <Y>            : Mengatur hasil dadu manual, X dan Y bernilai 1-6.\n";
+    cout << "CETAK_AKTA                   : Menampilkan akta properti berdasarkan kode petak.\n";
+    cout << "CETAK_PROPERTI               : Menampilkan daftar properti pemain aktif.\n";
+    cout << "GADAI                        : Menggadaikan properti yang memenuhi syarat.\n";
+    cout << "TEBUS                        : Menebus properti yang sedang digadaikan.\n";
+    cout << "BANGUN                       : Membangun rumah atau hotel pada properti yang memenuhi syarat.\n";
+    cout << "GUNAKAN_KEMAMPUAN            : Menggunakan satu kartu kemampuan dari tangan.\n";
+    cout << "CETAK_LOG                    : Menampilkan seluruh log transaksi.\n";
+    cout << "CETAK_LOG <N>                : Menampilkan N log transaksi terakhir.\n";
+    cout << "SIMPAN <nama_file>           : Menyimpan permainan sebelum melempar dadu.\n";
+}
+
 string UIManager::readPropertyCode() const {
     string code;
     while (true) {

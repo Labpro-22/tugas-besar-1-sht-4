@@ -48,6 +48,7 @@ public:
     string readCommand() const;
     void printMessage(const string& msg) const;
     void printError(const string& msg) const;
+    void printHelp() const;
     string readPropertyCode() const;
 
     void printBoard(const vector<int>& cellIndices, const vector<string>& cellColorCodes, const vector<vector<string>>& cellLines, int currentTurn, int maxTurn, const string& currentPlayerLabel) const;
