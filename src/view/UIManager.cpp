@@ -369,12 +369,18 @@ vector<string> UIManager::readUsernames(int playerCount) const {
             }
             username = trim(username);
 
-            if (!username.empty()) {
-                usernames.push_back(username);
-                break;
+            if (username.empty()) {
+                cout << "Username tidak boleh kosong.\n";
+                continue;
             }
 
-            cout << "Username tidak boleh kosong.\n";
+            if (find(usernames.begin(), usernames.end(), username) != usernames.end()) {
+                cout << "Username sudah digunakan. Pilih username lain.\n";
+                continue;
+            }
+
+            usernames.push_back(username);
+            break;
         }
     }
 
