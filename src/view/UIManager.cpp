@@ -1202,3 +1202,31 @@ void UIManager::printGameOver(
              << " | Kartu: " << winnerCardCounts[i] << '\n';
     }
 }
+
+void UIManager::printCardDrawn(const string& type, const string& name, const string& description) const {
+    cout << "\nKamu mendapatkan " << type << " baru!" << endl;
+    cout << "[" << name << "] - " << description << endl;
+}
+
+void UIManager::printCardEffect(const string& message) const {
+    cout << message << endl;
+}
+
+int UIManager::readLassoTarget(const vector<string>& names, const vector<int>& positions) const {
+    cout << "\nPilih lawan yang ingin ditarik ke posisi Anda:" << endl;
+    for (size_t i = 0; i < names.size(); i++) {
+        cout << i + 1 << ". " << names[i] << " (petak ke-" << positions[i] << ")" << endl;
+    }
+    cout << "0. Batal" << endl;
+    return readIntInRange("Pilihan (0-" + to_string(names.size()) + "): ", 0, names.size(), true);
+}
+
+int UIManager::readDemolitionTarget(const vector<string>& names, const vector<string>& codes, const vector<string>& owners, const vector<string>& buildings) const {
+    cout << "\nPilih properti yang bangunannya ingin dihancurkan:" << endl;
+    for (size_t i = 0; i < names.size(); i++) {
+        cout << i + 1 << ". [" << codes[i] << "] " << names[i]
+             << " (milik " << owners[i] << ", " << buildings[i] << ")" << endl;
+    }
+    cout << "0. Batal" << endl;
+    return readIntInRange("Pilihan (0-" + to_string(names.size()) + "): ", 0, names.size(), true);
+}
