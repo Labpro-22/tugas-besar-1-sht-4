@@ -198,6 +198,69 @@ map<string, int> ConfigManager::parseScalarConfig(
     return values;
 }
 
+ConfigManager::ActionTileConfig::ActionTileConfig()
+    : id(0)
+{}
+
+ConfigManager::ActionTileConfig::ActionTileConfig(
+    int id,
+    const string& code,
+    const string& name,
+    const string& tileType,
+    const string& color
+)
+    : id(id),
+      code(code),
+      name(name),
+      tileType(tileType),
+      color(color)
+{}
+
+ConfigManager::ActionTileConfig::ActionTileConfig(
+    const ConfigManager::ActionTileConfig& other
+)
+    : id(other.id),
+      code(other.code),
+      name(other.name),
+      tileType(other.tileType),
+      color(other.color)
+{}
+
+ConfigManager::ActionTileConfig::~ActionTileConfig() {}
+
+ConfigManager::ActionTileConfig& ConfigManager::ActionTileConfig::operator=(
+    const ConfigManager::ActionTileConfig& other
+) {
+    if (this != &other) {
+        id = other.id;
+        code = other.code;
+        name = other.name;
+        tileType = other.tileType;
+        color = other.color;
+    }
+    return *this;
+}
+
+int ConfigManager::ActionTileConfig::getId() const {
+    return id;
+}
+
+const string& ConfigManager::ActionTileConfig::getCode() const {
+    return code;
+}
+
+const string& ConfigManager::ActionTileConfig::getName() const {
+    return name;
+}
+
+const string& ConfigManager::ActionTileConfig::getTileType() const {
+    return tileType;
+}
+
+const string& ConfigManager::ActionTileConfig::getColor() const {
+    return color;
+}
+
 ConfigManager::PropertyConfig::PropertyConfig()
     : purchasePrice(0),
       mortgageValue(0),
@@ -324,7 +387,8 @@ ConfigManager::ConfigManager(
 {}
 
 ConfigManager::ConfigManager(const ConfigManager& other)
-    : propertyConfigs(other.propertyConfigs),
+    : actionTileConfigs(other.actionTileConfigs),
+      propertyConfigs(other.propertyConfigs),
       propertyCodeById(other.propertyCodeById),
       railroadRentTable(other.railroadRentTable),
       utilityMultiplierTable(other.utilityMultiplierTable),
@@ -341,6 +405,7 @@ ConfigManager::~ConfigManager() {}
 
 ConfigManager& ConfigManager::operator=(const ConfigManager& other) {
     if (this != &other) {
+        actionTileConfigs = other.actionTileConfigs;
         propertyConfigs = other.propertyConfigs;
         propertyCodeById = other.propertyCodeById;
         railroadRentTable = other.railroadRentTable;
@@ -357,6 +422,7 @@ ConfigManager& ConfigManager::operator=(const ConfigManager& other) {
 }
 
 void ConfigManager::loadAllConfigs() {
+    actionTileConfigs.clear();
     propertyConfigs.clear();
     propertyCodeById.clear();
     railroadRentTable.clear();
@@ -373,6 +439,7 @@ void ConfigManager::loadAllConfigs() {
     loadRailroadConfig(RAILROAD_CONFIG_PATH);
     loadUtilityConfig(UTILITY_CONFIG_PATH);
     loadTaxConfig(TAX_CONFIG_PATH);
+    loadActionTileConfig(ACTION_CONFIG_PATH);
     loadSpecialConfig(SPECIAL_CONFIG_PATH);
     loadMiscConfig(MISC_CONFIG_PATH);
 }
@@ -580,6 +647,72 @@ void ConfigManager::loadTaxConfig(const string& filename) {
     pbmFlat = getValueByAliases(values, {"PBM_FLAT"}, filename);
 }
 
+void ConfigManager::loadActionTileConfig(const string& filename) {
+    const vector<vector<string>> rows = readTokenRows(filename);
+
+    size_t idIndex = 0;
+    size_t codeIndex = 1;
+    size_t nameIndex = 2;
+    size_t typeIndex = 3;
+    size_t colorIndex = 4;
+    size_t dataStartIndex = 0;
+
+    if (hasHeaderFields(rows[0], {"ID", "KODE", "NAMA", "JENIS_PETAK", "WARNA"})) {
+        const map<string, size_t> headerIndex = buildHeaderIndex(rows[0]);
+        idIndex = headerIndex.at("ID");
+        codeIndex = headerIndex.at("KODE");
+        nameIndex = headerIndex.at("NAMA");
+        typeIndex = headerIndex.at("JENIS_PETAK");
+        colorIndex = headerIndex.at("WARNA");
+        dataStartIndex = 1;
+    }
+
+    const size_t requiredIndex = max({
+        idIndex,
+        codeIndex,
+        nameIndex,
+        typeIndex,
+        colorIndex
+    });
+
+    size_t parsedRowCount = 0;
+    for (size_t rowIndex = dataStartIndex; rowIndex < rows.size(); rowIndex++) {
+        const vector<string>& row = rows[rowIndex];
+        if (row.size() <= requiredIndex) {
+            continue;
+        }
+        if (!isIntegerToken(row[idIndex])) {
+            continue;
+        }
+
+        const int id = parseInt(row[idIndex], filename, "ID");
+        const string& code = row[codeIndex];
+        const string& name = row[nameIndex];
+        const string& tileType = row[typeIndex];
+        const string& color = row[colorIndex];
+
+        if (code.empty()) {
+            throw FileException("Kode petak aksi kosong pada file " + filename);
+        }
+        if (name.empty()) {
+            throw FileException("Nama petak aksi kosong pada file " + filename);
+        }
+        if (tileType.empty()) {
+            throw FileException("Jenis petak aksi kosong pada file " + filename);
+        }
+        if (actionTileConfigs.find(id) != actionTileConfigs.end()) {
+            throw FileException("ID petak aksi duplikat pada file " + filename + ": " + row[idIndex]);
+        }
+
+        actionTileConfigs[id] = ActionTileConfig(id, code, name, tileType, color);
+        parsedRowCount++;
+    }
+
+    if (parsedRowCount == 0) {
+        throw FileException("Tidak ada data petak aksi valid pada file " + filename);
+    }
+}
+
 void ConfigManager::loadSpecialConfig(const string& filename) {
     const map<string, int> values = parseScalarConfig(
         filename,
@@ -598,6 +731,18 @@ void ConfigManager::loadMiscConfig(const string& filename) {
 
     maxTurn = getValueByAliases(values, {"MAX_TURN", "MAX_TURNS"}, filename);
     initialBalance = getValueByAliases(values, {"SALDO_AWAL", "INITIAL_BALANCE"}, filename);
+}
+
+const map<int, ConfigManager::ActionTileConfig>& ConfigManager::getActionTileConfigs() const {
+    return actionTileConfigs;
+}
+
+const ConfigManager::ActionTileConfig& ConfigManager::getActionTileConfigById(int id) const {
+    return actionTileConfigs.at(id);
+}
+
+bool ConfigManager::hasActionTileId(int id) const {
+    return actionTileConfigs.find(id) != actionTileConfigs.end();
 }
 
 const map<string, ConfigManager::PropertyConfig>& ConfigManager::getPropertyConfigs() const {

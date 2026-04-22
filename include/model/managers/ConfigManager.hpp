@@ -8,6 +8,34 @@ using namespace std;
 
 class ConfigManager {
 public:
+    class ActionTileConfig {
+    private:
+        int id;
+        string code;
+        string name;
+        string tileType;
+        string color;
+
+    public:
+        ActionTileConfig();
+        ActionTileConfig(
+            int id,
+            const string& code,
+            const string& name,
+            const string& tileType,
+            const string& color
+        );
+        ActionTileConfig(const ActionTileConfig& other);
+        ~ActionTileConfig();
+        ActionTileConfig& operator=(const ActionTileConfig& other);
+
+        int getId() const;
+        const string& getCode() const;
+        const string& getName() const;
+        const string& getTileType() const;
+        const string& getColor() const;
+    };
+
     class PropertyConfig {
     private:
         string code;
@@ -50,9 +78,11 @@ private:
     static constexpr const char* RAILROAD_CONFIG_PATH = "config/railroad.txt";
     static constexpr const char* UTILITY_CONFIG_PATH = "config/utility.txt";
     static constexpr const char* TAX_CONFIG_PATH = "config/tax.txt";
+    static constexpr const char* ACTION_CONFIG_PATH = "config/aksi.txt";
     static constexpr const char* SPECIAL_CONFIG_PATH = "config/special.txt";
     static constexpr const char* MISC_CONFIG_PATH = "config/misc.txt";
 
+    map<int, ActionTileConfig> actionTileConfigs;
     map<string, PropertyConfig> propertyConfigs;
     map<int, string> propertyCodeById;
     map<int, int> railroadRentTable;
@@ -101,8 +131,13 @@ public:
     void loadRailroadConfig(const string& filename);
     void loadUtilityConfig(const string& filename);
     void loadTaxConfig(const string& filename);
+    void loadActionTileConfig(const string& filename);
     void loadSpecialConfig(const string& filename);
     void loadMiscConfig(const string& filename);
+
+    const map<int, ActionTileConfig>& getActionTileConfigs() const;
+    const ActionTileConfig& getActionTileConfigById(int id) const;
+    bool hasActionTileId(int id) const;
 
     const map<string, PropertyConfig>& getPropertyConfigs() const;
     const PropertyConfig& getPropertyConfig(const string& code) const;
