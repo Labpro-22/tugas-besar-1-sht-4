@@ -57,6 +57,10 @@ void GameContext::setCurrentTurn(int currentTurn) {
     this->currentTurn = currentTurn;
 }
 
+void GameContext::setMaxTurn(int maxTurn) {
+    this->maxTurn = maxTurn;
+}
+
 void GameContext::setIsRunning(bool isRunning) {
     this->isRunning = isRunning;
 }

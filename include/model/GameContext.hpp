@@ -28,5 +28,6 @@ public:
     const std::vector<Player>& getPlayers() const;
 
     void setCurrentTurn(int currentTurn);
+    void setMaxTurn(int maxTurn);
     void setIsRunning(bool isRunning);
 };
