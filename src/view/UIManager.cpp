@@ -844,28 +844,22 @@ void UIManager::printFestivalState(
 
     cout << "Daftar properti milikmu:\n";
     for (size_t i = 0; i < count; i++) {
-        cout << "- " << propertyCodes[i] << " (" << propertyNames[i] << ")";
+        cout << (i + 1) << ". " << propertyCodes[i] << " (" << propertyNames[i] << ")";
         if (!propertyStatuses[i].empty()) {
             cout << " [" << propertyStatuses[i] << "]";
         }
         cout << '\n';
     }
+    cout << "0. Batal\n";
 }
 
-string UIManager::readFestivalPropertyCode() const {
-    string code;
-    while (true) {
-        cout << "Masukkan kode properti: ";
-        getline(cin, code);
-        if (cin.eof()) {
-            return "";
-        }
-        code = toUpperCopy(trim(code));
-        if (!code.empty()) {
-            return code;
-        }
-        cout << "Kode properti tidak boleh kosong.\n";
-    }
+int UIManager::readFestivalPropertyChoice(int maxIndex) const {
+    return readIntInRange(
+        "Pilih properti festival (0 untuk batal): ",
+        0,
+        maxIndex,
+        true
+    );
 }
 
 void UIManager::printFestivalActivated(
@@ -952,8 +946,13 @@ void UIManager::printLiquidationState(
     cout << "Pilih aset yang ingin dilikuidasi dari daftar yang disediakan controller.\n";
 }
 
-int UIManager::readLiquidationChoice() const {
-    return readIntInRange("Pilih aksi (0 jika sudah cukup): ", 0, 0, false);
+int UIManager::readLiquidationChoice(int maxIndex) const {
+    return readIntInRange(
+        "Pilih aksi (0 jika sudah cukup): ",
+        0,
+        maxIndex,
+        true
+    );
 }
 
 void UIManager::printForceDropState(
@@ -1017,8 +1016,13 @@ void UIManager::printBuildOptions(int playerMoney, const vector<string>& eligibl
     cout << "\nUang kamu saat ini : " << formatMoney(playerMoney) << '\n';
 }
 
-int UIManager::readBuildGroupChoice() const {
-    return readIntInRange("Pilih nomor color group (0 untuk batal): ", 0, 0, false);
+int UIManager::readBuildGroupChoice(int maxIndex) const {
+    return readIntInRange(
+        "Pilih nomor color group (0 untuk batal): ",
+        0,
+        maxIndex,
+        true
+    );
 }
 
 void UIManager::printBuildableTiles(
@@ -1049,8 +1053,13 @@ void UIManager::printBuildableTiles(
     cout << right;
 }
 
-int UIManager::readBuildTileChoice() const {
-    return readIntInRange("Pilih petak (0 untuk batal): ", 0, 0, false);
+int UIManager::readBuildTileChoice(int maxIndex) const {
+    return readIntInRange(
+        "Pilih petak (0 untuk batal): ",
+        0,
+        maxIndex,
+        true
+    );
 }
 
 void UIManager::printRedeemOptions(
@@ -1092,8 +1101,13 @@ void UIManager::printRedeemOptions(
     cout << "\nUang kamu saat ini: " << formatMoney(playerMoney) << '\n';
 }
 
-int UIManager::readRedeemChoice() const {
-    return readIntInRange("Pilih nomor properti (0 untuk batal): ", 0, 0, false);
+int UIManager::readRedeemChoice(int maxIndex) const {
+    return readIntInRange(
+        "Pilih nomor properti (0 untuk batal): ",
+        0,
+        maxIndex,
+        true
+    );
 }
 
 void UIManager::printMortgageOptions(
@@ -1135,8 +1149,13 @@ void UIManager::printMortgageOptions(
     cout << "\nUang kamu saat ini: " << formatMoney(playerMoney) << '\n';
 }
 
-int UIManager::readMortgageChoice() const {
-    return readIntInRange("Pilih nomor properti (0 untuk batal): ", 0, 0, false);
+int UIManager::readMortgageChoice(int maxIndex) const {
+    return readIntInRange(
+        "Pilih nomor properti (0 untuk batal): ",
+        0,
+        maxIndex,
+        true
+    );
 }
 
 void UIManager::printJailOptions(

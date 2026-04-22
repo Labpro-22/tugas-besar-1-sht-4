@@ -647,20 +647,17 @@ void TileController::handleFestival(FestivalTile& tile) {
         return;
     }
 
-    const string code = toUpperCopy(uiManager.readFestivalPropertyCode());
-    StreetTile* selected = nullptr;
-    for (StreetTile* street : streets) {
-        if (toUpperCopy(street->getCode()) == code) {
-            selected = street;
-            break;
-        }
+    const int choice = uiManager.readFestivalPropertyChoice(static_cast<int>(streets.size()));
+    if (choice == 0) {
+        uiManager.printMessage("Festival dibatalkan.");
+        return;
     }
-
-    if (selected == nullptr) {
-        uiManager.printError("Kode properti tidak valid atau bukan milikmu.");
+    if (choice < 1 || choice > static_cast<int>(streets.size())) {
+        uiManager.printMessage("Festival dibatalkan.");
         return;
     }
 
+    StreetTile* selected = streets[static_cast<size_t>(choice - 1)];
     const int oldRent = rentPreview(*selected);
     const bool alreadyMaxed = selected->getFestivalMultiplier() >= 8;
     game.getFestivalManager().activateFestival(*selected);
@@ -773,7 +770,7 @@ void TileController::handleBankruptcy(Player& player) {
                 break;
             }
 
-            const int choice = uiManager.readLiquidationChoice();
+            const int choice = uiManager.readLiquidationChoice(static_cast<int>(actions.size()));
             if (choice == 0) {
                 uiManager.printError("Kewajiban belum terpenuhi. Kamu wajib melikuidasi aset.");
                 continue;

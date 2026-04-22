@@ -706,7 +706,7 @@ void CommandController::handleMortgage() {
         return;
     }
 
-    const int choice = uiManager.readMortgageChoice();
+    const int choice = uiManager.readMortgageChoice(static_cast<int>(properties.size()));
     if (choice == 0) {
         uiManager.printMessage("Gadai dibatalkan.");
         return;
@@ -764,7 +764,7 @@ void CommandController::handleRedeem() {
         return;
     }
 
-    const int choice = uiManager.readRedeemChoice();
+    const int choice = uiManager.readRedeemChoice(static_cast<int>(properties.size()));
     if (choice == 0) {
         uiManager.printMessage("Tebus dibatalkan.");
         return;
@@ -800,7 +800,7 @@ void CommandController::handleBuild() {
         return;
     }
 
-    const int groupChoice = uiManager.readBuildGroupChoice();
+    const int groupChoice = uiManager.readBuildGroupChoice(static_cast<int>(groups.size()));
     if (groupChoice == 0) {
         uiManager.printMessage("Bangun dibatalkan.");
         return;
@@ -834,7 +834,7 @@ void CommandController::handleBuild() {
         return;
     }
 
-    const int tileChoice = uiManager.readBuildTileChoice();
+    const int tileChoice = uiManager.readBuildTileChoice(static_cast<int>(streets.size()));
     if (tileChoice == 0) {
         uiManager.printMessage("Bangun dibatalkan.");
         return;
