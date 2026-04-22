@@ -1,5 +1,7 @@
 #include "view/Application.hpp"
 
+#include <exception>
+
 using namespace std;
 
 Application::Application()
@@ -29,6 +31,11 @@ void Application::run() {
     while (running) {
         showMainMenu();
         int choice = getMainMenuChoice();
+
+        if (choice == -1) {
+            running = false;
+            break;
+        }
 
         switch (choice) {
             case 1:
@@ -60,14 +67,56 @@ int Application::getMainMenuChoice() {
 }
 
 void Application::handleNewGame() {
+    int playerCount = uiManager.readPlayerCount();
+    if (playerCount < 2) {
+        return;
+    }
+    vector<string> usernames = uiManager.readUsernames(playerCount);
+    if (static_cast<int>(usernames.size()) != playerCount) {
+        return;
+    }
+    vector<Player>& players = game.getPlayers();
+    players.clear();
+
+    game.getConfigManager().loadAllConfigs();
+    int initialBalance = 1500;
+    if (game.getConfigManager().getInitialBalance() > 0) initialBalance = game.getConfigManager().getInitialBalance();
+
+    for (const string& username : usernames) {
+        players.push_back(Player(
+            username,
+            initialBalance,
+            1,
+            PlayerStatus::ACTIVE,
+            0,
+            false,
+            false,
+            0,
+            0
+        ));
+    }
+
     game.startNewGame();
     controller.runGameLoop();
 }
 
 void Application::handleLoadGame() {
     string filename = uiManager.readFilename();
-    game.loadGame(filename);
-    controller.runGameLoop();
+    if (filename.empty()) {
+        return;
+    }
+
+    try {
+        uiManager.printMessage("Memuat permainan...");
+        game.loadGame(filename);
+        uiManager.printMessage(
+            "Permainan berhasil dimuat. Melanjutkan giliran " +
+            game.getCurrentPlayer().getUsername() + "..."
+        );
+        controller.runGameLoop();
+    } catch (const exception& exception) {
+        uiManager.printError(exception.what());
+    }
 }
 
 void Application::exitApplication() {

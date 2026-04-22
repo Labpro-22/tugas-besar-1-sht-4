@@ -91,7 +91,10 @@ string formatMoney(int amount) {
     }
 
     reverse(formatted.begin(), formatted.end());
-    return string("M") + (negative ? "-" : "") + formatted;
+
+    string prefix = "M";
+    if (negative) prefix += "-";
+    return prefix + formatted;
 }
 
 string colorCode(const string& colorGroup) {
@@ -107,7 +110,8 @@ string colorCode(const string& colorGroup) {
     if (key == "STASIUN" || key == "RAILROAD" || key == "RR") return "STASIUN";
     if (key == "UTILITAS" || key == "UTILITY" || key == "AB") return "AB";
     if (key == "AKSI" || key == "ACTION" || key == "DF") return "DF";
-    return colorGroup.empty() ? "DF" : colorGroup;
+    if (colorGroup.empty()) return "DF";
+    return colorGroup;
 }
 
 string colorName(const string& colorGroup) {
@@ -231,7 +235,9 @@ vector<string> boardCenterLines(int currentTurn, int maxTurn, const string& curr
     lines[14] = "^^^   : Rumah Level 3";
     lines[15] = "* : Hotel (Maksimal)";
     lines[16] = "(1)-(4): Bidak (IN=Tahanan, V=Mampir)";
-    lines[17] = "Giliran: " + (currentPlayerLabel.empty() ? "-" : currentPlayerLabel);
+    string currentPlayerText = currentPlayerLabel;
+    if (currentPlayerText.empty()) currentPlayerText = "-";
+    lines[17] = "Giliran: " + currentPlayerText;
     lines[19] = "----------------------------------";
     lines[20] = "KODE WARNA:";
     lines[21] = "[CK]=Coklat    [MR]=Merah";
