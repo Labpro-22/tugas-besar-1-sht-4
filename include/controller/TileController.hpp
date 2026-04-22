@@ -8,6 +8,7 @@ class Game;
 class UIManager;
 class Player;
 class Tile;
+class OwnableTile;
 class StreetTile;
 class IncomeTaxTile;
 class LuxuryTaxTile;
@@ -17,6 +18,9 @@ class TileController {
 private:
     Game& game;
     UIManager& uiManager;
+    int pendingDebtAmount;
+    Player* pendingCreditor;
+    bool pendingDebtToBank;
 
 public:
     TileController(Game& game, UIManager& uiManager);
@@ -27,7 +31,7 @@ public:
     void resolveLanding(Tile& tile, Player& player);
 
     void handleStreetPurchase(StreetTile& tile);
-    void handleAuction(StreetTile& tile, Player* triggerPlayer);
+    void handleAuction(OwnableTile& tile, Player* triggerPlayer);
     void handleIncomeTax(IncomeTaxTile& tile);
     void handleLuxuryTax(LuxuryTaxTile& tile);
     void handleFestival(FestivalTile& tile);
