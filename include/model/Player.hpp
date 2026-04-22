@@ -56,6 +56,18 @@ public:
     bool isJailed() const;
     void setJailed(bool jailed);
     int countCards() const;
+    PlayerStatus getStatus() const;
+    int getFailedJailRolls() const;
+    void setFailedJailRolls(int failedJailRolls);
+    bool hasUsedHandCardThisTurn() const;
+    void setUsedHandCardThisTurn(bool usedHandCardThisTurn);
+    bool hasShieldActive() const;
+    void setShieldActive(bool shieldActive);
+    int getDiscountPercent() const;
+    void setDiscountPercent(int discountPercent);
+    int getDiscountDuration() const;
+    void setDiscountDuration(int discountDuration);
+    void decrementDiscountDuration();
 
     Player& operator+=(int amount);
     Player& operator-=(int amount);

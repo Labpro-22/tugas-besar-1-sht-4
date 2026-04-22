@@ -121,6 +121,64 @@ int Player::countCards() const {
     return static_cast<int>(handCards.size());
 }
 
+PlayerStatus Player::getStatus() const {
+    return status;
+}
+
+int Player::getFailedJailRolls() const {
+    return failedJailRolls;
+}
+
+void Player::setFailedJailRolls(int failedJailRolls) {
+    this->failedJailRolls = failedJailRolls;
+}
+
+bool Player::hasUsedHandCardThisTurn() const {
+    return usedHandCardThisTurn;
+}
+
+void Player::setUsedHandCardThisTurn(bool usedHandCardThisTurn) {
+    this->usedHandCardThisTurn = usedHandCardThisTurn;
+}
+
+bool Player::hasShieldActive() const {
+    return shieldActive;
+}
+
+void Player::setShieldActive(bool shieldActive) {
+    this->shieldActive = shieldActive;
+}
+
+int Player::getDiscountPercent() const {
+    return discountPercent;
+}
+
+void Player::setDiscountPercent(int discountPercent) {
+    this->discountPercent = discountPercent;
+}
+
+int Player::getDiscountDuration() const {
+    return discountDuration;
+}
+
+void Player::setDiscountDuration(int discountDuration) {
+    this->discountDuration = discountDuration;
+    if (this->discountDuration <= 0) {
+        this->discountDuration = 0;
+        this->discountPercent = 0;
+    }
+}
+
+void Player::decrementDiscountDuration() {
+    if (discountDuration > 0) {
+        discountDuration--;
+    }
+    if (discountDuration <= 0) {
+        discountDuration = 0;
+        discountPercent = 0;
+    }
+}
+
 Player& Player::operator+=(int amount) {
     this->money += amount;
     return *this;
