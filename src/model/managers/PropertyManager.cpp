@@ -18,11 +18,14 @@ using namespace std;
 
 PropertyManager::PropertyManager() {}
 
-PropertyManager::PropertyManager(const PropertyManager& other) {}
+PropertyManager::PropertyManager(const PropertyManager& other) {
+    (void) other;
+}
 
 PropertyManager::~PropertyManager() {}
 
 PropertyManager& PropertyManager::operator=(const PropertyManager& other) {
+    (void) other;
     return *this;
 }
 
@@ -87,7 +90,8 @@ void PropertyManager::mortgageProperty(Player& player, OwnableTile& tile) {
 
 void PropertyManager::redeemProperty(Player& player, OwnableTile& tile) {
     if (!tile.isMortgaged()) return;
-    int redeemCost = tile.getMortgageValue();
+    int redeemCost = tile.getPurchasePrice();
+    if (player.getMoney() < redeemCost) return;
     player -= redeemCost;
     tile.redeem();
 }
@@ -102,7 +106,10 @@ void PropertyManager::buildOnStreet(const Board& board, Player& player, StreetTi
     }
 }
 
-void PropertyManager::sellBuildingsInColorGroup(Player& player, const string& colorGroup) {}
+void PropertyManager::sellBuildingsInColorGroup(Player& player, const string& colorGroup) {
+    (void) player;
+    (void) colorGroup;
+}
 
 bool PropertyManager::canMortgage(const Player& player, const OwnableTile& tile) const {
     if (tile.isOwned() && tile.getOwner() == &player && !tile.isMortgaged()) return true;
