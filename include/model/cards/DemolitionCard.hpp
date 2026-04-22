@@ -15,5 +15,8 @@ public:
     ~DemolitionCard();
     DemolitionCard& operator=(const DemolitionCard& other);
 
+    void setTargetStreet(class StreetTile* street);
     void apply(Game& game, Player& player) override;
+private:
+    class StreetTile* targetStreet;
 };

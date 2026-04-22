@@ -2,8 +2,6 @@
 #include "model/Game.hpp"
 #include "model/Player.hpp"
 
-#include <iostream>
-
 using namespace std;
 
 DoctorFeeCard::DoctorFeeCard()
@@ -26,12 +24,8 @@ DoctorFeeCard& DoctorFeeCard::operator=(const DoctorFeeCard& other) {
 }
 
 void DoctorFeeCard::apply(Game& game, Player& player) {
-    cout << "Kartu: \"Biaya dokter. Bayar M" << fee << ".\"" << endl;
-
     if (player.getMoney() >= fee) {
         player -= fee;
-        cout << "Kamu membayar M" << fee << " ke Bank. "
-             << "Sisa Uang = M" << player.getMoney() << "." << endl;
 
         game.getLogManager().addLog(
             game.getCurrentTurn(),
@@ -40,9 +34,6 @@ void DoctorFeeCard::apply(Game& game, Player& player) {
             "Membayar biaya dokter M" + to_string(fee) + " ke Bank"
         );
     } else {
-        cout << "Kamu tidak mampu membayar biaya dokter! (M" << fee << ")" << endl;
-        cout << "Uang kamu saat ini: M" << player.getMoney() << endl;
-
         game.getLogManager().addLog(
             game.getCurrentTurn(),
             player.getUsername(),

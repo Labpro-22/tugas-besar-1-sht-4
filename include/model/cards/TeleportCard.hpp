@@ -15,5 +15,8 @@ public:
     ~TeleportCard();
     TeleportCard& operator=(const TeleportCard& other);
 
+    void setTargetTileIndex(int index);
     void apply(Game& game, Player& player) override;
+private:
+    int targetTileIndex;
 };

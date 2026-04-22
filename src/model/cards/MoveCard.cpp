@@ -2,8 +2,6 @@
 #include "model/Game.hpp"
 #include "model/Player.hpp"
 
-#include <iostream>
-
 using namespace std;
 
 MoveCard::MoveCard()
@@ -28,7 +26,6 @@ MoveCard& MoveCard::operator=(const MoveCard& other) {
 int MoveCard::getSteps() const { return steps; }
 
 void MoveCard::apply(Game& game, Player& player) {
-    cout << "MoveCard diaktifkan! Maju " << steps << " petak." << endl;
     game.getMovementManager().movePlayer(player, steps);
 
     game.getLogManager().addLog(

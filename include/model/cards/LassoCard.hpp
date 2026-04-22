@@ -15,5 +15,8 @@ public:
     ~LassoCard();
     LassoCard& operator=(const LassoCard& other);
 
+    void setTargetPlayer(Player* player);
     void apply(Game& game, Player& player) override;
+private:
+    Player* targetPlayer;
 };

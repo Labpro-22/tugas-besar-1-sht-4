@@ -64,4 +64,8 @@ public:
     string readFilename() const;
     bool confirmOverwrite(const string& filename) const;
     void printGameOver(const vector<string>& winnerNames, const vector<int>& winnerMoney, const vector<int>& winnerPropertyCounts, const vector<int>& winnerCardCounts, bool byMaxTurn) const;
+    void printCardDrawn(const string& type, const string& name, const string& description) const;
+    void printCardEffect(const string& message) const;
+    int readLassoTarget(const vector<string>& names, const vector<int>& positions) const;
+    int readDemolitionTarget(const vector<string>& names, const vector<string>& codes, const vector<string>& owners, const vector<string>& buildings) const;
 };

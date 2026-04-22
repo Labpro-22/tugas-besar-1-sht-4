@@ -2,8 +2,6 @@
 #include "model/Game.hpp"
 #include "model/Player.hpp"
 
-#include <iostream>
-
 using namespace std;
 
 GoToJailCard::GoToJailCard()
@@ -25,6 +23,5 @@ GoToJailCard& GoToJailCard::operator=(const GoToJailCard& other) {
 }
 
 void GoToJailCard::apply(Game& game, Player& player) {
-    cout << "Kartu: \"Masuk Penjara.\"" << endl;
     game.getJailManager().sendToJail(player);
 }

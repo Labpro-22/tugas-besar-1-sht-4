@@ -17,7 +17,6 @@
 #include "model/Game.hpp"
 #include "model/Player.hpp"
 
-#include <iostream>
 #include <stdexcept>
 
 using namespace std;
@@ -141,10 +140,10 @@ void CardManager::reshuffleIfNeeded() {
     }
 }
 
-void CardManager::giveStartTurnCard(Player& player) {
+shared_ptr<HandCard> CardManager::giveStartTurnCard(Player& player) {
     reshuffleIfNeeded();
     shared_ptr<HandCard> card = drawHandCard();
-    if (!card) return;
+    if (!card) return nullptr;
 
     if (auto move = dynamic_pointer_cast<MoveCard>(card)) {
         int steps = (rand() % 6) + 1;
@@ -154,48 +153,30 @@ void CardManager::giveStartTurnCard(Player& player) {
         card = make_shared<DiscountCard>("DiscountCard", "Diskon " + to_string(pct) + "% untuk pembelian", false, pct, 1);
     }
 
-    cout << "Kamu mendapatkan 1 kartu acak baru!" << endl;
-    cout << "Kartu yang didapat: " << card->getName() << "." << endl;
-
     player.addHandCard(card);
 
     if (needsForceDrop(player)) {
         forceDropActive = true;
     }
+    
+    return card;
 }
 bool CardManager::needsForceDrop(const Player& player) const {
     return player.countCards() > 3;
 }
 
 void CardManager::beginForceDrop(Game& game, Player& player) {
-    auto hand = getHandCards(player);
-
-    cout << "\nPERINGATAN: Kamu sudah memiliki 3 kartu di tangan (Maksimal 3)!"
-         << " Kamu diwajibkan membuang 1 kartu.\n" << endl;
-    cout << "Daftar Kartu Kemampuan Anda:" << endl;
-    for (int i = 0; i < (int)hand.size(); i++) {
-        cout << i + 1 << ". " << hand[i]->getName() << endl;
-    }
-    int choice = 0;
-    while (choice < 1 || choice > (int)hand.size()) {
-        cout << "\nPilih nomor kartu yang ingin dibuang (1-" << hand.size() << "): ";
-        cin >> choice;
-    }
-    dropHandCard(player, choice - 1);
-    forceDropActive = false;
-    cout << hand[choice - 1]->getName() << " telah dibuang. "
-         << "Sekarang kamu memiliki " << player.countCards() << " kartu di tangan." << endl;
+    // Deprecated, use TileController::handleForceDrop
+    (void)game;
+    (void)player;
 }
 
 void CardManager::useHandCard(Game& game, Player& player, int cardIndex) {
     if (player.hasUsedHandCardThisTurn()) {
-        cout << "Kamu sudah menggunakan kartu kemampuan pada giliran ini!\n"
-             << "Penggunaan kartu dibatasi maksimal 1 kali dalam 1 giliran." << endl;
         return;
     }
     auto hand = getHandCards(player);
     if (cardIndex < 0 || cardIndex >= (int)hand.size()) {
-        cout << "Pilihan tidak valid." << endl;
         return;
     }
     shared_ptr<HandCard> card = hand[cardIndex];

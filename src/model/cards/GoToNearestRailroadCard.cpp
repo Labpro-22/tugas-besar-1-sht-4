@@ -2,8 +2,6 @@
 #include "model/Game.hpp"
 #include "model/Player.hpp"
 
-#include <iostream>
-
 using namespace std;
 
 GoToNearestRailroadCard::GoToNearestRailroadCard()
@@ -25,6 +23,5 @@ GoToNearestRailroadCard& GoToNearestRailroadCard::operator=(const GoToNearestRai
 }
 
 void GoToNearestRailroadCard::apply(Game& game, Player& player) {
-    cout << "Kartu: \"Pergi ke stasiun terdekat.\"" << endl;
     game.getMovementManager().movePlayerToNearestRailroad(player);
 }

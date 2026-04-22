@@ -2,8 +2,6 @@
 #include "model/Game.hpp"
 #include "model/Player.hpp"
 
-#include <iostream>
-
 using namespace std;
 
 CampaignFeeCard::CampaignFeeCard()
@@ -26,10 +24,6 @@ CampaignFeeCard& CampaignFeeCard::operator=(const CampaignFeeCard& other) {
 }
 
 void CampaignFeeCard::apply(Game& game, Player& player) {
-    cout << "Kartu: \"Anda mau nyaleg. Bayar M" << amountPerPlayer
-         << " kepada setiap pemain.\"" << endl;
-
-    // total utang
     int activeOthers = 0;
     for (Player& other : game.getPlayers()) {
         if (other.getUsername() == player.getUsername()) continue;
@@ -39,9 +33,6 @@ void CampaignFeeCard::apply(Game& game, Player& player) {
     int totalOwed = amountPerPlayer * activeOthers;
 
     if (player.getMoney() < totalOwed) {
-        cout << "Kamu tidak mampu membayar biaya kampanye! (Total: M" << totalOwed << ")" << endl;
-        cout << "Uang kamu saat ini: M" << player.getMoney() << endl;
-
         game.getLogManager().addLog(
             game.getCurrentTurn(),
             player.getUsername(),
@@ -60,9 +51,6 @@ void CampaignFeeCard::apply(Game& game, Player& player) {
         player -= amountPerPlayer;
         other += amountPerPlayer;
 
-        cout << player.getUsername() << " membayar M" << amountPerPlayer
-             << " kepada " << other.getUsername() << "." << endl;
-
         game.getLogManager().addLog(
             game.getCurrentTurn(),
             player.getUsername(),
@@ -70,7 +58,4 @@ void CampaignFeeCard::apply(Game& game, Player& player) {
             "Membayar biaya kampanye M" + to_string(amountPerPlayer) + " ke " + other.getUsername()
         );
     }
-
-    cout << "Total dibayarkan: M" << totalOwed
-         << ". Sisa uang: M" << player.getMoney() << "." << endl;
 }

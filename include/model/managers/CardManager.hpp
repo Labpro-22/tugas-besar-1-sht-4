@@ -41,7 +41,7 @@ public:
     shared_ptr<HandCard> drawHandCard();
     void discardHandCard(shared_ptr<HandCard> card);
     void reshuffleIfNeeded();
-    void giveStartTurnCard(Player& player);
+    shared_ptr<HandCard> giveStartTurnCard(Player& player);
     void beginForceDrop(Game& game, Player& player);
     bool needsForceDrop(const Player& player) const;
     void useHandCard(Game& game, Player& player, int cardIndex);

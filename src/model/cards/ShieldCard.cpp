@@ -2,8 +2,6 @@
 #include "model/Game.hpp"
 #include "model/Player.hpp"
 
-#include <iostream>
-
 using namespace std;
 
 ShieldCard::ShieldCard()
@@ -26,9 +24,6 @@ ShieldCard& ShieldCard::operator=(const ShieldCard& other) {
 }
 
 void ShieldCard::apply(Game& game, Player& player) {
-    cout << "ShieldCard diaktifkan! Anda kebal terhadap tagihan atau sanksi "
-         << "selama giliran ini." << endl;
-
     player.setShieldActive(true);
 
     game.getLogManager().addLog(

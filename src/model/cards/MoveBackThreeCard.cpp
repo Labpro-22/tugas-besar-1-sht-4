@@ -2,8 +2,6 @@
 #include "model/Game.hpp"
 #include "model/Player.hpp"
 
-#include <iostream>
-
 using namespace std;
 
 MoveBackThreeCard::MoveBackThreeCard()
@@ -25,6 +23,5 @@ MoveBackThreeCard& MoveBackThreeCard::operator=(const MoveBackThreeCard& other) 
 }
 
 void MoveBackThreeCard::apply(Game& game, Player& player) {
-    cout << "Kartu: \"Mundur 3 petak.\"" << endl;
     game.getMovementManager().movePlayerBack(player, 3);
 }

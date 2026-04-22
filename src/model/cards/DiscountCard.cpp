@@ -2,8 +2,6 @@
 #include "model/Game.hpp"
 #include "model/Player.hpp"
 
-#include <iostream>
-
 using namespace std;
 
 DiscountCard::DiscountCard()
@@ -30,9 +28,6 @@ int DiscountCard::getDiscountPercent() const { return discountPercent; }
 int DiscountCard::getDuration() const { return duration; }
 
 void DiscountCard::apply(Game& game, Player& player) {
-    cout << "DiscountCard diaktifkan! Diskon " << discountPercent
-         << "% berlaku selama giliran ini." << endl;
-
     player.setDiscount(discountPercent, duration);
 
     game.getLogManager().addLog(
