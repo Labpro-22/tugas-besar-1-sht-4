@@ -269,7 +269,7 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
                 property
             );
             const int rent = property.calculateRent(rentContext);
-            if (player.hasShieldActive()) {
+            if (player.isShieldActive()) {
                 uiManager.printMessage("[SHIELD ACTIVE]: Tagihan sewa M" + to_string(rent) + " dibatalkan.");
                 return;
             }
@@ -421,7 +421,7 @@ void TileController::handleStreetPurchase(StreetTile& tile) {
         tile
     );
     const int rent = tile.calculateRent(rentContext);
-    if (player.hasShieldActive()) {
+    if (player.isShieldActive()) {
         uiManager.printMessage("[SHIELD ACTIVE]: Tagihan sewa M" + to_string(rent) + " dibatalkan.");
         return;
     }
@@ -584,7 +584,7 @@ void TileController::handleIncomeTax(IncomeTaxTile& tile) {
         );
     }
 
-    if (player.hasShieldActive()) {
+    if (player.isShieldActive()) {
         uiManager.printMessage("[SHIELD ACTIVE]: Pajak M" + to_string(taxAmount) + " dibatalkan.");
         return;
     }
@@ -607,7 +607,7 @@ void TileController::handleLuxuryTax(LuxuryTaxTile& tile) {
     const int taxAmount = tile.calculateLuxuryTax();
     uiManager.printLuxuryTaxState(player.getMoney(), taxAmount);
 
-    if (player.hasShieldActive()) {
+    if (player.isShieldActive()) {
         uiManager.printMessage("[SHIELD ACTIVE]: Pajak M" + to_string(taxAmount) + " dibatalkan.");
         return;
     }

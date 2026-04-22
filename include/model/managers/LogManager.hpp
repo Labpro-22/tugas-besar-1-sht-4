@@ -26,10 +26,6 @@ public:
         const string& getActionType() const;
         const string& getDetail() const;
         string format() const;
-        int getTurnNumber() const;
-        const string& getUsername() const;
-        const string& getActionType() const;
-        const string& getDetail() const;
     };
 
 private:

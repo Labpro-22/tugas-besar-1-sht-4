@@ -1,4 +1,5 @@
-#include "model/managers/CardManager.hpp"#include "model/cards/ChanceCard.hpp"
+#include "model/managers/CardManager.hpp"
+#include "model/cards/ChanceCard.hpp"
 #include "model/cards/CommunityChestCard.hpp"
 #include "model/cards/HandCard.hpp"
 #include "model/cards/GoToNearestRailroadCard.hpp"

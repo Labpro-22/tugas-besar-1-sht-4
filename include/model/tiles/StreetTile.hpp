@@ -64,8 +64,6 @@ public:
     const vector<int>& getRentLevels() const;
     int getFestivalMultiplier() const;
     int getFestivalDuration() const;
-    void setBuildingLevel(int buildingLevel);
-    void setFestivalState(int festivalMultiplier, int festivalDuration);
 
     int getBuildingValue() const override;
     int getSelltoBankValue() const override;
