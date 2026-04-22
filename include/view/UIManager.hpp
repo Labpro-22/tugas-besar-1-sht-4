@@ -6,6 +6,35 @@
 using namespace std;
 
 class UIManager {
+private:
+    static const int CELL_WIDTH = 10;
+    static const int CELL_HEIGHT = 3;
+    static const int CENTER_WIDTH = CELL_WIDTH * 9 + 8;
+
+    string repeatChar(char ch, int count) const;
+    string trim(const string& value) const;
+    string toUpperCopy(string value) const;
+    string normalizeKey(const string& value) const;
+    string truncateToWidth(const string& value, int width) const;
+    string padRight(const string& value, int width) const;
+    string centerText(const string& value, int width) const;
+    string formatMoney(int amount) const;
+    string colorCode(const string& colorGroup) const;
+    string colorName(const string& colorGroup) const;
+    string ansiForCode(const string& rawCode) const;
+    int findCellOffset(const vector<int>& cellIndices, int index) const;
+    string boardCellColor(const vector<int>& cellIndices, const vector<string>& cellColorCodes, int index) const;
+    string boardCellLine(const vector<int>& cellIndices, const vector<vector<string>>& cellLines, int index, int lineIndex) const;
+    string colorizeCellLine(const string& colorCodeValue, const string& line) const;
+    string horizontalBorder(int cellCount) const;
+    string sideBorder() const;
+    void printTileRow(const vector<int>& cellIndices, const vector<string>& cellColorCodes, const vector<vector<string>>& cellLines, const vector<int>& rowIndices) const;
+    vector<string> boardCenterLines(int currentTurn, int maxTurn, const string& currentPlayerLabel) const;
+    int readIntInRange(const string& prompt, int minimum, int maximum, bool hasMaximum) const;
+    size_t propertyOptionCount(const vector<string>& propertyGroups, const vector<string>& propertyNames, const vector<string>& propertyCodes, const vector<string>& valueLabels, const vector<int>& values, const vector<string>& propertyStatuses) const;
+    void printShortPropertyLine(int index, const string& propertyGroup, const string& propertyName, const string& propertyCode, const string& valueLabel, int value, const string& propertyStatus) const;
+    string displayTitleFromDeedTitle(const string& title) const;
+
 public:
     UIManager();
     UIManager(const UIManager& other);

@@ -17,6 +17,11 @@ private:
     TileController* tileController;
     bool rolledThisTurn;
 
+    string toUpperCopy(string value) const;
+    string firstToken(const string& input) const;
+    bool isTurnEndingCommand(const string& input) const;
+    size_t activePlayerCount(const Game& game) const;
+
 public:
     GameController(Game& game, UIManager& uiManager);
     GameController(const GameController& other);

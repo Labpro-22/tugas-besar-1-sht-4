@@ -46,6 +46,13 @@ public:
     };
 
 private:
+    static constexpr const char* PROPERTY_CONFIG_PATH = "config/property.txt";
+    static constexpr const char* RAILROAD_CONFIG_PATH = "config/railroad.txt";
+    static constexpr const char* UTILITY_CONFIG_PATH = "config/utility.txt";
+    static constexpr const char* TAX_CONFIG_PATH = "config/tax.txt";
+    static constexpr const char* SPECIAL_CONFIG_PATH = "config/special.txt";
+    static constexpr const char* MISC_CONFIG_PATH = "config/misc.txt";
+
     map<string, PropertyConfig> propertyConfigs;
     map<int, string> propertyCodeById;
     map<int, int> railroadRentTable;
@@ -57,6 +64,18 @@ private:
     int jailFine;
     int maxTurn;
     int initialBalance;
+
+    string trim(const string& value) const;
+    string toUpperCopy(string value) const;
+    string stripInlineComment(const string& line) const;
+    vector<string> splitWhitespace(const string& line) const;
+    vector<vector<string>> readTokenRows(const string& filename) const;
+    int parseInt(const string& token, const string& filename, const string& fieldName) const;
+    bool isIntegerToken(const string& token) const;
+    map<string, size_t> buildHeaderIndex(const vector<string>& headerRow) const;
+    bool hasHeaderFields(const vector<string>& row, const vector<string>& requiredFields) const;
+    int getValueByAliases(const map<string, int>& values, const vector<string>& aliases, const string& filename) const;
+    map<string, int> parseScalarConfig(const string& filename, const vector<string>& expectedFields) const;
 
 public:
     ConfigManager();

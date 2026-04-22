@@ -9,15 +9,7 @@
 
 using namespace std;
 
-namespace {
-const string PROPERTY_CONFIG_PATH = "config/property.txt";
-const string RAILROAD_CONFIG_PATH = "config/railroad.txt";
-const string UTILITY_CONFIG_PATH = "config/utility.txt";
-const string TAX_CONFIG_PATH = "config/tax.txt";
-const string SPECIAL_CONFIG_PATH = "config/special.txt";
-const string MISC_CONFIG_PATH = "config/misc.txt";
-
-string trim(const string& value) {
+string ConfigManager::trim(const string& value) const {
     size_t begin = 0;
     while (begin < value.size() && isspace(static_cast<unsigned char>(value[begin]))) {
         begin++;
@@ -31,14 +23,14 @@ string trim(const string& value) {
     return value.substr(begin, end - begin);
 }
 
-string toUpperCopy(string value) {
+string ConfigManager::toUpperCopy(string value) const {
     transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
         return static_cast<char>(toupper(ch));
     });
     return value;
 }
 
-string stripInlineComment(const string& line) {
+string ConfigManager::stripInlineComment(const string& line) const {
     const size_t commentPos = line.find('#');
     if (commentPos == string::npos) {
         return line;
@@ -46,7 +38,7 @@ string stripInlineComment(const string& line) {
     return line.substr(0, commentPos);
 }
 
-vector<string> splitWhitespace(const string& line) {
+vector<string> ConfigManager::splitWhitespace(const string& line) const {
     vector<string> tokens;
     istringstream stream(line);
     string token;
@@ -58,7 +50,7 @@ vector<string> splitWhitespace(const string& line) {
     return tokens;
 }
 
-vector<vector<string>> readTokenRows(const string& filename) {
+vector<vector<string>> ConfigManager::readTokenRows(const string& filename) const {
     ifstream file(filename.c_str());
     if (!file.is_open()) {
         throw FileException("Gagal membuka file konfigurasi: " + filename);
@@ -85,7 +77,7 @@ vector<vector<string>> readTokenRows(const string& filename) {
     return rows;
 }
 
-int parseInt(const string& token, const string& filename, const string& fieldName) {
+int ConfigManager::parseInt(const string& token, const string& filename, const string& fieldName) const {
     try {
         size_t parsedLength = 0;
         const int value = stoi(token, &parsedLength);
@@ -101,7 +93,7 @@ int parseInt(const string& token, const string& filename, const string& fieldNam
     }
 }
 
-bool isIntegerToken(const string& token) {
+bool ConfigManager::isIntegerToken(const string& token) const {
     if (token.empty()) {
         return false;
     }
@@ -123,7 +115,7 @@ bool isIntegerToken(const string& token) {
     return true;
 }
 
-map<string, size_t> buildHeaderIndex(const vector<string>& headerRow) {
+map<string, size_t> ConfigManager::buildHeaderIndex(const vector<string>& headerRow) const {
     map<string, size_t> indexByHeader;
     for (size_t index = 0; index < headerRow.size(); index++) {
         indexByHeader[toUpperCopy(headerRow[index])] = index;
@@ -131,18 +123,18 @@ map<string, size_t> buildHeaderIndex(const vector<string>& headerRow) {
     return indexByHeader;
 }
 
-bool hasHeaderFields(const vector<string>& row, const vector<string>& requiredFields) {
+bool ConfigManager::hasHeaderFields(const vector<string>& row, const vector<string>& requiredFields) const {
     const map<string, size_t> headerIndex = buildHeaderIndex(row);
     return all_of(requiredFields.begin(), requiredFields.end(), [&](const string& field) {
         return headerIndex.find(field) != headerIndex.end();
     });
 }
 
-int getValueByAliases(
+int ConfigManager::getValueByAliases(
     const map<string, int>& values,
     const vector<string>& aliases,
     const string& filename
-) {
+) const {
     for (const string& alias : aliases) {
         const auto it = values.find(toUpperCopy(alias));
         if (it != values.end()) {
@@ -164,10 +156,10 @@ int getValueByAliases(
     );
 }
 
-map<string, int> parseScalarConfig(
+map<string, int> ConfigManager::parseScalarConfig(
     const string& filename,
     const vector<string>& expectedFields
-) {
+) const {
     const vector<vector<string>> rows = readTokenRows(filename);
     map<string, int> values;
 
@@ -204,7 +196,6 @@ map<string, int> parseScalarConfig(
     }
 
     return values;
-}
 }
 
 ConfigManager::PropertyConfig::PropertyConfig()

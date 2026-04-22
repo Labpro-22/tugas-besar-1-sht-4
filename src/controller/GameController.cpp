@@ -16,28 +16,27 @@
 
 using namespace std;
 
-namespace {
-string toUpperCopy(string value) {
+string GameController::toUpperCopy(string value) const {
     transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
         return static_cast<char>(toupper(ch));
     });
     return value;
 }
 
-string firstToken(const string& input) {
+string GameController::firstToken(const string& input) const {
     istringstream stream(input);
     string command;
     stream >> command;
     return toUpperCopy(command);
 }
 
-bool isTurnEndingCommand(const string& input) {
+bool GameController::isTurnEndingCommand(const string& input) const {
     const string command = firstToken(input);
     return command == "LEMPAR_DADU" ||
            command == "ATUR_DADU";
 }
 
-size_t activePlayerCount(const Game& game) {
+size_t GameController::activePlayerCount(const Game& game) const {
     size_t count = 0;
     for (const Player& player : game.getPlayers()) {
         if (!player.isBankrupt()) {
@@ -45,7 +44,6 @@ size_t activePlayerCount(const Game& game) {
         }
     }
     return count;
-}
 }
 
 GameController::GameController(Game& game, UIManager& uiManager)
