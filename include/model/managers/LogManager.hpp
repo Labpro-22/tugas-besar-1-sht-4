@@ -22,6 +22,10 @@ public:
         LogEntry& operator=(const LogEntry& other);
 
         string format() const;
+        int getTurnNumber() const;
+        const string& getUsername() const;
+        const string& getActionType() const;
+        const string& getDetail() const;
     };
 
 private:
@@ -35,6 +39,7 @@ public:
     LogManager& operator=(const LogManager& other);
 
     void addLog(int turnNumber, const string& username, const string& actionType, const string& detail);
+    void clear();
     const vector<LogEntry>& getLogs() const;
     vector<LogEntry> getRecentLogs(int n) const;
 };

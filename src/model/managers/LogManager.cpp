@@ -37,6 +37,22 @@ string LogManager::LogEntry::format() const {
     return stream.str();
 }
 
+int LogManager::LogEntry::getTurnNumber() const {
+    return turnNumber;
+}
+
+const string& LogManager::LogEntry::getUsername() const {
+    return username;
+}
+
+const string& LogManager::LogEntry::getActionType() const {
+    return actionType;
+}
+
+const string& LogManager::LogEntry::getDetail() const {
+    return detail;
+}
+
 LogManager::LogManager() {}
 
 LogManager::LogManager(const vector<LogEntry>& logs) : logs(logs) {}
@@ -54,6 +70,10 @@ LogManager& LogManager::operator=(const LogManager& other) {
 
 void LogManager::addLog(int turnNumber, const string& username, const string& actionType, const string& detail) {
     logs.push_back(LogEntry(turnNumber, username, actionType, detail));
+}
+
+void LogManager::clear() {
+    logs.clear();
 }
 
 const vector<LogManager::LogEntry>& LogManager::getLogs() const {
