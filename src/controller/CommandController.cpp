@@ -15,6 +15,7 @@
 #include "model/tiles/Tile.hpp"
 #include "model/tiles/UtilityTile.hpp"
 #include "view/UIManager.hpp"
+#include "controller/CardController.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -931,8 +932,8 @@ void CommandController::handleUseCard() {
         uiManager.printMessage("Penggunaan kartu dibatalkan.");
         return;
     }
-    game.getCardManager().useHandCard(game, player, choice - 1);
-    player.setUsedHandCardThisTurn(true);
+    CardController cardController(game, uiManager);
+    cardController.useHandCard(player, choice - 1);
     game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "KARTU", cardNames[choice - 1]);
 }
 

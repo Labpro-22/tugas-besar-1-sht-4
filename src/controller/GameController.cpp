@@ -7,6 +7,7 @@
 #include "model/managers/PropertyManager.hpp"
 #include "model/managers/WinConditionManager.hpp"
 #include "model/tiles/OwnableTile.hpp"
+#include "model/cards/HandCard.hpp"
 #include "view/UIManager.hpp"
 
 #include <algorithm>
@@ -182,7 +183,11 @@ void GameController::handleStartTurn() {
     );
     uiManager.printMessage("=================================");
 
-    game.getCardManager().giveStartTurnCard(player);
+    shared_ptr<HandCard> drawnCard = game.getCardManager().giveStartTurnCard(player);
+    if (drawnCard) {
+        uiManager.printCardDrawn("Kemampuan Spesial (Manual)", drawnCard->getName(), drawnCard->getDescription());
+    }
+
     if (game.getCardManager().needsForceDrop(player)) {
         tileController->handleForceDrop(player);
     }

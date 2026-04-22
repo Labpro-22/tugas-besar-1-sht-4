@@ -19,7 +19,7 @@
 #include "model/tiles/Tile.hpp"
 #include "model/tiles/UtilityTile.hpp"
 #include "view/UIManager.hpp"
-
+#include "controller/CardController.hpp"
 #include <algorithm>
 #include <cctype>
 #include <memory>
@@ -313,19 +313,15 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
         case Tile::TileType::Chance: {
             uiManager.printMessage("Kamu mendarat di Petak Kesempatan!");
             uiManager.printMessage("Mengambil kartu...");
-            shared_ptr<ChanceCard> card = game.getCardManager().drawChanceCard();
-            if (card != nullptr) {
-                card->apply(game, player);
-            }
+            CardController cardController(game, uiManager);
+            cardController.drawAndApplyChanceCard(player);
             break;
         }
         case Tile::TileType::CommunityChest: {
             uiManager.printMessage("Kamu mendarat di Petak Dana Umum!");
             uiManager.printMessage("Mengambil kartu...");
-            shared_ptr<CommunityChestCard> card = game.getCardManager().drawCommunityChestCard();
-            if (card != nullptr) {
-                card->apply(game, player);
-            }
+            CardController cardController(game, uiManager);
+            cardController.drawAndApplyCommunityChestCard(player);
             break;
         }
         case Tile::TileType::GoToJail:
