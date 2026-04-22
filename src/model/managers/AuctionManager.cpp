@@ -2,7 +2,17 @@
 
 using namespace std;
 
-AuctionManager::AuctionManager() {} // TODO: set default constructor
+AuctionManager::AuctionManager()
+    : currentBid(0),
+      highestBidder(nullptr),
+      participants(),
+      currentAuctionPlayerIndex(0),
+      consecutivePasses(0),
+      auctionActive(false),
+      hasAnyBid(false),
+      currentTile(nullptr),
+      triggerPlayer(nullptr)
+{}
 
 AuctionManager::AuctionManager(
     int currentBid,

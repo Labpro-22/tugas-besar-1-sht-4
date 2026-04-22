@@ -323,7 +323,7 @@ string UIManager::displayTitleFromDeedTitle(const string& title) const {
     return title.substr(closeBracket + 2);
 }
 
-UIManager::UIManager() {}
+UIManager::UIManager() = default;
 
 UIManager::UIManager(const UIManager& other) {
     (void) other;

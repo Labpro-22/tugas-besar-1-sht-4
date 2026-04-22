@@ -2,7 +2,7 @@
 
 using namespace std;
 
-MovementManager::MovementManager() {}
+MovementManager::MovementManager() = default;
 
 MovementManager::MovementManager(const MovementManager& other) {}
 

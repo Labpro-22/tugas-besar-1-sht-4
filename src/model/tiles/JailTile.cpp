@@ -2,7 +2,9 @@
 
 using namespace std;
 
-JailTile::JailTile() {}
+JailTile::JailTile()
+    : SpecialTile(), jailFine(0)
+{}
 
 JailTile::JailTile(int index, const string& code, const string& name, int jailFine)
     : SpecialTile(index, code, name), jailFine(jailFine)

@@ -2,7 +2,9 @@
 
 using namespace std;
 
-CommunityChestTile::CommunityChestTile() {}
+CommunityChestTile::CommunityChestTile()
+    : CardTile()
+{}
 
 CommunityChestTile::CommunityChestTile(int index, const string& code, const string& name, const string& deckType)
     : CardTile(index, code, name, deckType)

@@ -2,7 +2,9 @@
 
 using namespace std;
 
-GoTile::GoTile() {}
+GoTile::GoTile()
+    : SpecialTile(), salary(0)
+{}
 
 GoTile::GoTile(int index, const string& code, const string& name, int salary)
     : SpecialTile(index, code, name), salary(salary)

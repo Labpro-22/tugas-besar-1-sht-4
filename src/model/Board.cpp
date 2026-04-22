@@ -27,7 +27,9 @@ string Board::normalizeConfigKey(string value) const {
     return normalized;
 }
 
-Board::Board() {}
+Board::Board()
+    : tiles(), tileIndexByCode()
+{}
 
 Board::Board(const vector<shared_ptr<Tile>>& tiles, const map<string, int>& tileIndexByCode) 
     : tiles(tiles), tileIndexByCode(tileIndexByCode)

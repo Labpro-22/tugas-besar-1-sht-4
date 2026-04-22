@@ -2,7 +2,18 @@
 
 using namespace std;
 
-Player::Player() {}
+Player::Player()
+    : username(""),
+      money(0),
+      position(1),
+      status(PlayerStatus::ACTIVE),
+      handCards(),
+      failedJailRolls(0),
+      usedHandCardThisTurn(false),
+      shieldActive(false),
+      discountPercent(0),
+      discountDuration(0)
+{}
 
 Player::Player(
         const string& username,

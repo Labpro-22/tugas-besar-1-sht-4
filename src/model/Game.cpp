@@ -4,7 +4,23 @@
 
 using namespace std;
 
-Game::Game() : gameContext() {}
+Game::Game()
+    : gameContext(),
+      dice(),
+      turnManager(),
+      movementManager(),
+      propertyManager(),
+      auctionManager(),
+      cardManager(),
+      jailManager(),
+      bankruptcyManager(),
+      saveLoadManager(),
+      configManager(),
+      logManager(),
+      taxManager(),
+      festivalManager(),
+      winConditionManager()
+{}
 
 Game::Game(
     const GameContext& gameContext,

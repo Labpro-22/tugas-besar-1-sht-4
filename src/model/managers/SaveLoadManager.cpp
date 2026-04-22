@@ -23,7 +23,7 @@
 
 using namespace std;
 
-SaveLoadManager::SaveLoadManager() {}
+SaveLoadManager::SaveLoadManager() = default;
 SaveLoadManager::SaveLoadManager(const SaveLoadManager&) {}
 SaveLoadManager::~SaveLoadManager() {}
 SaveLoadManager& SaveLoadManager::operator=(const SaveLoadManager&) { return *this; }
