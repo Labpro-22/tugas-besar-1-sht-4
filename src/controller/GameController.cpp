@@ -152,6 +152,11 @@ void GameController::runTurn() {
 
         if (commandSucceeded && isTurnEndingCommand(input)) {
             diceRolledThisTurn = true;
+            if (game.getTurnManager().getConsecutiveDoubles() >= 3) {
+                rolledThisTurn = true;
+                continue;
+            }
+
             if (game.getDice().isDouble() && game.isGameRunning() && !player.isBankrupt() && !player.isJailed()) {
                 uiManager.printMessage("Dadu double! Kamu mendapat kesempatan melempar lagi.");
                 rolledThisTurn = false;
@@ -167,6 +172,8 @@ void GameController::runTurn() {
 void GameController::handleStartTurn() {
     rolledThisTurn = false;
     diceRolledThisTurn = false;
+    game.getTurnManager().setRolledThisTurn(false);
+    game.getTurnManager().setConsecutiveDoubles(0);
 
     Player& player = game.getCurrentPlayer();
     if (player.isBankrupt()) {
@@ -193,6 +200,9 @@ void GameController::handleStartTurn() {
 
     if (player.isJailed()) {
         tileController->handleJailTurn(player);
+        if (player.isJailed()) {
+            rolledThisTurn = true;
+        }
     }
 }
 

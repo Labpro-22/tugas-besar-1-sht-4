@@ -499,6 +499,23 @@ void CommandController::handleHelp() {
     uiManager.printHelp();
 }
 
+bool CommandController::handleTripleDoubleJail(Player& player) const {
+    if (game.getTurnManager().getConsecutiveDoubles() < 3 || player.isBankrupt()) {
+        return false;
+    }
+
+    uiManager.printMessage("Dadu double tiga kali berturut-turut! Kamu masuk penjara.");
+    game.getJailManager().sendToJail(player);
+    player.moveTo(11);
+    game.getLogManager().addLog(
+        game.getCurrentTurn(),
+        player.getUsername(),
+        "JAIL",
+        "Masuk penjara karena double tiga kali berturut-turut"
+    );
+    return true;
+}
+
 void CommandController::handleRollDice() {
     Player& player = game.getCurrentPlayer();
     game.getDice().roll();
@@ -507,6 +524,11 @@ void CommandController::handleRollDice() {
     const int total = game.getDice().getTotal();
 
     uiManager.printDiceRoll(die1, die2, total);
+    game.getTurnManager().registerDiceResult(game.getDice().isDouble());
+    if (handleTripleDoubleJail(player)) {
+        return;
+    }
+
     const int destinationIndex = wrappedMove(game, player, total);
     shared_ptr<Tile> destination = game.getBoard().getTile(destinationIndex);
     if (destination == nullptr) {
@@ -541,6 +563,10 @@ void CommandController::handleSetDice(int x, int y) {
     Player& player = game.getCurrentPlayer();
     const int total = game.getDice().getTotal();
     uiManager.printDiceRoll(x, y, total);
+    game.getTurnManager().registerDiceResult(game.getDice().isDouble());
+    if (handleTripleDoubleJail(player)) {
+        return;
+    }
 
     const int destinationIndex = wrappedMove(game, player, total);
     shared_ptr<Tile> destination = game.getBoard().getTile(destinationIndex);

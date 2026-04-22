@@ -39,6 +39,7 @@ private:
     void fillPropertyOptionVectors(const vector<OwnableTile*>& properties, const string& valueLabel, vector<string>& groups, vector<string>& names, vector<string>& codes, vector<string>& valueLabels, vector<int>& values, vector<string>& statuses, bool useMortgageValue) const;
     bool colorGroupHasBuildings(Game& game, const StreetTile& tile) const;
     int sellColorGroupBuildings(Game& game, Player& player, const StreetTile& tile) const;
+    bool handleTripleDoubleJail(Player& player) const;
 
 public:
     CommandController(Game& game, UIManager& uiManager);
