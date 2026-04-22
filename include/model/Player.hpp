@@ -90,4 +90,15 @@ public:
     bool operator>(const Player& other) const;
     bool operator<(const Player& other) const;
     vector<shared_ptr<HandCard>> getHandCards() const;
+
+    bool isShieldActive() const;
+    void setShieldActive(bool active);
+
+    int getDiscountPercent() const;
+    int getDiscountDuration() const;
+    void setDiscount(int percent, int duration);
+    void decrementDiscountDuration();
+
+    bool hasUsedHandCardThisTurn() const;
+    void setUsedHandCardThisTurn(bool used);
 };

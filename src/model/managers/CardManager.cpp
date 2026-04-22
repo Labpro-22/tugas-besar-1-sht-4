@@ -171,42 +171,53 @@ void CardManager::beginForceDrop(Game& game, Player& player) {
 
     cout << "\nPERINGATAN: Kamu sudah memiliki 3 kartu di tangan (Maksimal 3)!"
          << " Kamu diwajibkan membuang 1 kartu.\n" << endl;
-
     cout << "Daftar Kartu Kemampuan Anda:" << endl;
     for (int i = 0; i < (int)hand.size(); i++) {
         cout << i + 1 << ". " << hand[i]->getName() << endl;
     }
-
     int choice = 0;
     while (choice < 1 || choice > (int)hand.size()) {
         cout << "\nPilih nomor kartu yang ingin dibuang (1-" << hand.size() << "): ";
         cin >> choice;
     }
-
     dropHandCard(player, choice - 1);
     forceDropActive = false;
-
     cout << hand[choice - 1]->getName() << " telah dibuang. "
          << "Sekarang kamu memiliki " << player.countCards() << " kartu di tangan." << endl;
 }
 
 void CardManager::useHandCard(Game& game, Player& player, int cardIndex) {
+    if (player.hasUsedHandCardThisTurn()) {
+        cout << "Kamu sudah menggunakan kartu kemampuan pada giliran ini!\n"
+             << "Penggunaan kartu dibatasi maksimal 1 kali dalam 1 giliran." << endl;
+        return;
+    }
     auto hand = getHandCards(player);
-
     if (cardIndex < 0 || cardIndex >= (int)hand.size()) {
         cout << "Pilihan tidak valid." << endl;
         return;
     }
-
     shared_ptr<HandCard> card = hand[cardIndex];
     card->apply(game, player);
-
     discardHandCard(card);
     player.removeHandCard(cardIndex);
+    player.setUsedHandCardThisTurn(true);
 }
 
 
 void CardManager::updateTemporaryEffects(Player& player) {
+    player.setUsedHandCardThisTurn(false);
+    
+    if (player.isShieldActive()) {
+        player.setShieldActive(false);
+    }
+    
+    if (player.getDiscountDuration() > 0) {
+        player.decrementDiscountDuration();
+        if (player.getDiscountDuration() == 0) {
+            player.setDiscount(0, 0);
+        }
+    }
 }
 
 void CardManager::dropHandCard(Player& player, int cardIndex) {
