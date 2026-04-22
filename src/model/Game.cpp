@@ -86,6 +86,9 @@ void Game::startNewGame() {
     dice = Dice();
 
     configManager.loadAllConfigs();
+    if (configManager.getMaxTurn() > 0) {
+        gameContext.setMaxTurn(configManager.getMaxTurn());
+    }
     gameContext.getBoard().initializeBoard(configManager);
     cardManager.initializeDecks();
 
