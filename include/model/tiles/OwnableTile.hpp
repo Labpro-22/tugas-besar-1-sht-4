@@ -42,6 +42,7 @@ public:
     virtual TileType onLand() const override = 0;
     Player* getOwner() const;
     void setOwner(Player* owner);
+    void setOwnershipStatus(OwnershipStatus ownershipStatus);
     bool isOwned() const;
     bool isMortgaged() const;
     void mortgage();

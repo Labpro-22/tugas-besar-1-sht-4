@@ -48,6 +48,10 @@ void OwnableTile::setOwner(Player* owner) {
     this->owner = owner;
 }
 
+void OwnableTile::setOwnershipStatus(OwnershipStatus ownershipStatus) {
+    this->ownershipStatus = ownershipStatus;
+}
+
 bool OwnableTile::isOwned() const {
     if (ownershipStatus == OwnershipStatus::OWNED) return true;
     else return false;
