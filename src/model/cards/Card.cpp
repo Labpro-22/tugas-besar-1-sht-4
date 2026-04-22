@@ -21,3 +21,7 @@ Card& Card::operator=(const Card& other) {
 string Card::getName() const {
     return name;
 }
+
+string Card::getDescription() const {
+    return description;
+}

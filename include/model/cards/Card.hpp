@@ -21,4 +21,5 @@ public:
 
     virtual void apply(Game& game, Player& player) = 0;
     string getName() const;
+    string getDescription() const;
 };
