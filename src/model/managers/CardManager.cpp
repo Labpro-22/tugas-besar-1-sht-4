@@ -220,3 +220,6 @@ void CardManager::dropHandCard(Player& player, int cardIndex) {
 vector<shared_ptr<HandCard>> CardManager::getHandCards(const Player& player) const {
     return player.getHandCards();
 }
+
+CardDeck<HandCard>& CardManager::getHandDeck() { return handDeck; }
+const CardDeck<HandCard>& CardManager::getHandDeck() const { return handDeck; }

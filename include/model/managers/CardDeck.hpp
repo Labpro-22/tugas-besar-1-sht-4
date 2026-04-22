@@ -57,4 +57,12 @@ public:
     int size() const {
         return (int)drawPile.size();
     }
+
+    const vector<shared_ptr<T>>& getDrawPile() const { return drawPile; }
+    const vector<shared_ptr<T>>& getDiscardPile() const { return discardPile; }
+
+    void clear() {
+        drawPile.clear();
+        discardPile.clear();
+    }
 };

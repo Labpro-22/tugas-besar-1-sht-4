@@ -20,4 +20,6 @@ public:
     DiscountCard& operator=(const DiscountCard& other);
 
     void apply(Game& game, Player& player) override;
+    int getDiscountPercent() const;
+    int getDuration() const;
 };

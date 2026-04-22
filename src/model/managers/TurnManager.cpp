@@ -2,7 +2,12 @@
 
 using namespace std;
 
-TurnManager::TurnManager() {}
+TurnManager::TurnManager()
+    : currentPlayerIndex(0),
+      turnOrder(),
+      rolledThisTurn(false),
+      consecutiveDoubles(0),
+      turnCount(0) {}
 
 TurnManager::TurnManager(int currentPlayerIndex, const vector<int>& turnOrder, bool rolledThisTurn, int consecutiveDoubles, int turnCount) 
 : currentPlayerIndex{currentPlayerIndex}, turnOrder{turnOrder}, rolledThisTurn{rolledThisTurn}, consecutiveDoubles{consecutiveDoubles}, turnCount{turnCount} {}
@@ -29,10 +34,14 @@ TurnManager& TurnManager::operator=(const TurnManager& other) {
 }
 
 void TurnManager::initializeTurnOrder(int playerCount) {
-    vector<int> order(playerCount);
+    turnOrder.clear();
     for (int i = 0; i < playerCount; i++) {
-        order[i] = i;
+        turnOrder.push_back(i);
     }
+    currentPlayerIndex = 0;
+    rolledThisTurn = false;
+    consecutiveDoubles = 0;
+    turnCount = 1;
 }
 
 Player& TurnManager::getCurrentPlayer(GameContext& gameContext) {
@@ -42,16 +51,26 @@ Player& TurnManager::getCurrentPlayer(GameContext& gameContext) {
 }
 
 void TurnManager::nextPlayer(GameContext& gameContext) {
-    // initialize next player. Tergantung turnCount
+    if (turnOrder.empty()) {
+        initializeTurnOrder(static_cast<int>(gameContext.getPlayers().size()));
+    }
+    if (turnOrder.empty()) return;
+    currentPlayerIndex = (currentPlayerIndex + 1) % static_cast<int>(turnOrder.size());
 }
 
-void TurnManager::startTurn(GameContext& gameContext) {}
+void TurnManager::startTurn(GameContext& gameContext) {
+    if (turnOrder.empty()) {
+        initializeTurnOrder(static_cast<int>(gameContext.getPlayers().size()));
+    }
+    rolledThisTurn = false;
+    consecutiveDoubles = 0;
+}
 
 void TurnManager::endTurn(GameContext& gameContext) {
-    if (currentPlayerIndex == turnOrder.back()){
+    if (!turnOrder.empty() && currentPlayerIndex == static_cast<int>(turnOrder.size()) - 1){
         gameContext.setCurrentTurn(gameContext.getCurrentTurn()+1);
     }
-    rolledThisTurn = true;
+    rolledThisTurn = false;
     consecutiveDoubles = 0;
     nextPlayer(gameContext);
 }
@@ -68,6 +87,18 @@ void TurnManager::registerDiceResult(bool isDouble) {
 bool TurnManager::canRollDice() const {
     return (!rolledThisTurn);
 }
+
+int TurnManager::getCurrentPlayerIndex() const { return currentPlayerIndex; }
+const vector<int>& TurnManager::getTurnOrder() const { return turnOrder; }
+bool TurnManager::isRolledThisTurn() const { return rolledThisTurn; }
+int TurnManager::getConsecutiveDoubles() const { return consecutiveDoubles; }
+int TurnManager::getTurnCount() const { return turnCount; }
+
+void TurnManager::setCurrentPlayerIndex(int idx) { currentPlayerIndex = idx; }
+void TurnManager::setTurnOrder(const vector<int>& order) { turnOrder = order; }
+void TurnManager::setRolledThisTurn(bool rolled) { rolledThisTurn = rolled; }
+void TurnManager::setConsecutiveDoubles(int doubles) { consecutiveDoubles = doubles; }
+void TurnManager::setTurnCount(int count) { turnCount = count; }
 
 void TurnManager::updateTurnEffects(GameContext& gameContext, Player& player) {
 

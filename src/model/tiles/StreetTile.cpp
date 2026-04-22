@@ -100,6 +100,15 @@ void StreetTile::sellBuildings() {
     this->buildingLevel = 0;
 }
 
+void StreetTile::setBuildingLevel(int level) {
+    buildingLevel = level;
+}
+
+void StreetTile::setFestivalState(int multiplier, int duration) {
+    festivalMultiplier = multiplier;
+    festivalDuration = duration;
+}
+
 void StreetTile::activateFestival() {
     if (festivalMultiplier < 2) festivalMultiplier = 2;
     else if (festivalMultiplier < 8) festivalMultiplier *= 2;

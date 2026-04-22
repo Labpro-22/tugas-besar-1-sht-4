@@ -28,6 +28,11 @@ LogManager::LogEntry& LogManager::LogEntry::operator=(const LogEntry& other) {
     return *this;
 }
 
+int LogManager::LogEntry::getTurnNumber() const { return turnNumber; }
+const string& LogManager::LogEntry::getUsername() const { return username; }
+const string& LogManager::LogEntry::getActionType() const { return actionType; }
+const string& LogManager::LogEntry::getDetail() const { return detail; }
+
 string LogManager::LogEntry::format() const {
     ostringstream stream;
     stream << "[Turn " << turnNumber << "] "

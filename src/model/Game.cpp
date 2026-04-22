@@ -102,6 +102,10 @@ void Game::startNewGame() {
 }
 
 void Game::loadGame(const string& filename) {
+    if (gameContext.isGameRunning()) {
+        throw InvalidActionException("Load hanya dapat dilakukan sebelum permainan dimulai.");
+    }
+
     saveLoadManager.loadGame(*this, filename);
 
     if (gameContext.getPlayers().empty()) {
