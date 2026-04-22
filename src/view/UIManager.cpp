@@ -1,13 +1,333 @@
 #include "view/UIManager.hpp"
 
+#include <algorithm>
+#include <cctype>
+#include <iomanip>
 #include <iostream>
 #include <limits>
 
 using namespace std;
 
+namespace {
+const int CELL_WIDTH = 10;
+const int CELL_HEIGHT = 3;
+const int CENTER_WIDTH = CELL_WIDTH * 9 + 8;
+
+string repeatChar(char ch, int count) {
+    return string(static_cast<size_t>(max(0, count)), ch);
+}
+
+string trim(const string& value) {
+    size_t begin = 0;
+    while (begin < value.size() && isspace(static_cast<unsigned char>(value[begin]))) {
+        begin++;
+    }
+
+    size_t end = value.size();
+    while (end > begin && isspace(static_cast<unsigned char>(value[end - 1]))) {
+        end--;
+    }
+
+    return value.substr(begin, end - begin);
+}
+
+string toUpperCopy(string value) {
+    transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
+        return static_cast<char>(toupper(ch));
+    });
+    return value;
+}
+
+string normalizeKey(const string& value) {
+    string normalized;
+    for (char ch : value) {
+        if (isalnum(static_cast<unsigned char>(ch))) {
+            normalized += static_cast<char>(toupper(static_cast<unsigned char>(ch)));
+        }
+    }
+    return normalized;
+}
+
+string truncateToWidth(const string& value, int width) {
+    if (static_cast<int>(value.size()) <= width) {
+        return value;
+    }
+    if (width <= 1) {
+        return value.substr(0, static_cast<size_t>(max(0, width)));
+    }
+    return value.substr(0, static_cast<size_t>(width - 1)) + ".";
+}
+
+string padRight(const string& value, int width) {
+    const string clipped = truncateToWidth(value, width);
+    return clipped + repeatChar(' ', width - static_cast<int>(clipped.size()));
+}
+
+string centerText(const string& value, int width) {
+    const string clipped = truncateToWidth(value, width);
+    const int left = (width - static_cast<int>(clipped.size())) / 2;
+    const int right = width - static_cast<int>(clipped.size()) - left;
+    return repeatChar(' ', left) + clipped + repeatChar(' ', right);
+}
+
+string formatMoney(int amount) {
+    const bool negative = amount < 0;
+    long long value = amount;
+    if (negative) {
+        value *= -1;
+    }
+
+    string digits = to_string(value);
+    string formatted;
+    int count = 0;
+
+    for (int i = static_cast<int>(digits.size()) - 1; i >= 0; i--) {
+        if (count == 3) {
+            formatted.push_back('.');
+            count = 0;
+        }
+        formatted.push_back(digits[static_cast<size_t>(i)]);
+        count++;
+    }
+
+    reverse(formatted.begin(), formatted.end());
+    return string("M") + (negative ? "-" : "") + formatted;
+}
+
+string colorCode(const string& colorGroup) {
+    const string key = normalizeKey(colorGroup);
+    if (key == "COKLAT" || key == "BROWN" || key == "CK") return "CK";
+    if (key == "BIRUMUDA" || key == "LIGHTBLUE" || key == "BM") return "BM";
+    if (key == "PINK" || key == "PK") return "PK";
+    if (key == "ORANGE" || key == "ORANYE" || key == "OR") return "OR";
+    if (key == "MERAH" || key == "RED" || key == "MR") return "MR";
+    if (key == "KUNING" || key == "YELLOW" || key == "KN") return "KN";
+    if (key == "HIJAU" || key == "GREEN" || key == "HJ") return "HJ";
+    if (key == "BIRUTUA" || key == "DARKBLUE" || key == "NAVY" || key == "BT") return "BT";
+    if (key == "STASIUN" || key == "RAILROAD" || key == "RR") return "STASIUN";
+    if (key == "UTILITAS" || key == "UTILITY" || key == "AB") return "AB";
+    if (key == "AKSI" || key == "ACTION" || key == "DF") return "DF";
+    return colorGroup.empty() ? "DF" : colorGroup;
+}
+
+string colorName(const string& colorGroup) {
+    const string code = colorCode(colorGroup);
+    if (code == "CK") return "COKLAT";
+    if (code == "BM") return "BIRU MUDA";
+    if (code == "PK") return "PINK";
+    if (code == "OR") return "ORANGE";
+    if (code == "MR") return "MERAH";
+    if (code == "KN") return "KUNING";
+    if (code == "HJ") return "HIJAU";
+    if (code == "BT") return "BIRU TUA";
+    if (code == "STASIUN") return "STASIUN";
+    if (code == "AB") return "UTILITAS";
+    return "AKSI";
+}
+
+string ansiForCode(const string& rawCode) {
+    const string code = colorCode(rawCode);
+    if (code == "CK") return "\033[48;5;94;38;5;231m";
+    if (code == "BM") return "\033[48;5;45;38;5;16m";
+    if (code == "PK") return "\033[48;5;205;38;5;16m";
+    if (code == "OR") return "\033[48;5;208;38;5;16m";
+    if (code == "MR") return "\033[48;5;196;38;5;231m";
+    if (code == "KN") return "\033[48;5;220;38;5;16m";
+    if (code == "HJ") return "\033[48;5;34;38;5;231m";
+    if (code == "BT") return "\033[48;5;19;38;5;231m";
+    if (code == "AB") return "\033[48;5;51;38;5;16m";
+    return "\033[48;5;240;38;5;231m";
+}
+
+int findCellOffset(const vector<int>& cellIndices, int index) {
+    for (size_t i = 0; i < cellIndices.size(); i++) {
+        if (cellIndices[i] == index) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+
+string boardCellColor(
+    const vector<int>& cellIndices,
+    const vector<string>& cellColorCodes,
+    int index
+) {
+    const int offset = findCellOffset(cellIndices, index);
+    if (offset >= 0 && offset < static_cast<int>(cellColorCodes.size())) {
+        return cellColorCodes[static_cast<size_t>(offset)];
+    }
+    return "DF";
+}
+
+string boardCellLine(
+    const vector<int>& cellIndices,
+    const vector<vector<string>>& cellLines,
+    int index,
+    int lineIndex
+) {
+    const int offset = findCellOffset(cellIndices, index);
+    if (
+        offset >= 0 &&
+        offset < static_cast<int>(cellLines.size()) &&
+        lineIndex >= 0 &&
+        lineIndex < static_cast<int>(cellLines[static_cast<size_t>(offset)].size())
+    ) {
+        return cellLines[static_cast<size_t>(offset)][static_cast<size_t>(lineIndex)];
+    }
+
+    if (lineIndex == 0) {
+        return "[DF] ???";
+    }
+    return "";
+}
+
+string colorizeCellLine(const string& colorCodeValue, const string& line) {
+    return ansiForCode(colorCodeValue) + line + "\033[0m";
+}
+
+string horizontalBorder(int cellCount) {
+    string border = "+";
+    for (int i = 0; i < cellCount; i++) {
+        border += repeatChar('-', CELL_WIDTH) + "+";
+    }
+    return border;
+}
+
+string sideBorder() {
+    return "+" + repeatChar('-', CELL_WIDTH) + "+" +
+           repeatChar(' ', CENTER_WIDTH) +
+           "+" + repeatChar('-', CELL_WIDTH) + "+";
+}
+
+void printTileRow(
+    const vector<int>& cellIndices,
+    const vector<string>& cellColorCodes,
+    const vector<vector<string>>& cellLines,
+    const vector<int>& rowIndices
+) {
+    for (int line = 0; line < CELL_HEIGHT; line++) {
+        cout << "|";
+        for (int index : rowIndices) {
+            const string lineText = boardCellLine(cellIndices, cellLines, index, line);
+            const string color = boardCellColor(cellIndices, cellColorCodes, index);
+            cout << colorizeCellLine(color, padRight(lineText, CELL_WIDTH)) << "|";
+        }
+        cout << '\n';
+    }
+}
+
+vector<string> boardCenterLines(int currentTurn, int maxTurn, const string& currentPlayerLabel) {
+    vector<string> lines(27, "");
+    lines[2] = "==================================";
+    lines[3] = "||          NIMONSPOLI          ||";
+    lines[4] = "==================================";
+    lines[6] = "TURN " + to_string(currentTurn) + " / " + to_string(maxTurn);
+    lines[9] = "----------------------------------";
+    lines[10] = "LEGENDA KEPEMILIKAN & STATUS";
+    lines[11] = "P1-P4 : Properti milik Pemain 1-4";
+    lines[12] = "^     : Rumah Level 1";
+    lines[13] = "^^    : Rumah Level 2";
+    lines[14] = "^^^   : Rumah Level 3";
+    lines[15] = "* : Hotel (Maksimal)";
+    lines[16] = "(1)-(4): Bidak (IN=Tahanan, V=Mampir)";
+    lines[17] = "Giliran: " + (currentPlayerLabel.empty() ? "-" : currentPlayerLabel);
+    lines[19] = "----------------------------------";
+    lines[20] = "KODE WARNA:";
+    lines[21] = "[CK]=Coklat    [MR]=Merah";
+    lines[22] = "[BM]=Biru Muda [KN]=Kuning";
+    lines[23] = "[PK]=Pink      [HJ]=Hijau";
+    lines[24] = "[OR]=Orange    [BT]=Biru Tua";
+    lines[25] = "[DF]=Aksi      [AB]=Utilitas";
+    return lines;
+}
+
+int readIntInRange(const string& prompt, int minimum, int maximum, bool hasMaximum) {
+    int value;
+    while (true) {
+        cout << prompt;
+        cin >> value;
+
+        if (cin.eof()) {
+            return -1;
+        }
+
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Input harus berupa angka.\n";
+            continue;
+        }
+
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        if (value < minimum) {
+            cout << "Pilihan minimal " << minimum << ".\n";
+            continue;
+        }
+        if (hasMaximum && value > maximum) {
+            cout << "Pilihan maksimal " << maximum << ".\n";
+            continue;
+        }
+        return value;
+    }
+}
+
+size_t propertyOptionCount(
+    const vector<string>& propertyGroups,
+    const vector<string>& propertyNames,
+    const vector<string>& propertyCodes,
+    const vector<string>& valueLabels,
+    const vector<int>& values,
+    const vector<string>& propertyStatuses
+) {
+    size_t count = propertyGroups.size();
+    count = min(count, propertyNames.size());
+    count = min(count, propertyCodes.size());
+    count = min(count, valueLabels.size());
+    count = min(count, values.size());
+    count = min(count, propertyStatuses.size());
+    return count;
+}
+
+void printShortPropertyLine(
+    int index,
+    const string& propertyGroup,
+    const string& propertyName,
+    const string& propertyCode,
+    const string& valueLabel,
+    int value,
+    const string& propertyStatus
+) {
+    string status = propertyStatus;
+    if (status == "MORTGAGED") {
+        status = "MORTGAGED [M]";
+    }
+
+    cout << setw(2) << index << ". " << left << setw(24)
+         << (propertyName + " (" + propertyCode + ")")
+         << " [" << setw(10) << colorName(propertyGroup) << "] "
+         << valueLabel << ": " << formatMoney(value);
+    if (!status.empty()) {
+        cout << " " << status;
+    }
+    cout << '\n' << right;
+}
+
+string displayTitleFromDeedTitle(const string& title) {
+    const size_t closeBracket = title.find("] ");
+    if (closeBracket == string::npos) {
+        return title;
+    }
+    return title.substr(closeBracket + 2);
+}
+}
+
 UIManager::UIManager() {}
 
-UIManager::UIManager(const UIManager& other) {}
+UIManager::UIManager(const UIManager& other) {
+    (void) other;
+}
 
 UIManager::~UIManager() {}
 
@@ -28,51 +348,11 @@ void UIManager::showMainMenu() const {
 }
 
 int UIManager::readMainMenuChoice() const {
-    int choice;
-
-    while (true) {
-        cout << "Pilih menu (1-3): ";
-        cin >> choice;
-
-        if (cin.fail()) {
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << "Input harus berupa angka.\n";
-            continue;
-        }
-
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-
-        if (choice >= 1 && choice <= 3) {
-            return choice;
-        }
-
-        cout << "Pilihan hanya boleh 1 sampai 3.\n";
-    }
+    return readIntInRange("Pilih menu (1-3): ", 1, 3, true);
 }
 
 int UIManager::readPlayerCount() const {
-    int count;
-
-    while (true) {
-        cout << "Masukkan jumlah pemain (2-4): ";
-        cin >> count;
-
-        if (cin.fail()) {
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << "Input harus berupa angka.\n";
-            continue;
-        }
-
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-
-        if (count >= 2 && count <= 4) {
-            return count;
-        }
-
-        cout << "Jumlah pemain harus antara 2 sampai 4.\n";
-    }
+    return readIntInRange("Masukkan jumlah pemain (2-4): ", 2, 4, true);
 }
 
 vector<string> UIManager::readUsernames(int playerCount) const {
@@ -84,6 +364,10 @@ vector<string> UIManager::readUsernames(int playerCount) const {
         while (true) {
             cout << "Masukkan username pemain " << (i + 1) << ": ";
             getline(cin, username);
+            if (cin.eof()) {
+                return usernames;
+            }
+            username = trim(username);
 
             if (!username.empty()) {
                 usernames.push_back(username);
@@ -101,7 +385,7 @@ string UIManager::readCommand() const {
     string command;
     cout << "> ";
     getline(cin, command);
-    return command;
+    return trim(command);
 }
 
 void UIManager::printMessage(const string& msg) const {
@@ -109,109 +393,752 @@ void UIManager::printMessage(const string& msg) const {
 }
 
 void UIManager::printError(const string& msg) const {
-    cerr << "Error: " << msg << '\n';
+    cerr << msg << '\n';
 }
 
-void UIManager::printBoard(const Game& game) const {}
+string UIManager::readPropertyCode() const {
+    string code;
+    while (true) {
+        cout << "Masukkan kode petak: ";
+        getline(cin, code);
+        if (cin.eof()) {
+            return "";
+        }
+        code = toUpperCopy(trim(code));
+        if (!code.empty()) {
+            return code;
+        }
+        cout << "Kode petak tidak boleh kosong.\n";
+    }
+}
 
-void UIManager::printDeed(const OwnableTile& tile) const {}
+void UIManager::printBoard(
+    const vector<int>& cellIndices,
+    const vector<string>& cellColorCodes,
+    const vector<vector<string>>& cellLines,
+    int currentTurn,
+    int maxTurn,
+    const string& currentPlayerLabel
+) const {
+    if (cellIndices.empty()) {
+        cout << "Papan belum diinisialisasi.\n";
+        return;
+    }
 
-void UIManager::printPlayerProperties(const Player& player) const {}
+    if (cellIndices.size() < 40) {
+        cout << "=== Papan NIMONSPOLI ===\n";
+        vector<int> sortedOffsets;
+        for (size_t i = 0; i < cellIndices.size(); i++) {
+            sortedOffsets.push_back(static_cast<int>(i));
+        }
 
-void UIManager::printLogs(const LogManager& logManager) const {}
+        sort(sortedOffsets.begin(), sortedOffsets.end(), [&](int first, int second) {
+            return cellIndices[static_cast<size_t>(first)] < cellIndices[static_cast<size_t>(second)];
+        });
 
-void UIManager::printRecentLogs(const LogManager& logManager, int n) const {}
+        for (int offset : sortedOffsets) {
+            const int index = cellIndices[static_cast<size_t>(offset)];
+            cout << setw(2) << index << ". "
+                 << boardCellLine(cellIndices, cellLines, index, 0) << " | "
+                 << boardCellLine(cellIndices, cellLines, index, 1) << " | "
+                 << boardCellLine(cellIndices, cellLines, index, 2) << '\n';
+        }
+        return;
+    }
 
-void UIManager::printDiceRoll(int die1, int die2, int total) const {}
+    vector<int> top;
+    for (int index = 21; index <= 31; index++) top.push_back(index);
 
-void UIManager::printPlayerMovement(const Player& player, int steps, const Tile& destination) const {}
+    vector<int> bottom;
+    for (int index = 11; index >= 1; index--) bottom.push_back(index);
 
-void UIManager::printStreetPurchasePrompt(const Player& player, const StreetTile& tile) const {}
+    const vector<string> centerLines = boardCenterLines(currentTurn, maxTurn, currentPlayerLabel);
+    int centerLineIndex = 0;
+
+    cout << horizontalBorder(11) << '\n';
+    printTileRow(cellIndices, cellColorCodes, cellLines, top);
+    cout << horizontalBorder(11) << '\n';
+
+    for (int row = 0; row < 9; row++) {
+        const int leftIndex = 20 - row;
+        const int rightIndex = 32 + row;
+
+        for (int line = 0; line < CELL_HEIGHT; line++) {
+            const string leftLine = boardCellLine(cellIndices, cellLines, leftIndex, line);
+            const string rightLine = boardCellLine(cellIndices, cellLines, rightIndex, line);
+            const string leftColor = boardCellColor(cellIndices, cellColorCodes, leftIndex);
+            const string rightColor = boardCellColor(cellIndices, cellColorCodes, rightIndex);
+
+            cout << "|"
+                 << colorizeCellLine(leftColor, padRight(leftLine, CELL_WIDTH))
+                 << "|"
+                 << centerText(centerLines[static_cast<size_t>(centerLineIndex++)], CENTER_WIDTH)
+                 << "|"
+                 << colorizeCellLine(rightColor, padRight(rightLine, CELL_WIDTH))
+                 << "|\n";
+        }
+        cout << sideBorder() << '\n';
+    }
+
+    printTileRow(cellIndices, cellColorCodes, cellLines, bottom);
+    cout << horizontalBorder(11) << '\n';
+}
+
+void UIManager::printDeed(
+    const string& title,
+    int purchasePrice,
+    int mortgageValue,
+    const vector<string>& moneyRowLabels,
+    const vector<int>& moneyRowValues,
+    const vector<string>& detailRowLabels,
+    const vector<string>& detailRowValues,
+    const string& ownershipStatus,
+    const string& ownerName
+) const {
+    cout << "+================================+\n";
+    cout << "|        AKTA KEPEMILIKAN        |\n";
+    cout << "|" << centerText(title, 32) << "|\n";
+    cout << "+================================+\n";
+    cout << "| Harga Beli        : " << left << setw(11) << formatMoney(purchasePrice) << "|\n";
+    cout << "| Nilai Gadai       : " << left << setw(11) << formatMoney(mortgageValue) << "|\n";
+
+    const size_t moneyRows = min(moneyRowLabels.size(), moneyRowValues.size());
+    if (moneyRows > 0) {
+        cout << "+--------------------------------+\n";
+        for (size_t i = 0; i < moneyRows; i++) {
+            if (i > 0 && moneyRowLabels[i] == "Harga Rumah") {
+                cout << "+--------------------------------+\n";
+            }
+            cout << "| " << left << setw(18) << truncateToWidth(moneyRowLabels[i], 18)
+                 << ": " << setw(10) << formatMoney(moneyRowValues[i]) << "|\n";
+        }
+    }
+
+    const size_t detailRows = min(detailRowLabels.size(), detailRowValues.size());
+    bool hasVisibleDetailRows = false;
+    for (size_t i = 0; i < detailRows; i++) {
+        if (!(detailRowLabels[i] == "Bangunan" && detailRowValues[i] == "-")) {
+            hasVisibleDetailRows = true;
+        }
+    }
+
+    if (hasVisibleDetailRows) {
+        cout << "+--------------------------------+\n";
+        for (size_t i = 0; i < detailRows; i++) {
+            if (detailRowLabels[i] == "Bangunan" && detailRowValues[i] == "-") {
+                continue;
+            }
+            cout << "| " << left << setw(18) << truncateToWidth(detailRowLabels[i], 18)
+                 << ": " << setw(10) << truncateToWidth(detailRowValues[i], 10) << "|\n";
+        }
+    }
+
+    cout << "+================================+\n";
+    string status = ownershipStatus;
+    if (!ownerName.empty() && ownerName != "BANK") {
+        status += " (" + ownerName + ")";
+    }
+    cout << "| Status : " << left << setw(23)
+         << truncateToWidth(status, 23) << "|\n";
+    cout << right;
+    cout << "+================================+\n";
+}
+
+void UIManager::printPlayerProperties(
+    const string& playerName,
+    int playerMoney,
+    int cardCount,
+    const vector<string>& propertyGroups,
+    const vector<string>& propertyNames,
+    const vector<string>& propertyCodes,
+    const vector<string>& propertyBuildingStatuses,
+    const vector<string>& propertyStatuses,
+    const vector<int>& propertyValues,
+    int totalPropertyWealth
+) const {
+    cout << "=== Properti Milik: " << playerName << " ===\n\n";
+
+    size_t count = propertyGroups.size();
+    count = min(count, propertyNames.size());
+    count = min(count, propertyCodes.size());
+    count = min(count, propertyBuildingStatuses.size());
+    count = min(count, propertyStatuses.size());
+    count = min(count, propertyValues.size());
+
+    if (count == 0) {
+        cout << "Kamu belum memiliki properti apapun.\n";
+        (void) playerMoney;
+        (void) cardCount;
+        return;
+    }
+
+    string currentGroup;
+    for (size_t i = 0; i < count; i++) {
+        const string group = colorName(propertyGroups[i]);
+        if (group != currentGroup) {
+            currentGroup = group;
+            cout << "\n[" << group << "]\n";
+        }
+
+        string status = propertyStatuses[i];
+        if (status == "MORTGAGED") {
+            status = "MORTGAGED [M]";
+        }
+
+        cout << "- " << left << setw(30)
+             << (propertyNames[i] + " (" + propertyCodes[i] + ")")
+             << setw(12) << truncateToWidth(propertyBuildingStatuses[i], 12)
+             << setw(8) << formatMoney(propertyValues[i])
+             << status << '\n';
+    }
+
+    cout << right;
+    cout << "Total kekayaan properti: " << formatMoney(totalPropertyWealth) << '\n';
+}
+
+void UIManager::printLogs(const vector<string>& formattedLogs) const {
+    cout << "=== Log Transaksi Penuh ===\n\n";
+    if (formattedLogs.empty()) {
+        cout << "Belum ada log transaksi.\n";
+        return;
+    }
+
+    for (const string& log : formattedLogs) {
+        cout << log << '\n';
+    }
+}
+
+void UIManager::printRecentLogs(const vector<string>& formattedLogs, int n) const {
+    cout << "=== Log Transaksi (" << n << " Terakhir) ===\n\n";
+    if (formattedLogs.empty()) {
+        cout << "Belum ada log transaksi.\n";
+        return;
+    }
+
+    for (const string& log : formattedLogs) {
+        cout << log << '\n';
+    }
+}
+
+void UIManager::printDiceRoll(int die1, int die2, int total) const {
+    cout << "Mengocok dadu...\n";
+    cout << "Hasil: " << die1 << " + " << die2 << " = " << total << '\n';
+}
+
+void UIManager::printPlayerMovement(
+    const string& playerName,
+    int steps,
+    const string& destinationName,
+    const string& destinationCode
+) const {
+    cout << "Memajukan Bidak " << playerName << " sebanyak " << steps << " petakk...\n";
+    cout << "Bidak mendarat di: " << destinationName;
+    (void) destinationCode;
+    cout << ".\n";
+}
+
+void UIManager::printStreetPurchasePrompt(
+    const string& playerName,
+    int playerMoney,
+    const string& title,
+    int purchasePrice,
+    int mortgageValue,
+    const vector<string>& moneyRowLabels,
+    const vector<int>& moneyRowValues,
+    const vector<string>& detailRowLabels,
+    const vector<string>& detailRowValues,
+    const string& ownershipStatus,
+    const string& ownerName
+) const {
+    (void) playerName;
+    (void) mortgageValue;
+    (void) detailRowLabels;
+    (void) detailRowValues;
+    (void) ownershipStatus;
+    (void) ownerName;
+
+    cout << "Kamu mendarat di " << displayTitleFromDeedTitle(title) << "!\n";
+    cout << "+================================+\n";
+    cout << "| " << left << setw(31) << truncateToWidth(title, 31) << "|\n";
+    cout << "| Harga Beli    : " << setw(14) << formatMoney(purchasePrice) << "|\n";
+
+    const size_t moneyRows = min(moneyRowLabels.size(), moneyRowValues.size());
+    for (size_t i = 0; i < moneyRows; i++) {
+        cout << "| " << left << setw(14) << truncateToWidth(moneyRowLabels[i], 14)
+             << ": " << setw(14) << formatMoney(moneyRowValues[i]) << "|\n";
+    }
+    cout << right;
+    cout << "+================================+\n";
+    cout << "Uang kamu saat ini: " << formatMoney(playerMoney) << '\n';
+    cout << "Apakah kamu ingin membeli properti ini seharga "
+         << formatMoney(purchasePrice) << "? (y/n): ";
+}
 
 bool UIManager::readYesNo() const {
-    return false;
+    string answer;
+    while (true) {
+        getline(cin, answer);
+        if (cin.eof()) {
+            return false;
+        }
+        answer = toUpperCopy(trim(answer));
+
+        if (answer == "Y" || answer == "YES" || answer == "YA") {
+            return true;
+        }
+        if (answer == "N" || answer == "NO" || answer == "TIDAK") {
+            return false;
+        }
+
+        cout << "Masukkan y atau n: ";
+    }
 }
 
-void UIManager::printRailroadAcquired(const Player& player, const RailroadTile& tile) const {}
+void UIManager::printRailroadAcquired(
+    const string& playerName,
+    const string& tileName,
+    const string& tileCode
+) const {
+    cout << "Kamu mendarat di " << tileName << " (" << tileCode << ")!\n";
+    (void) playerName;
+    cout << "Belum ada yang menginjaknya duluan, stasiun ini kini menjadi milikmu!\n";
+}
 
-void UIManager::printUtilityAcquired(const Player& player, const UtilityTile& tile) const {}
+void UIManager::printUtilityAcquired(
+    const string& playerName,
+    const string& tileName,
+    const string& tileCode
+) const {
+    cout << "Kamu mendarat di " << tileName;
+    if (!tileCode.empty()) {
+        cout << " (" << tileCode << ")";
+    }
+    cout << "!\n";
+    (void) playerName;
+    cout << "Belum ada yang menginjaknya duluan, " << tileName
+         << " kini menjadi milikmu!\n";
+}
 
-void UIManager::printRentPayment(const Player& payer, const Player& owner, const OwnableTile& tile, int rent) const {}
+void UIManager::printRentPayment(
+    const string& payerName,
+    int payerMoney,
+    const string& ownerName,
+    int ownerMoney,
+    const string& tileName,
+    const string& tileCode,
+    const string& condition,
+    const string& festivalStatus,
+    int rent
+) const {
+    cout << payerName << " mendarat di " << tileName << " (" << tileCode
+         << "), milik " << ownerName << "!\n\n";
 
-void UIManager::printMortgagedNoRent(const OwnableTile& tile, const Player& owner) const {}
+    if (!condition.empty()) {
+        cout << "Kondisi      : " << condition << '\n';
+    }
+    if (!festivalStatus.empty()) {
+        cout << "Festival     : " << festivalStatus << '\n';
+    }
 
-void UIManager::printIncomeTaxState(const Player& player, int flatTax, int percentTax) const {}
+    cout << "Sewa         : " << formatMoney(rent) << "\n\n";
+    cout << "Uang " << payerName << " : " << formatMoney(payerMoney)
+         << " -> " << formatMoney(payerMoney - rent) << '\n';
+    cout << "Uang " << ownerName << " : " << formatMoney(ownerMoney)
+         << " -> " << formatMoney(ownerMoney + rent) << '\n';
+}
+
+void UIManager::printMortgagedNoRent(
+    const string& tileName,
+    const string& tileCode,
+    const string& ownerName
+) const {
+    cout << "Kamu mendarat di " << tileName << " (" << tileCode
+         << "), milik " << ownerName << ".\n";
+    cout << "Properti ini sedang digadaikan [M]. Tidak ada sewa yang dikenakan.\n";
+}
+
+void UIManager::printIncomeTaxState(
+    const string& playerName,
+    int playerMoney,
+    int flatTax,
+    int percentTax
+) const {
+    cout << playerName << " mendarat di Pajak Penghasilan (PPH)!\n";
+    cout << "Pilih opsi pembayaran pajak:\n";
+    cout << "1. Bayar flat " << formatMoney(flatTax) << '\n';
+    cout << "2. Bayar " << percentTax << "% dari total kekayaan\n";
+    cout << "(Pilih sebelum menghitung kekayaan!)\n";
+    (void) playerMoney;
+}
 
 int UIManager::readIncomeTaxChoice() const {
-    return 0;
+    return readIntInRange("Pilihan (1/2): ", 1, 2, true);
 }
 
-void UIManager::printIncomeTaxBreakdown(const Player& player, int cash, int propertyValue, int buildingValue, int totalWealth, int percent, int taxAmount) const {}
+void UIManager::printIncomeTaxBreakdown(
+    int currentMoney,
+    int cash,
+    int propertyValue,
+    int buildingValue,
+    int totalWealth,
+    int percent,
+    int taxAmount
+) const {
+    cout << "\nTotal kekayaan kamu:\n";
+    cout << "- Uang tunai           : " << formatMoney(cash) << '\n';
+    cout << "- Harga beli properti  : " << formatMoney(propertyValue)
+         << " (termasuk yang digadaikan)\n";
+    cout << "- Harga beli bangunan  : " << formatMoney(buildingValue) << '\n';
+    cout << "Total                  : " << formatMoney(totalWealth) << '\n';
+    cout << "Pajak " << percent << "%              : " << formatMoney(taxAmount) << '\n';
+    cout << "Uang kamu: " << formatMoney(currentMoney)
+         << " -> " << formatMoney(currentMoney - taxAmount) << '\n';
+}
 
-void UIManager::printLuxuryTaxState(const Player& player, int taxAmount) const {}
+void UIManager::printLuxuryTaxState(int playerMoney, int taxAmount) const {
+    cout << "Kamu mendarat di Pajak Barang Mewah (PBM)!\n";
+    cout << "Pajak sebesar " << formatMoney(taxAmount) << " langsung dipotong.\n";
+    cout << "Uang kamu: " << formatMoney(playerMoney)
+         << " -> " << formatMoney(playerMoney - taxAmount) << '\n';
+}
 
-void UIManager::printFestivalState(const Player& player, const vector<shared_ptr<StreetTile>>& ownedStreets) const {}
+void UIManager::printFestivalState(
+    const string& playerName,
+    const vector<string>& propertyNames,
+    const vector<string>& propertyCodes,
+    const vector<string>& propertyStatuses
+) const {
+    cout << "Kamu mendarat di petak Festival!\n\n";
+
+    size_t count = propertyNames.size();
+    count = min(count, propertyCodes.size());
+    count = min(count, propertyStatuses.size());
+
+    if (count == 0) {
+        cout << playerName << " belum memiliki street yang dapat diberi efek festival.\n";
+        return;
+    }
+
+    cout << "Daftar properti milikmu:\n";
+    for (size_t i = 0; i < count; i++) {
+        cout << "- " << propertyCodes[i] << " (" << propertyNames[i] << ")";
+        if (!propertyStatuses[i].empty()) {
+            cout << " [" << propertyStatuses[i] << "]";
+        }
+        cout << '\n';
+    }
+}
 
 string UIManager::readFestivalPropertyCode() const {
-    return "";
+    string code;
+    while (true) {
+        cout << "Masukkan kode properti: ";
+        getline(cin, code);
+        if (cin.eof()) {
+            return "";
+        }
+        code = toUpperCopy(trim(code));
+        if (!code.empty()) {
+            return code;
+        }
+        cout << "Kode properti tidak boleh kosong.\n";
+    }
 }
 
-void UIManager::printFestivalActivated(const StreetTile& tile, int oldRent, int newRent, int duration) const {}
+void UIManager::printFestivalActivated(
+    const string& tileName,
+    const string& tileCode,
+    int oldRent,
+    int newRent,
+    int duration
+) const {
+    cout << "Efek festival aktif!\n\n";
+    cout << "Properti     : " << tileName << " (" << tileCode << ")\n";
+    cout << "Sewa awal    : " << formatMoney(oldRent) << '\n';
+    cout << "Sewa sekarang: " << formatMoney(newRent) << '\n';
+    cout << "Durasi       : " << duration << " giliran\n";
+}
 
-void UIManager::printFestivalMaxed(const StreetTile& tile, int duration) const {}
+void UIManager::printFestivalMaxed(
+    const string& tileName,
+    const string& tileCode,
+    int duration
+) const {
+    cout << "Efek sudah maksimum untuk " << tileName << " (" << tileCode << ").\n";
+    cout << "Harga sewa sudah digandakan tiga kali.\n";
+    cout << "Durasi di-reset menjadi: " << duration << " giliran\n";
+}
 
-void UIManager::printAuctionState(const StreetTile& tile, int currentBid, Player* highestBidder, const Player& currentPlayer) const {}
+void UIManager::printAuctionState(
+    const string& tileName,
+    const string& tileCode,
+    int currentBid,
+    const string& highestBidderName,
+    const string& currentPlayerName
+) const {
+    (void) tileName;
+    (void) tileCode;
+    cout << "Giliran: " << currentPlayerName << '\n';
+    if (!highestBidderName.empty()) {
+        cout << "Penawaran tertinggi: " << formatMoney(currentBid)
+             << " (" << highestBidderName << ")\n";
+    }
+    cout << "Aksi (PASS / BID <jumlah>)\n> ";
+}
 
 string UIManager::readAuctionAction() const {
-    return "";
+    string action;
+    while (true) {
+        getline(cin, action);
+        if (cin.eof()) {
+            return "PASS";
+        }
+        action = toUpperCopy(trim(action));
+        if (action == "PASS" || action == "BID" || action.rfind("BID ", 0) == 0) {
+            return action;
+        }
+        cout << "Aksi harus PASS atau BID <jumlah>: ";
+    }
 }
 
 int UIManager::readBidAmount() const {
-    return 0;
+    return readIntInRange("Masukkan jumlah bid: ", 1, 0, false);
 }
 
-void UIManager::printAuctionWinner(const StreetTile& tile, const Player& winner, int finalBid) const {}
+void UIManager::printAuctionWinner(
+    const string& tileName,
+    const string& tileCode,
+    const string& winnerName,
+    int finalBid
+) const {
+    cout << "Lelang selesai!\n";
+    cout << "Pemenang: " << winnerName << '\n';
+    cout << "Harga akhir: " << formatMoney(finalBid) << "\n\n";
+    cout << "Properti " << tileName << " (" << tileCode
+         << ") kini dimiliki " << winnerName << ".\n";
+}
 
-void UIManager::printLiquidationState(const Player& player, int requiredAmount, int estimatedLiquidationValue) const {}
+void UIManager::printLiquidationState(
+    const string& playerName,
+    int playerMoney,
+    int requiredAmount,
+    int estimatedLiquidationValue
+) const {
+    cout << "=== Panel Likuidasi ===\n";
+    cout << "Pemain: " << playerName << '\n';
+    cout << "Uang kamu saat ini: " << formatMoney(playerMoney)
+         << " | Kewajiban: " << formatMoney(requiredAmount) << '\n';
+    cout << "Estimasi dana maksimum dari likuidasi: "
+         << formatMoney(estimatedLiquidationValue) << '\n';
+    cout << "Pilih aset yang ingin dilikuidasi dari daftar yang disediakan controller.\n";
+}
 
 int UIManager::readLiquidationChoice() const {
-    return 0;
+    return readIntInRange("Pilih aksi (0 jika sudah cukup): ", 0, 0, false);
 }
 
-void UIManager::printForceDropState(const Player& player) const {}
+void UIManager::printForceDropState(
+    const string& playerName,
+    const vector<string>& cardNames
+) const {
+    (void) playerName;
+    cout << "PERINGATAN: Kamu sudah memiliki 3 kartu di tangan (Maksimal 3)!\n";
+    cout << "Kamu diwajibkan membuang 1 kartu.\n\n";
+    cout << "Daftar Kartu Kemampuan Anda:\n";
+    for (size_t i = 0; i < cardNames.size(); i++) {
+        cout << (i + 1) << ". " << cardNames[i] << '\n';
+    }
+}
 
 int UIManager::readForceDropChoice(int maxIndex) const {
-    return 0;
+    return readIntInRange(
+        "Pilih nomor kartu yang ingin dibuang (1-" + to_string(maxIndex) + "): ",
+        1,
+        maxIndex,
+        true
+    );
 }
 
-void UIManager::printBuildOptions(const Player& player, const vector<string>& eligibleGroups) const {}
+void UIManager::printAbilityCardOptions(
+    const vector<string>& cardNames,
+    const vector<string>& cardDescriptions
+) const {
+    cout << "Daftar Kartu Kemampuan Spesial Anda:\n";
+    const size_t count = min(cardNames.size(), cardDescriptions.size());
+    for (size_t i = 0; i < count; i++) {
+        cout << (i + 1) << ". " << cardNames[i];
+        if (!cardDescriptions[i].empty()) {
+            cout << " - " << cardDescriptions[i];
+        }
+        cout << '\n';
+    }
+    cout << "0. Batal\n";
+}
+
+int UIManager::readAbilityCardChoice(int maxIndex) const {
+    return readIntInRange(
+        "Pilih kartu yang ingin digunakan (0-" + to_string(maxIndex) + "): ",
+        0,
+        maxIndex,
+        true
+    );
+}
+
+void UIManager::printBuildOptions(int playerMoney, const vector<string>& eligibleGroups) const {
+    if (eligibleGroups.empty()) {
+        cout << "Tidak ada color group yang memenuhi syarat untuk dibangun.\n";
+        cout << "Kamu harus memiliki seluruh petak dalam satu color group terlebih dahulu.\n";
+        return;
+    }
+
+    cout << "=== Color Group yang Memenuhi Syarat ===\n";
+    for (size_t i = 0; i < eligibleGroups.size(); i++) {
+        cout << (i + 1) << ". [" << colorName(eligibleGroups[i]) << "]\n";
+    }
+    cout << "\nUang kamu saat ini : " << formatMoney(playerMoney) << '\n';
+}
 
 int UIManager::readBuildGroupChoice() const {
-    return 0;
+    return readIntInRange("Pilih nomor color group (0 untuk batal): ", 0, 0, false);
 }
 
-void UIManager::printBuildableTiles(const string& colorGroup, const vector<StreetTile*>& tiles) const {}
+void UIManager::printBuildableTiles(
+    const string& colorGroup,
+    const vector<string>& tileNames,
+    const vector<string>& tileCodes,
+    const vector<string>& buildingStatuses,
+    const vector<string>& buildStatuses
+) const {
+    cout << "Color group [" << colorName(colorGroup) << "]:\n";
+
+    size_t count = tileNames.size();
+    count = min(count, tileCodes.size());
+    count = min(count, buildingStatuses.size());
+    count = min(count, buildStatuses.size());
+
+    if (count == 0) {
+        cout << "Tidak ada petak yang dapat dibangun saat ini.\n";
+        return;
+    }
+
+    for (size_t i = 0; i < count; i++) {
+        cout << (i + 1) << ". " << left << setw(28)
+             << (tileNames[i] + " (" + tileCodes[i] + ")")
+             << ": " << setw(14) << truncateToWidth(buildingStatuses[i], 14)
+             << " <- " << buildStatuses[i] << '\n';
+    }
+    cout << right;
+}
 
 int UIManager::readBuildTileChoice() const {
-    return 0;
+    return readIntInRange("Pilih petak (0 untuk batal): ", 0, 0, false);
 }
 
-void UIManager::printRedeemOptions(const Player& player, const vector<OwnableTile*>& redeemableProperties) const {}
+void UIManager::printRedeemOptions(
+    int playerMoney,
+    const vector<string>& propertyGroups,
+    const vector<string>& propertyNames,
+    const vector<string>& propertyCodes,
+    const vector<string>& valueLabels,
+    const vector<int>& values,
+    const vector<string>& propertyStatuses
+) const {
+    cout << "=== Properti yang Sedang Digadaikan ===\n";
+
+    const size_t count = propertyOptionCount(
+        propertyGroups,
+        propertyNames,
+        propertyCodes,
+        valueLabels,
+        values,
+        propertyStatuses
+    );
+
+    if (count == 0) {
+        cout << "Tidak ada properti yang sedang digadaikan.\n";
+        return;
+    }
+
+    for (size_t i = 0; i < count; i++) {
+        printShortPropertyLine(
+            static_cast<int>(i) + 1,
+            propertyGroups[i],
+            propertyNames[i],
+            propertyCodes[i],
+            valueLabels[i],
+            values[i],
+            propertyStatuses[i]
+        );
+    }
+    cout << "\nUang kamu saat ini: " << formatMoney(playerMoney) << '\n';
+}
 
 int UIManager::readRedeemChoice() const {
-    return 0;
+    return readIntInRange("Pilih nomor properti (0 untuk batal): ", 0, 0, false);
 }
 
-void UIManager::printMortgageOptions(const Player& player, const vector<OwnableTile*>& mortgageableProperties) const {}
+void UIManager::printMortgageOptions(
+    int playerMoney,
+    const vector<string>& propertyGroups,
+    const vector<string>& propertyNames,
+    const vector<string>& propertyCodes,
+    const vector<string>& valueLabels,
+    const vector<int>& values,
+    const vector<string>& propertyStatuses
+) const {
+    cout << "=== Properti yang Dapat Digadaikan ===\n";
+
+    const size_t count = propertyOptionCount(
+        propertyGroups,
+        propertyNames,
+        propertyCodes,
+        valueLabels,
+        values,
+        propertyStatuses
+    );
+
+    if (count == 0) {
+        cout << "Tidak ada properti yang dapat digadaikan saat ini.\n";
+        return;
+    }
+
+    for (size_t i = 0; i < count; i++) {
+        printShortPropertyLine(
+            static_cast<int>(i) + 1,
+            propertyGroups[i],
+            propertyNames[i],
+            propertyCodes[i],
+            valueLabels[i],
+            values[i],
+            propertyStatuses[i]
+        );
+    }
+    cout << "\nUang kamu saat ini: " << formatMoney(playerMoney) << '\n';
+}
 
 int UIManager::readMortgageChoice() const {
-    return 0;
+    return readIntInRange("Pilih nomor properti (0 untuk batal): ", 0, 0, false);
 }
 
-void UIManager::printJailOptions(const Player& player, int jailFine, int failedRolls) const {}
+void UIManager::printJailOptions(
+    const string& playerName,
+    int playerMoney,
+    int jailFine,
+    int failedRolls
+) const {
+    cout << "=== Giliran Penjara ===\n";
+    cout << "Pemain       : " << playerName << '\n';
+    cout << "Uang         : " << formatMoney(playerMoney) << '\n';
+    cout << "Denda keluar : " << formatMoney(jailFine) << '\n';
+    cout << "Gagal double : " << failedRolls << " kali\n\n";
+    cout << "1. Bayar denda\n";
+    cout << "2. Coba lempar double\n";
+    cout << "3. Gunakan kartu bebas penjara (jika ada)\n";
+    cout << "0. Batal\n";
+}
 
 int UIManager::readJailChoice() const {
-    return 0;
+    return readIntInRange("Pilihan (0-3): ", 0, 3, true);
 }
 
 string UIManager::readFilename() const {
@@ -220,6 +1147,10 @@ string UIManager::readFilename() const {
     while (true) {
         cout << "Masukkan nama file: ";
         getline(cin, filename);
+        if (cin.eof()) {
+            return "";
+        }
+        filename = trim(filename);
 
         if (!filename.empty()) {
             return filename;
@@ -230,7 +1161,42 @@ string UIManager::readFilename() const {
 }
 
 bool UIManager::confirmOverwrite(const string& filename) const {
-    return false;
+    cout << "File \"" << filename << "\" sudah ada.\n";
+    cout << "Timpa file lama? (y/n): ";
+    return readYesNo();
 }
 
-void UIManager::printGameOver(const vector<Player*>& winners, bool byMaxTurn) const {}
+void UIManager::printGameOver(
+    const vector<string>& winnerNames,
+    const vector<int>& winnerMoney,
+    const vector<int>& winnerPropertyCounts,
+    const vector<int>& winnerCardCounts,
+    bool byMaxTurn
+) const {
+    cout << "=================================\n";
+    cout << "        PERMAINAN SELESAI\n";
+    cout << "=================================\n";
+    if (byMaxTurn) {
+        cout << "Batas giliran tercapai.\n\n";
+    } else {
+        cout << "Semua pemain kecuali pemenang telah bangkrut.\n\n";
+    }
+
+    size_t count = winnerNames.size();
+    count = min(count, winnerMoney.size());
+    count = min(count, winnerPropertyCounts.size());
+    count = min(count, winnerCardCounts.size());
+
+    if (count == 0) {
+        cout << "Tidak ada pemenang.\n";
+        return;
+    }
+
+    cout << "Pemenang:\n";
+    for (size_t i = 0; i < count; i++) {
+        cout << "- " << winnerNames[i]
+             << " | Uang: " << formatMoney(winnerMoney[i])
+             << " | Properti: " << winnerPropertyCounts[i]
+             << " | Kartu: " << winnerCardCounts[i] << '\n';
+    }
+}

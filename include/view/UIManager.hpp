@@ -1,19 +1,9 @@
 #pragma once
 
-#include <memory>
 #include <string>
 #include <vector>
 
 using namespace std;
-
-class Game;
-class Player;
-class Tile;
-class OwnableTile;
-class StreetTile;
-class RailroadTile;
-class UtilityTile;
-class LogManager;
 
 class UIManager {
 public:
@@ -29,46 +19,50 @@ public:
     string readCommand() const;
     void printMessage(const string& msg) const;
     void printError(const string& msg) const;
-    void printBoard(const Game& game) const;
-    void printDeed(const OwnableTile& tile) const;
-    void printPlayerProperties(const Player& player) const;
-    void printLogs(const LogManager& logManager) const;
-    void printRecentLogs(const LogManager& logManager, int n) const;
+    string readPropertyCode() const;
+
+    void printBoard(const vector<int>& cellIndices, const vector<string>& cellColorCodes, const vector<vector<string>>& cellLines, int currentTurn, int maxTurn, const string& currentPlayerLabel) const;
+    void printDeed(const string& title, int purchasePrice, int mortgageValue, const vector<string>& moneyRowLabels, const vector<int>& moneyRowValues, const vector<string>& detailRowLabels, const vector<string>& detailRowValues, const string& ownershipStatus, const string& ownerName) const;
+    void printPlayerProperties(const string& playerName, int playerMoney, int cardCount, const vector<string>& propertyGroups, const vector<string>& propertyNames, const vector<string>& propertyCodes, const vector<string>& propertyBuildingStatuses, const vector<string>& propertyStatuses, const vector<int>& propertyValues, int totalPropertyWealth) const;
+    void printLogs(const vector<string>& formattedLogs) const;
+    void printRecentLogs(const vector<string>& formattedLogs, int n) const;
     void printDiceRoll(int die1, int die2, int total) const;
-    void printPlayerMovement(const Player& player, int steps, const Tile& destination) const;
-    void printStreetPurchasePrompt(const Player& player, const StreetTile& tile) const;
+    void printPlayerMovement(const string& playerName, int steps, const string& destinationName, const string& destinationCode) const;
+    void printStreetPurchasePrompt(const string& playerName, int playerMoney, const string& title, int purchasePrice, int mortgageValue, const vector<string>& moneyRowLabels, const vector<int>& moneyRowValues, const vector<string>& detailRowLabels, const vector<string>& detailRowValues, const string& ownershipStatus, const string& ownerName) const;
     bool readYesNo() const;
-    void printRailroadAcquired(const Player& player, const RailroadTile& tile) const;
-    void printUtilityAcquired(const Player& player, const UtilityTile& tile) const;
-    void printRentPayment(const Player& payer, const Player& owner, const OwnableTile& tile, int rent) const;
-    void printMortgagedNoRent(const OwnableTile& tile, const Player& owner) const;
-    void printIncomeTaxState(const Player& player, int flatTax, int percentTax) const;
+    void printRailroadAcquired(const string& playerName, const string& tileName, const string& tileCode) const;
+    void printUtilityAcquired(const string& playerName, const string& tileName, const string& tileCode) const;
+    void printRentPayment(const string& payerName, int payerMoney, const string& ownerName, int ownerMoney, const string& tileName, const string& tileCode, const string& condition, const string& festivalStatus, int rent) const;
+    void printMortgagedNoRent(const string& tileName, const string& tileCode, const string& ownerName) const;
+    void printIncomeTaxState(const string& playerName, int playerMoney, int flatTax, int percentTax) const;
     int readIncomeTaxChoice() const;
-    void printIncomeTaxBreakdown(const Player& player, int cash, int propertyValue, int buildingValue, int totalWealth, int percent, int taxAmount) const;
-    void printLuxuryTaxState(const Player& player, int taxAmount) const;
-    void printFestivalState(const Player& player, const vector<shared_ptr<StreetTile>>& ownedStreets) const;
+    void printIncomeTaxBreakdown(int currentMoney, int cash, int propertyValue, int buildingValue, int totalWealth, int percent, int taxAmount) const;
+    void printLuxuryTaxState(int playerMoney, int taxAmount) const;
+    void printFestivalState(const string& playerName, const vector<string>& propertyNames, const vector<string>& propertyCodes, const vector<string>& propertyStatuses) const;
     string readFestivalPropertyCode() const;
-    void printFestivalActivated(const StreetTile& tile, int oldRent, int newRent, int duration) const;
-    void printFestivalMaxed(const StreetTile& tile, int duration) const;
-    void printAuctionState(const StreetTile& tile, int currentBid, Player* highestBidder, const Player& currentPlayer) const;
+    void printFestivalActivated(const string& tileName, const string& tileCode, int oldRent, int newRent, int duration) const;
+    void printFestivalMaxed(const string& tileName, const string& tileCode, int duration) const;
+    void printAuctionState(const string& tileName, const string& tileCode, int currentBid, const string& highestBidderName, const string& currentPlayerName) const;
     string readAuctionAction() const;
     int readBidAmount() const;
-    void printAuctionWinner(const StreetTile& tile, const Player& winner, int finalBid) const;
-    void printLiquidationState(const Player& player, int requiredAmount, int estimatedLiquidationValue) const;
+    void printAuctionWinner(const string& tileName, const string& tileCode, const string& winnerName, int finalBid) const;
+    void printLiquidationState(const string& playerName, int playerMoney, int requiredAmount, int estimatedLiquidationValue) const;
     int readLiquidationChoice() const;
-    void printForceDropState(const Player& player) const;
+    void printForceDropState(const string& playerName, const vector<string>& cardNames) const;
     int readForceDropChoice(int maxIndex) const;
-    void printBuildOptions(const Player& player, const vector<string>& eligibleGroups) const;
+    void printAbilityCardOptions(const vector<string>& cardNames, const vector<string>& cardDescriptions) const;
+    int readAbilityCardChoice(int maxIndex) const;
+    void printBuildOptions(int playerMoney, const vector<string>& eligibleGroups) const;
     int readBuildGroupChoice() const;
-    void printBuildableTiles(const string& colorGroup, const vector<StreetTile*>& tiles) const;
+    void printBuildableTiles(const string& colorGroup, const vector<string>& tileNames, const vector<string>& tileCodes, const vector<string>& buildingStatuses, const vector<string>& buildStatuses) const;
     int readBuildTileChoice() const;
-    void printRedeemOptions(const Player& player, const vector<OwnableTile*>& redeemableProperties) const;
+    void printRedeemOptions(int playerMoney, const vector<string>& propertyGroups, const vector<string>& propertyNames, const vector<string>& propertyCodes, const vector<string>& valueLabels, const vector<int>& values, const vector<string>& propertyStatuses) const;
     int readRedeemChoice() const;
-    void printMortgageOptions(const Player& player, const vector<OwnableTile*>& mortgageableProperties) const;
+    void printMortgageOptions(int playerMoney, const vector<string>& propertyGroups, const vector<string>& propertyNames, const vector<string>& propertyCodes, const vector<string>& valueLabels, const vector<int>& values, const vector<string>& propertyStatuses) const;
     int readMortgageChoice() const;
-    void printJailOptions(const Player& player, int jailFine, int failedRolls) const;
+    void printJailOptions(const string& playerName, int playerMoney, int jailFine, int failedRolls) const;
     int readJailChoice() const;
     string readFilename() const;
     bool confirmOverwrite(const string& filename) const;
-    void printGameOver(const vector<Player*>& winners, bool byMaxTurn) const;
+    void printGameOver(const vector<string>& winnerNames, const vector<int>& winnerMoney, const vector<int>& winnerPropertyCounts, const vector<int>& winnerCardCounts, bool byMaxTurn) const;
 };
