@@ -1,6 +1,8 @@
 #include "view/Application.hpp"
 
+#include <algorithm>
 #include <exception>
+#include <random>
 
 using namespace std;
 
@@ -95,6 +97,9 @@ void Application::handleNewGame() {
             0
         ));
     }
+    random_device device;
+    mt19937 generator(device());
+    shuffle(players.begin(), players.end(), generator);
 
     game.startNewGame();
     controller.runGameLoop();
