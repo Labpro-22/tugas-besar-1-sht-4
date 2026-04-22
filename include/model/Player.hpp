@@ -52,6 +52,7 @@ public:
     void addHandCard(shared_ptr<HandCard> card);
     void removeHandCard(int index);
     bool isBankrupt() const;
+    void setBankrupt(bool bankrupt);
     bool isJailed() const;
     void setJailed(bool jailed);
     int countCards() const;

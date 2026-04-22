@@ -94,6 +94,14 @@ bool Player::isBankrupt() const {
     return false;
 }
 
+void Player::setBankrupt(bool bankrupt) {
+    if (bankrupt) {
+        this->status = PlayerStatus::BANKRUPT;
+    } else {
+        this->status = PlayerStatus::ACTIVE;
+    }
+}
+
 bool Player::isJailed() const {
     if (status == PlayerStatus::JAILED) {
         return true;
