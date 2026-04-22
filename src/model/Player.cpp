@@ -160,3 +160,38 @@ bool Player::operator<(const Player& other) const {
 vector<shared_ptr<HandCard>> Player::getHandCards() const {
     return handCards;
 }
+//helper untuk handcard
+bool Player::isShieldActive() const {
+    return shieldActive;
+}
+
+void Player::setShieldActive(bool active) {
+    shieldActive = active;
+}
+
+int Player::getDiscountPercent() const {
+    return discountPercent;
+}
+
+int Player::getDiscountDuration() const {
+    return discountDuration;
+}
+
+void Player::setDiscount(int percent, int duration) {
+    discountPercent = percent;
+    discountDuration = duration;
+}
+
+void Player::decrementDiscountDuration() {
+    if (discountDuration > 0) {
+        discountDuration--;
+    }
+}
+
+bool Player::hasUsedHandCardThisTurn() const {
+    return usedHandCardThisTurn;
+}
+
+void Player::setUsedHandCardThisTurn(bool used) {
+    usedHandCardThisTurn = used;
+}
