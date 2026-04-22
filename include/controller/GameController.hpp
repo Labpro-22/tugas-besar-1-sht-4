@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 
 using namespace std;
@@ -13,8 +14,8 @@ class GameController {
 private:
     Game& game;
     UIManager& uiManager;
-    CommandController* commandController;
-    TileController* tileController;
+    unique_ptr<CommandController> commandController;
+    unique_ptr<TileController> tileController;
     bool rolledThisTurn;
 
     string toUpperCopy(string value) const;

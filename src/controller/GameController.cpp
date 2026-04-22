@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cctype>
 #include <iostream>
+#include <memory>
 #include <sstream>
 
 using namespace std;
@@ -49,28 +50,23 @@ size_t GameController::activePlayerCount(const Game& game) const {
 GameController::GameController(Game& game, UIManager& uiManager)
     : game(game),
       uiManager(uiManager),
-      commandController(new CommandController(game, uiManager)),
-      tileController(new TileController(game, uiManager)),
+      commandController(make_unique<CommandController>(game, uiManager)),
+      tileController(make_unique<TileController>(game, uiManager)),
       rolledThisTurn(false) {}
 
 GameController::GameController(const GameController& other)
     : game(other.game),
       uiManager(other.uiManager),
-      commandController(new CommandController(game, uiManager)),
-      tileController(new TileController(game, uiManager)),
+      commandController(make_unique<CommandController>(game, uiManager)),
+      tileController(make_unique<TileController>(game, uiManager)),
       rolledThisTurn(other.rolledThisTurn) {}
 
-GameController::~GameController() {
-    delete commandController;
-    delete tileController;
-}
+GameController::~GameController() = default;
 
 GameController& GameController::operator=(const GameController& other) {
     if (this != &other) {
-        delete commandController;
-        delete tileController;
-        commandController = new CommandController(game, uiManager);
-        tileController = new TileController(game, uiManager);
+        commandController = make_unique<CommandController>(game, uiManager);
+        tileController = make_unique<TileController>(game, uiManager);
         rolledThisTurn = other.rolledThisTurn;
     }
     return *this;
@@ -78,10 +74,10 @@ GameController& GameController::operator=(const GameController& other) {
 
 void GameController::runGameLoop() {
     if (commandController == nullptr) {
-        commandController = new CommandController(game, uiManager);
+        commandController = make_unique<CommandController>(game, uiManager);
     }
     if (tileController == nullptr) {
-        tileController = new TileController(game, uiManager);
+        tileController = make_unique<TileController>(game, uiManager);
     }
 
     while (game.isGameRunning()) {
