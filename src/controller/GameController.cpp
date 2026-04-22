@@ -52,14 +52,16 @@ GameController::GameController(Game& game, UIManager& uiManager)
       uiManager(uiManager),
       commandController(make_unique<CommandController>(game, uiManager)),
       tileController(make_unique<TileController>(game, uiManager)),
-      rolledThisTurn(false) {}
+      rolledThisTurn(false),
+      diceRolledThisTurn(false) {}
 
 GameController::GameController(const GameController& other)
     : game(other.game),
       uiManager(other.uiManager),
       commandController(make_unique<CommandController>(game, uiManager)),
       tileController(make_unique<TileController>(game, uiManager)),
-      rolledThisTurn(other.rolledThisTurn) {}
+      rolledThisTurn(other.rolledThisTurn),
+      diceRolledThisTurn(other.diceRolledThisTurn) {}
 
 GameController::~GameController() = default;
 
@@ -68,6 +70,7 @@ GameController& GameController::operator=(const GameController& other) {
         commandController = make_unique<CommandController>(game, uiManager);
         tileController = make_unique<TileController>(game, uiManager);
         rolledThisTurn = other.rolledThisTurn;
+        diceRolledThisTurn = other.diceRolledThisTurn;
     }
     return *this;
 }
@@ -148,6 +151,12 @@ void GameController::runTurn() {
         const bool commandSucceeded = commandController->processCommand(input);
 
         if (commandSucceeded && isTurnEndingCommand(input)) {
+            diceRolledThisTurn = true;
+            if (game.getDice().isDouble() && game.isGameRunning() && !player.isBankrupt() && !player.isJailed()) {
+                uiManager.printMessage("Dadu double! Kamu mendapat kesempatan melempar lagi.");
+                rolledThisTurn = false;
+                continue;
+            }
             rolledThisTurn = true;
         }
     }
@@ -157,6 +166,7 @@ void GameController::runTurn() {
 
 void GameController::handleStartTurn() {
     rolledThisTurn = false;
+    diceRolledThisTurn = false;
 
     Player& player = game.getCurrentPlayer();
     if (player.isBankrupt()) {
@@ -194,7 +204,7 @@ void GameController::handleEndTurn() {
 }
 
 bool GameController::canSaveNow() const {
-    return !rolledThisTurn;
+    return !diceRolledThisTurn;
 }
 
 bool GameController::isCommandValidThisTurn(const string& input) const {

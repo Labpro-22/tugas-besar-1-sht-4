@@ -17,6 +17,7 @@ private:
     unique_ptr<CommandController> commandController;
     unique_ptr<TileController> tileController;
     bool rolledThisTurn;
+    bool diceRolledThisTurn;
 
     string toUpperCopy(string value) const;
     string firstToken(const string& input) const;
