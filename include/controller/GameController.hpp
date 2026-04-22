@@ -15,6 +15,7 @@ private:
     UIManager& uiManager;
     CommandController* commandController;
     TileController* tileController;
+    bool rolledThisTurn;
 
 public:
     GameController(Game& game, UIManager& uiManager);
