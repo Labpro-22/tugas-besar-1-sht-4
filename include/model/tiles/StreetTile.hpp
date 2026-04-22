@@ -55,6 +55,8 @@ public:
     void sellBuildings();
     void activateFestival();
     void decrementFestivalDuration();
+    void setBuildingLevel(int level);
+    void setFestivalState(int multiplier, int duration);
     void acquire(Player& player) override;
 
     int getHouseBuildCost() const;

@@ -71,6 +71,55 @@ int Player::getPosition() const {
     return position;
 }
 
+PlayerStatus Player::getStatus() const {
+    return status;
+}
+
+int Player::getFailedJailRolls() const {
+    return failedJailRolls;
+}
+
+bool Player::isUsedHandCardThisTurn() const {
+    return usedHandCardThisTurn;
+}
+
+bool Player::isShieldActive() const {
+    return shieldActive;
+}
+
+int Player::getDiscountPercent() const {
+    return discountPercent;
+}
+
+int Player::getDiscountDuration() const {
+    return discountDuration;
+}
+
+void Player::setMoney(int money) {
+    this->money = money;
+}
+
+void Player::setStatus(PlayerStatus status) {
+    this->status = status;
+}
+
+void Player::setFailedJailRolls(int n) {
+    this->failedJailRolls = n;
+}
+
+void Player::setUsedHandCardThisTurn(bool b) {
+    this->usedHandCardThisTurn = b;
+}
+
+void Player::setShieldActive(bool b) {
+    this->shieldActive = b;
+}
+
+void Player::setDiscount(int percent, int duration) {
+    this->discountPercent = percent;
+    this->discountDuration = duration;
+}
+
 void Player::moveTo(int position) {
     this->position = position;
 }

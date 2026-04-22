@@ -21,6 +21,10 @@ public:
         ~LogEntry();
         LogEntry& operator=(const LogEntry& other);
 
+        int getTurnNumber() const;
+        const string& getUsername() const;
+        const string& getActionType() const;
+        const string& getDetail() const;
         string format() const;
     };
 

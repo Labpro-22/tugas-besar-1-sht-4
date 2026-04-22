@@ -69,6 +69,18 @@ bool TurnManager::canRollDice() const {
     return (!rolledThisTurn);
 }
 
+int TurnManager::getCurrentPlayerIndex() const { return currentPlayerIndex; }
+const vector<int>& TurnManager::getTurnOrder() const { return turnOrder; }
+bool TurnManager::isRolledThisTurn() const { return rolledThisTurn; }
+int TurnManager::getConsecutiveDoubles() const { return consecutiveDoubles; }
+int TurnManager::getTurnCount() const { return turnCount; }
+
+void TurnManager::setCurrentPlayerIndex(int idx) { currentPlayerIndex = idx; }
+void TurnManager::setTurnOrder(const vector<int>& order) { turnOrder = order; }
+void TurnManager::setRolledThisTurn(bool rolled) { rolledThisTurn = rolled; }
+void TurnManager::setConsecutiveDoubles(int doubles) { consecutiveDoubles = doubles; }
+void TurnManager::setTurnCount(int count) { turnCount = count; }
+
 void TurnManager::updateTurnEffects(GameContext& gameContext, Player& player) {
 
 }

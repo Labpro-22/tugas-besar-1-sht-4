@@ -29,4 +29,16 @@ public:
     void registerDiceResult(bool isDouble);
     bool canRollDice() const;
     void updateTurnEffects(GameContext& gameContext, Player& player);
+
+    int getCurrentPlayerIndex() const;
+    const vector<int>& getTurnOrder() const;
+    bool isRolledThisTurn() const;
+    int getConsecutiveDoubles() const;
+    int getTurnCount() const;
+
+    void setCurrentPlayerIndex(int idx);
+    void setTurnOrder(const vector<int>& order);
+    void setRolledThisTurn(bool rolled);
+    void setConsecutiveDoubles(int doubles);
+    void setTurnCount(int count);
 };

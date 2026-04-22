@@ -147,6 +147,10 @@ void Board::initializeBoard(const ConfigManager& configManager) {
     addPropertyById(40);
 }
 
+const vector<shared_ptr<Tile>>& Board::getTiles() const {
+    return tiles;
+}
+
 shared_ptr<Tile> Board::getTile(int index) const {
     auto it = find_if(tiles.begin(), tiles.end(), [&](const shared_ptr<Tile>& tile) {
         return tile->getIndex() == index;

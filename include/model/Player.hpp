@@ -48,7 +48,21 @@ public:
     const string& getUsername() const;
     int getMoney() const;
     int getPosition() const;
+    PlayerStatus getStatus() const;
+    int getFailedJailRolls() const;
+    bool isUsedHandCardThisTurn() const;
+    bool isShieldActive() const;
+    int getDiscountPercent() const;
+    int getDiscountDuration() const;
+
     void moveTo(int position);
+    void setMoney(int money);
+    void setStatus(PlayerStatus status);
+    void setFailedJailRolls(int n);
+    void setUsedHandCardThisTurn(bool b);
+    void setShieldActive(bool b);
+    void setDiscount(int percent, int duration);
+
     void addHandCard(shared_ptr<HandCard> card);
     void removeHandCard(int index);
     bool isBankrupt() const;
