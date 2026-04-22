@@ -48,4 +48,7 @@ public:
     void updateTemporaryEffects(Player& player);
     void dropHandCard(Player& player, int cardIndex);
     vector<shared_ptr<HandCard>> getHandCards(const Player& player) const;
+
+    CardDeck<HandCard>& getHandDeck();
+    const CardDeck<HandCard>& getHandDeck() const;
 };

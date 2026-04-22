@@ -19,4 +19,5 @@ public:
     MoveCard& operator=(const MoveCard& other);
 
     void apply(Game& game, Player& player) override;
+    int getSteps() const;
 };

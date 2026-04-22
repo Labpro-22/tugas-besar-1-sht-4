@@ -2,12 +2,20 @@
 
 #include "model/Game.hpp"
 #include "model/NimonException.hpp"
-#include "model/tiles/StreetTile.hpp"
+#include "model/cards/DemolitionCard.hpp"
+#include "model/cards/DiscountCard.hpp"
+#include "model/cards/LassoCard.hpp"
+#include "model/cards/MoveCard.hpp"
+#include "model/cards/ShieldCard.hpp"
+#include "model/cards/TeleportCard.hpp"
 #include "model/tiles/RailroadTile.hpp"
+#include "model/tiles/StreetTile.hpp"
 #include "model/tiles/UtilityTile.hpp"
 
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
 #include <fstream>
-#include <map>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -20,6 +28,77 @@ SaveLoadManager::SaveLoadManager(const SaveLoadManager&) {}
 SaveLoadManager::~SaveLoadManager() {}
 SaveLoadManager& SaveLoadManager::operator=(const SaveLoadManager&) { return *this; }
 
+static string trim(const string& value) {
+    size_t first = value.find_first_not_of(" \t\r\n");
+    if (first == string::npos) return "";
+    size_t last = value.find_last_not_of(" \t\r\n");
+    return value.substr(first, last - first + 1);
+}
+
+static bool readNonEmptyLine(istream& in, string& line) {
+    while (getline(in, line)) {
+        line = trim(line);
+        if (!line.empty()) return true;
+    }
+    return false;
+}
+
+static string readRequiredLine(istream& in, const string& sectionName) {
+    string line;
+    if (!readNonEmptyLine(in, line)) {
+        throw FileException("Format file save tidak valid pada section: " + sectionName);
+    }
+    return line;
+}
+
+static vector<string> splitWords(const string& line) {
+    vector<string> tokens;
+    istringstream ss(line);
+    string token;
+    while (ss >> token) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
+static bool tryParseInt(const string& text, int& value) {
+    if (text.empty()) return false;
+
+    char* endPtr = nullptr;
+    long parsed = strtol(text.c_str(), &endPtr, 10);
+    if (endPtr == text.c_str() || *endPtr != '\0') return false;
+
+    value = static_cast<int>(parsed);
+    return true;
+}
+
+static string toLowerCase(string s) {
+    transform(s.begin(), s.end(), s.begin(), [](unsigned char ch) {
+        return static_cast<char>(tolower(ch));
+    });
+    return s;
+}
+
+static int parseCountLine(istream& in, const string& sectionName) {
+    string line = readRequiredLine(in, sectionName);
+    vector<string> parts = splitWords(line);
+    if (parts.empty()) {
+        throw FileException("Jumlah data kosong pada section: " + sectionName);
+    }
+
+    int count = 0;
+    if (!tryParseInt(parts[0], count) || count < 0) {
+        throw FileException("Jumlah data tidak valid pada section: " + sectionName);
+    }
+    return count;
+}
+
+static bool hasTxtExtension(const string& filename) {
+    if (filename.size() < 4) return false;
+    string suffix = filename.substr(filename.size() - 4);
+    return toLowerCase(suffix) == ".txt";
+}
+
 static string statusToStr(PlayerStatus s) {
     switch (s) {
         case PlayerStatus::JAILED:   return "JAILED";
@@ -29,9 +108,10 @@ static string statusToStr(PlayerStatus s) {
 }
 
 static PlayerStatus strToStatus(const string& s) {
+    if (s == "ACTIVE")   return PlayerStatus::ACTIVE;
     if (s == "JAILED")   return PlayerStatus::JAILED;
     if (s == "BANKRUPT") return PlayerStatus::BANKRUPT;
-    return PlayerStatus::ACTIVE;
+    throw FileException("Status pemain tidak valid: " + s);
 }
 
 static string ownershipToStr(OwnershipStatus s) {
@@ -43,9 +123,10 @@ static string ownershipToStr(OwnershipStatus s) {
 }
 
 static OwnershipStatus strToOwnership(const string& s) {
+    if (s == "BANK")      return OwnershipStatus::BANK;
     if (s == "OWNED")     return OwnershipStatus::OWNED;
     if (s == "MORTGAGED") return OwnershipStatus::MORTGAGED;
-    return OwnershipStatus::BANK;
+    throw FileException("Status kepemilikan properti tidak valid: " + s);
 }
 
 static Player* findPlayer(vector<Player>& players, const string& username) {
@@ -55,33 +136,67 @@ static Player* findPlayer(vector<Player>& players, const string& username) {
     return nullptr;
 }
 
-static map<string, string> readSections(istream& in) {
-    map<string, string> sections;
-    string currentSection;
-    string accumulated;
-    string line;
-    while (getline(in, line)) {
-        if (line.rfind("SECTION ", 0) == 0) {
-            if (!currentSection.empty()) {
-                sections[currentSection] = accumulated;
-            }
-            currentSection = line.substr(8);
-            accumulated.clear();
-        } else {
-            accumulated += line + "\n";
-        }
+static shared_ptr<HandCard> makeHandCard(const string& type, int value, int duration) {
+    if (type == "MoveCard") {
+        int steps = (value > 0) ? value : 1;
+        return make_shared<MoveCard>("MoveCard", "Maju " + to_string(steps) + " Petak", false, steps);
     }
-    if (!currentSection.empty()) {
-        sections[currentSection] = accumulated;
+    if (type == "DiscountCard") {
+        int percent = (value >= 0) ? value : 0;
+        int remainingDuration = (duration > 0) ? duration : 1;
+        return make_shared<DiscountCard>(
+            "DiscountCard",
+            "Diskon " + to_string(percent) + "%",
+            false,
+            percent,
+            remainingDuration
+        );
     }
-    return sections;
+    if (type == "ShieldCard")
+        return make_shared<ShieldCard>("ShieldCard", "Kebal tagihan atau sanksi selama 1 giliran", false, 1);
+    if (type == "TeleportCard")
+        return make_shared<TeleportCard>("TeleportCard", "Pindah ke petak manapun", false);
+    if (type == "LassoCard")
+        return make_shared<LassoCard>("LassoCard", "Menarik satu lawan ke posisi Anda", false);
+    if (type == "DemolitionCard")
+        return make_shared<DemolitionCard>("DemolitionCard", "Menghancurkan satu properti milik lawan", false);
+    return nullptr;
 }
 
 void SaveLoadManager::saveGame(const Game& game, const string& filename) {
-    ofstream out(filename);
-    if (!out.is_open()) {
-        throw FileException("Gagal membuka file untuk disimpan: " + filename);
+    if (!hasTxtExtension(filename)) {
+        throw FileException("File save harus berekstensi .txt");
     }
+
+    if (!game.isGameRunning()) {
+        throw InvalidActionException("Save hanya dapat dilakukan saat permainan sedang berjalan.");
+    }
+
+    const TurnManager& tm = game.getTurnManager();
+    if (tm.isRolledThisTurn()) {
+        throw InvalidActionException("Save hanya dapat dilakukan di awal giliran sebelum ada aksi.");
+    }
+
+    const vector<Player>& players = game.getPlayers();
+    const vector<int>& order = tm.getTurnOrder();
+    if (!players.empty() && !order.empty()) {
+        int activeIdx = tm.getCurrentPlayerIndex();
+        if (activeIdx >= 0 && activeIdx < static_cast<int>(order.size())) {
+            int playerIdx = order[activeIdx];
+            if (playerIdx >= 0 && playerIdx < static_cast<int>(players.size()) &&
+                players[playerIdx].isUsedHandCardThisTurn()) {
+                throw InvalidActionException("Save hanya boleh sebelum aksi pemain aktif dijalankan.");
+            }
+        }
+    }
+
+    ofstream out(filename);
+    if (!out.is_open())
+        throw FileException("Gagal membuka file untuk disimpan: " + filename);
+
+    const GameContext& ctx = game.getGameContext();
+    out << ctx.getCurrentTurn() << " " << ctx.getMaxTurn() << "\n";
+
     savePlayers(game, out);
     saveTurnState(game, out);
     saveProperties(game, out);
@@ -90,53 +205,79 @@ void SaveLoadManager::saveGame(const Game& game, const string& filename) {
 }
 
 void SaveLoadManager::loadGame(Game& game, const string& filename) {
-    ifstream file(filename);
-    if (!file.is_open()) {
-        throw FileException("Gagal membuka file save: " + filename);
+    if (!hasTxtExtension(filename)) {
+        throw FileException("File load harus berekstensi .txt");
     }
 
-    map<string, string> sections = readSections(file);
+    if (game.isGameRunning()) {
+        throw InvalidActionException("Load hanya dapat dilakukan sebelum permainan dimulai.");
+    }
+
+    ifstream file(filename);
+    if (!file.is_open())
+        throw FileException("Gagal membuka file save: " + filename);
 
     game.getConfigManager().loadAllConfigs();
     game.getBoard().initializeBoard(game.getConfigManager());
     game.getCardManager().initializeDecks();
 
-    if (sections.count("PLAYERS")) {
-        istringstream ss(sections["PLAYERS"]);
-        loadPlayers(game, ss);
+    {
+        string line = readRequiredLine(file, "TURN_STATE");
+        istringstream ss(line);
+        int currentTurn = 0;
+        int maxTurn = 0;
+        if (!(ss >> currentTurn >> maxTurn)) {
+            throw FileException("Header turn tidak valid.");
+        }
+        game.getGameContext().setCurrentTurn(currentTurn);
+        game.getGameContext().setMaxTurn(maxTurn);
     }
-    if (sections.count("TURN_STATE")) {
-        istringstream ss(sections["TURN_STATE"]);
-        loadTurnState(game, ss);
-    }
-    if (sections.count("PROPERTIES")) {
-        istringstream ss(sections["PROPERTIES"]);
-        loadProperties(game, ss);
-    }
-    if (sections.count("DECKS")) {
-        istringstream ss(sections["DECKS"]);
-        loadDecks(game, ss);
-    }
-    if (sections.count("LOGS")) {
-        istringstream ss(sections["LOGS"]);
-        loadLogs(game, ss);
-    }
+
+    loadPlayers(game, file);
+    loadTurnState(game, file);
+    loadProperties(game, file);
+    loadDecks(game, file);
+    loadLogs(game, file);
 }
 
 void SaveLoadManager::savePlayers(const Game& game, ostream& out) {
     const vector<Player>& players = game.getPlayers();
-    out << "SECTION PLAYERS\n";
-    out << "count " << players.size() << "\n";
+    const Board& board = game.getBoard();
+
+    out << players.size() << "\n";
+
     for (const Player& p : players) {
+        string posCode = "GO";
+        shared_ptr<Tile> tile = board.getTile(p.getPosition());
+        if (tile) posCode = tile->getCode();
+
         out << p.getUsername() << " "
             << p.getMoney() << " "
-            << p.getPosition() << " "
-            << statusToStr(p.getStatus()) << " "
-            << p.getFailedJailRolls() << " "
-            << (p.isUsedHandCardThisTurn() ? 1 : 0) << " "
-            << (p.isShieldActive() ? 1 : 0) << " "
-            << p.getDiscountPercent() << " "
-            << p.getDiscountDuration() << "\n";
+            << posCode << " "
+            << statusToStr(p.getStatus()) << "\n";
+
+        vector<shared_ptr<HandCard>> cards = p.getHandCards();
+        int cardCount = 0;
+        for (const shared_ptr<HandCard>& card : cards) {
+            if (card != nullptr) cardCount++;
+        }
+
+        out << cardCount << "\n";
+        for (const shared_ptr<HandCard>& card : cards) {
+            if (!card) continue;
+            const string& name = card->getName();
+            if (name == "MoveCard") {
+                auto mc = dynamic_pointer_cast<MoveCard>(card);
+                out << "MoveCard " << (mc ? mc->getSteps() : 1) << "\n";
+            } else if (name == "DiscountCard") {
+                auto dc = dynamic_pointer_cast<DiscountCard>(card);
+                out << "DiscountCard "
+                    << (dc ? dc->getDiscountPercent() : 0) << " "
+                    << (dc ? dc->getDuration() : 1) << "\n";
+            } else {
+                out << name << "\n";
+            }
+        }
     }
 }
 
@@ -144,133 +285,196 @@ void SaveLoadManager::loadPlayers(Game& game, istream& in) {
     vector<Player>& players = game.getPlayers();
     players.clear();
 
-    string line;
-    int count = 0;
+    int count = parseCountLine(in, "STATE_PEMAIN");
 
-    while (getline(in, line)) {
-        if (line.empty()) continue;
-        istringstream ls(line);
-        string key;
-        ls >> key;
-        if (key == "count") {
-            ls >> count;
-            break;
-        }
-    }
-
-    for (int i = 0; i < count && getline(in, line); ) {
-        if (line.empty()) continue;
-        istringstream ls(line);
-
-        string username, statusStr;
-        int money, position, failedJailRolls, discountPercent, discountDuration;
-        int usedHandCardThisTurnInt, shieldActiveInt;
-
-        if (!(ls >> username >> money >> position >> statusStr
-                 >> failedJailRolls >> usedHandCardThisTurnInt
-                 >> shieldActiveInt >> discountPercent >> discountDuration)) {
-            continue;
+    for (int i = 0; i < count; i++) {
+        string line = readRequiredLine(in, "PLAYER_" + to_string(i + 1));
+        vector<string> tokens = splitWords(line);
+        if (tokens.size() < 4) {
+            throw FileException("Format state pemain tidak valid pada pemain ke-" + to_string(i + 1));
         }
 
-        Player p(
-            username, money, position,
-            strToStatus(statusStr),
-            failedJailRolls,
-            usedHandCardThisTurnInt != 0,
-            shieldActiveInt != 0,
-            discountPercent,
-            discountDuration
-        );
+        string username = tokens[0];
+        string tileCode = tokens[2];
+        string statusStr = tokens[3];
+        int money = 0;
+        if (!tryParseInt(tokens[1], money)) {
+            throw FileException("Uang pemain tidak valid pada pemain: " + username);
+        }
+
+        int position = game.getBoard().getTileIndex(tileCode);
+        if (position <= 0) {
+            throw FileException("Kode petak tidak valid untuk pemain: " + username);
+        }
+
+        PlayerStatus status = strToStatus(statusStr);
+
+        Player p(username, money, position, status, 0, false, false, 0, 0);
+
+        int numCards = parseCountLine(in, "PLAYER_CARD_COUNT_" + username);
+
+        for (int j = 0; j < numCards; j++) {
+            line = readRequiredLine(in, "PLAYER_CARD_" + username);
+            vector<string> cardTokens = splitWords(line);
+            if (cardTokens.empty()) {
+                throw FileException("Format kartu pemain tidak valid untuk: " + username);
+            }
+
+            string type = cardTokens[0];
+            int value = 0;
+            int duration = 0;
+            if (cardTokens.size() >= 2) {
+                tryParseInt(cardTokens[1], value);
+            }
+            if (cardTokens.size() >= 3) {
+                tryParseInt(cardTokens[2], duration);
+            }
+
+            auto card = makeHandCard(type, value, duration);
+            if (!card) {
+                throw FileException("Jenis kartu tidak dikenali: " + type);
+            }
+            p.addHandCard(card);
+        }
+
         players.push_back(p);
-        i++;
     }
 }
 
 void SaveLoadManager::saveTurnState(const Game& game, ostream& out) {
-    const GameContext& ctx = game.getGameContext();
     const TurnManager& tm = game.getTurnManager();
-    const vector<int>& order = tm.getTurnOrder();
+    const vector<Player>& players = game.getPlayers();
+    vector<int> order = tm.getTurnOrder();
 
-    out << "SECTION TURN_STATE\n";
-    out << "currentTurn " << ctx.getCurrentTurn() << "\n";
-    out << "maxTurn " << ctx.getMaxTurn() << "\n";
-    out << "currentPlayerIndex " << tm.getCurrentPlayerIndex() << "\n";
-    out << "turnOrderCount " << order.size() << "\n";
-    out << "turnOrder";
-    for (int idx : order) out << " " << idx;
+    vector<int> normalizedOrder;
+    vector<bool> used(players.size(), false);
+    for (int idx : order) {
+        if (idx >= 0 && idx < static_cast<int>(players.size()) && !used[idx]) {
+            normalizedOrder.push_back(idx);
+            used[idx] = true;
+        }
+    }
+    for (int i = 0; i < static_cast<int>(players.size()); i++) {
+        if (!used[i]) normalizedOrder.push_back(i);
+    }
+
+    for (int i = 0; i < static_cast<int>(normalizedOrder.size()); i++) {
+        if (i > 0) out << " ";
+        out << players[normalizedOrder[i]].getUsername();
+    }
     out << "\n";
-    out << "rolledThisTurn " << (tm.isRolledThisTurn() ? 1 : 0) << "\n";
-    out << "consecutiveDoubles " << tm.getConsecutiveDoubles() << "\n";
-    out << "turnCount " << tm.getTurnCount() << "\n";
+
+    int activeOrderIndex = tm.getCurrentPlayerIndex();
+    if (activeOrderIndex < 0 || activeOrderIndex >= static_cast<int>(normalizedOrder.size())) {
+        activeOrderIndex = 0;
+    }
+
+    if (normalizedOrder.empty()) {
+        out << "\n";
+        return;
+    }
+    out << players[normalizedOrder[activeOrderIndex]].getUsername() << "\n";
 }
 
 void SaveLoadManager::loadTurnState(Game& game, istream& in) {
-    GameContext& ctx = game.getGameContext();
     TurnManager& tm = game.getTurnManager();
+    vector<Player>& players = game.getPlayers();
 
-    string line;
-    while (getline(in, line)) {
-        if (line.empty()) continue;
-        istringstream ls(line);
-        string key;
-        ls >> key;
+    string line = readRequiredLine(in, "TURN_ORDER");
+    vector<string> tokens = splitWords(line);
 
-        if (key == "currentTurn") {
-            int v; ls >> v; ctx.setCurrentTurn(v);
-        } else if (key == "maxTurn") {
-            int v; ls >> v; ctx.setMaxTurn(v);
-        } else if (key == "currentPlayerIndex") {
-            int v; ls >> v; tm.setCurrentPlayerIndex(v);
-        } else if (key == "turnOrderCount") {
-        } else if (key == "turnOrder") {
-            vector<int> order;
-            int idx;
-            while (ls >> idx) order.push_back(idx);
-            tm.setTurnOrder(order);
-        } else if (key == "rolledThisTurn") {
-            int v; ls >> v; tm.setRolledThisTurn(v != 0);
-        } else if (key == "consecutiveDoubles") {
-            int v; ls >> v; tm.setConsecutiveDoubles(v);
-        } else if (key == "turnCount") {
-            int v; ls >> v; tm.setTurnCount(v);
+    vector<int> order;
+    vector<bool> used(players.size(), false);
+    for (const string& username : tokens) {
+        for (int i = 0; i < static_cast<int>(players.size()); i++) {
+            if (players[i].getUsername() == username && !used[i]) {
+                order.push_back(i);
+                used[i] = true;
+                break;
+            }
         }
     }
+
+    for (int i = 0; i < static_cast<int>(players.size()); i++) {
+        if (!used[i]) order.push_back(i);
+    }
+
+    tm.setTurnOrder(order);
+
+    int activeIdx = 0;
+    if (!order.empty()) {
+        line = readRequiredLine(in, "ACTIVE_TURN");
+        vector<string> activeTokens = splitWords(line);
+        string activeUsername = activeTokens.empty() ? "" : activeTokens[0];
+
+        for (int i = 0; i < static_cast<int>(order.size()); i++) {
+            if (players[order[i]].getUsername() == activeUsername) {
+                activeIdx = i;
+                break;
+            }
+        }
+    }
+
+    tm.setCurrentPlayerIndex(activeIdx);
+    tm.setRolledThisTurn(false);
+    tm.setConsecutiveDoubles(0);
+    tm.setTurnCount(game.getGameContext().getCurrentTurn());
 }
 
 void SaveLoadManager::saveProperties(const Game& game, ostream& out) {
-    out << "SECTION PROPERTIES\n";
     const vector<shared_ptr<Tile>>& tiles = game.getBoard().getTiles();
+
+    int count = 0;
     for (const shared_ptr<Tile>& tile : tiles) {
+        if (dynamic_pointer_cast<StreetTile>(tile) ||
+            dynamic_pointer_cast<RailroadTile>(tile) ||
+            dynamic_pointer_cast<UtilityTile>(tile)) {
+            count++;
+        }
+    }
+    out << count << "\n";
+
+    for (const shared_ptr<Tile>& tile : tiles) {
+        shared_ptr<OwnableTile> ownable = dynamic_pointer_cast<OwnableTile>(tile);
+        if (!ownable) continue;
+
+        OwnershipStatus ownership = ownable->getOwnershipStatus();
+        const Player* owner = ownable->getOwner();
+        string ownerStr = (ownership == OwnershipStatus::BANK || owner == nullptr)
+            ? "BANK"
+            : owner->getUsername();
+
         shared_ptr<StreetTile> street = dynamic_pointer_cast<StreetTile>(tile);
         if (street) {
-            const Player* owner = street->getOwner();
-            out << "STREET "
-                << street->getCode() << " "
-                << (owner ? owner->getUsername() : "-") << " "
-                << ownershipToStr(street->getOwnershipStatus()) << " "
-                << street->getBuildingLevel() << " "
+            int buildingLevel = street->getBuildingLevel();
+            string nBuildings = (buildingLevel >= 5)
+                ? "H"
+                : to_string(max(0, buildingLevel));
+
+            out << street->getCode() << " street "
+                << ownerStr << " "
+                << ownershipToStr(ownership) << " "
                 << street->getFestivalMultiplier() << " "
-                << street->getFestivalDuration() << "\n";
+                << street->getFestivalDuration() << " "
+                << nBuildings << "\n";
             continue;
         }
 
         shared_ptr<RailroadTile> railroad = dynamic_pointer_cast<RailroadTile>(tile);
         if (railroad) {
-            const Player* owner = railroad->getOwner();
-            out << "RAILROAD "
-                << railroad->getCode() << " "
-                << (owner ? owner->getUsername() : "-") << " "
-                << ownershipToStr(railroad->getOwnershipStatus()) << "\n";
+            out << railroad->getCode() << " railroad "
+                << ownerStr << " "
+                << ownershipToStr(ownership) << " "
+                << "1 0 0\n";
             continue;
         }
 
         shared_ptr<UtilityTile> utility = dynamic_pointer_cast<UtilityTile>(tile);
         if (utility) {
-            const Player* owner = utility->getOwner();
-            out << "UTILITY "
-                << utility->getCode() << " "
-                << (owner ? owner->getUsername() : "-") << " "
-                << ownershipToStr(utility->getOwnershipStatus()) << "\n";
+            out << utility->getCode() << " utility "
+                << ownerStr << " "
+                << ownershipToStr(ownership) << " "
+                << "1 0 0\n";
             continue;
         }
     }
@@ -280,124 +484,170 @@ void SaveLoadManager::loadProperties(Game& game, istream& in) {
     vector<Player>& players = game.getPlayers();
     Board& board = game.getBoard();
 
-    string line;
-    while (getline(in, line)) {
-        if (line.empty()) continue;
-        istringstream ls(line);
-        string type;
-        ls >> type;
+    int count = parseCountLine(in, "STATE_PROPERTI");
 
-        if (type == "STREET") {
-            string code, ownerStr, ownershipStr;
-            int buildingLevel, festMultiplier, festDuration;
-            if (!(ls >> code >> ownerStr >> ownershipStr
-                     >> buildingLevel >> festMultiplier >> festDuration)) continue;
+    for (int i = 0; i < count; i++) {
+        string line = readRequiredLine(in, "PROPERTY_" + to_string(i + 1));
+        vector<string> fields = splitWords(line);
+        if (fields.size() < 7) {
+            throw FileException("Format state properti tidak valid.");
+        }
 
-            shared_ptr<Tile> tile = board.getTileByCode(code);
-            if (!tile) continue;
+        string code = fields[0];
+        string type = toLowerCase(fields[1]);
+        string ownerStr = fields[2];
+        string ownershipStr = fields[3];
+        string nBuildStr = fields[6];
+        int fmult = 1;
+        int fdur = 0;
+        if (!tryParseInt(fields[4], fmult)) {
+            throw FileException("FMULT tidak valid pada properti: " + code);
+        }
+        if (!tryParseInt(fields[5], fdur)) {
+            throw FileException("FDUR tidak valid pada properti: " + code);
+        }
+
+        shared_ptr<Tile> tile = board.getTileByCode(code);
+        if (!tile) {
+            throw FileException("Kode petak properti tidak ditemukan: " + code);
+        }
+
+        OwnershipStatus os = strToOwnership(ownershipStr);
+        Player* owner = nullptr;
+        if (ownerStr != "BANK") {
+            owner = findPlayer(players, ownerStr);
+            if (!owner) {
+                throw FileException("Pemilik properti tidak ditemukan: " + ownerStr);
+            }
+        }
+
+        if (os == OwnershipStatus::BANK) {
+            owner = nullptr;
+        } else if (!owner) {
+            throw FileException("Properti bukan milik BANK tetapi owner tidak valid: " + code);
+        }
+
+        if (type == "street") {
             shared_ptr<StreetTile> street = dynamic_pointer_cast<StreetTile>(tile);
-            if (!street) continue;
+            if (!street) {
+                throw FileException("Tile " + code + " bukan street.");
+            }
 
-            OwnershipStatus os = strToOwnership(ownershipStr);
             street->setOwnershipStatus(os);
-            if (ownerStr != "-" && os != OwnershipStatus::BANK) {
-                street->setOwner(findPlayer(players, ownerStr));
-            } else {
-                street->setOwner(nullptr);
+            street->setOwner(owner);
+            int buildLevel = 0;
+            if (nBuildStr == "H" || nBuildStr == "h") {
+                buildLevel = 5;
+            } else if (!tryParseInt(nBuildStr, buildLevel)) {
+                throw FileException("Jumlah bangunan tidak valid pada properti: " + code);
             }
-            street->setBuildingLevel(buildingLevel);
-            street->setFestivalState(festMultiplier, festDuration);
 
-        } else if (type == "RAILROAD") {
-            string code, ownerStr, ownershipStr;
-            if (!(ls >> code >> ownerStr >> ownershipStr)) continue;
-
-            shared_ptr<Tile> tile = board.getTileByCode(code);
-            if (!tile) continue;
+            street->setBuildingLevel(buildLevel);
+            street->setFestivalState(fmult, fdur);
+        } else if (type == "railroad") {
             shared_ptr<RailroadTile> railroad = dynamic_pointer_cast<RailroadTile>(tile);
-            if (!railroad) continue;
+            if (!railroad) {
+                throw FileException("Tile " + code + " bukan railroad.");
+            }
 
-            OwnershipStatus os = strToOwnership(ownershipStr);
             railroad->setOwnershipStatus(os);
-            if (ownerStr != "-" && os != OwnershipStatus::BANK) {
-                railroad->setOwner(findPlayer(players, ownerStr));
-            } else {
-                railroad->setOwner(nullptr);
-            }
-
-        } else if (type == "UTILITY") {
-            string code, ownerStr, ownershipStr;
-            if (!(ls >> code >> ownerStr >> ownershipStr)) continue;
-
-            shared_ptr<Tile> tile = board.getTileByCode(code);
-            if (!tile) continue;
+            railroad->setOwner(owner);
+        } else if (type == "utility") {
             shared_ptr<UtilityTile> utility = dynamic_pointer_cast<UtilityTile>(tile);
-            if (!utility) continue;
-
-            OwnershipStatus os = strToOwnership(ownershipStr);
-            utility->setOwnershipStatus(os);
-            if (ownerStr != "-" && os != OwnershipStatus::BANK) {
-                utility->setOwner(findPlayer(players, ownerStr));
-            } else {
-                utility->setOwner(nullptr);
+            if (!utility) {
+                throw FileException("Tile " + code + " bukan utility.");
             }
+
+            utility->setOwnershipStatus(os);
+            utility->setOwner(owner);
+        } else {
+            throw FileException("Jenis properti tidak valid: " + type);
         }
     }
 }
 
 void SaveLoadManager::saveDecks(const Game& game, ostream& out) {
-    out << "SECTION DECKS\n";
+    const CardDeck<HandCard>& handDeck = game.getCardManager().getHandDeck();
+    const auto& drawPile = handDeck.getDrawPile();
+    const auto& discardPile = handDeck.getDiscardPile();
+
+    int cardCount = 0;
+    for (const shared_ptr<HandCard>& card : drawPile) {
+        if (card != nullptr) cardCount++;
+    }
+    for (const shared_ptr<HandCard>& card : discardPile) {
+        if (card != nullptr) cardCount++;
+    }
+
+    out << cardCount << "\n";
+    for (const shared_ptr<HandCard>& card : drawPile) {
+        if (!card) continue;
+        out << card->getName() << "\n";
+    }
+    for (const shared_ptr<HandCard>& card : discardPile) {
+        if (!card) continue;
+        out << card->getName() << "\n";
+    }
 }
 
 void SaveLoadManager::loadDecks(Game& game, istream& in) {
-    (void)in;
+    CardDeck<HandCard>& handDeck = game.getCardManager().getHandDeck();
+    handDeck.clear();
+
+    int count = parseCountLine(in, "STATE_DECK");
+
+    for (int i = 0; i < count; i++) {
+        string line = readRequiredLine(in, "DECK_CARD_" + to_string(i + 1));
+        vector<string> cardTokens = splitWords(line);
+        if (cardTokens.empty()) {
+            throw FileException("Format kartu deck tidak valid.");
+        }
+
+        string type = cardTokens[0];
+        int value = 0;
+        int duration = 0;
+        if (cardTokens.size() >= 2) {
+            tryParseInt(cardTokens[1], value);
+        }
+        if (cardTokens.size() >= 3) {
+            tryParseInt(cardTokens[2], duration);
+        }
+
+        auto card = makeHandCard(type, value, duration);
+        if (!card) {
+            throw FileException("Jenis kartu deck tidak dikenali: " + type);
+        }
+        handDeck.addCard(card);
+    }
 }
 
 void SaveLoadManager::saveLogs(const Game& game, ostream& out) {
     const vector<LogManager::LogEntry>& logs = game.getLogManager().getLogs();
-    out << "SECTION LOGS\n";
-    out << "count " << logs.size() << "\n";
+    out << logs.size() << "\n";
     for (const LogManager::LogEntry& entry : logs) {
-        out << entry.getTurnNumber() << "|"
-            << entry.getUsername() << "|"
-            << entry.getActionType() << "|"
+        out << entry.getTurnNumber() << " "
+            << entry.getUsername() << " "
+            << entry.getActionType() << " "
             << entry.getDetail() << "\n";
     }
 }
 
 void SaveLoadManager::loadLogs(Game& game, istream& in) {
     LogManager& lm = game.getLogManager();
+    lm = LogManager();
 
-    string line;
-    int count = 0;
+    int count = parseCountLine(in, "STATE_LOG");
 
-    while (getline(in, line)) {
-        if (line.empty()) continue;
+    for (int i = 0; i < count; i++) {
+        string line = readRequiredLine(in, "LOG_" + to_string(i + 1));
         istringstream ls(line);
-        string key;
-        ls >> key;
-        if (key == "count") {
-            ls >> count;
-            break;
+        int turnNumber = 0;
+        string username, actionType, detail;
+        if (!(ls >> turnNumber >> username >> actionType)) {
+            throw FileException("Format log tidak valid pada entri ke-" + to_string(i + 1));
         }
-    }
-
-    for (int i = 0; i < count && getline(in, line); ) {
-        if (line.empty()) continue;
-
-        size_t p1 = line.find('|');
-        if (p1 == string::npos) continue;
-        size_t p2 = line.find('|', p1 + 1);
-        if (p2 == string::npos) continue;
-        size_t p3 = line.find('|', p2 + 1);
-        if (p3 == string::npos) continue;
-
-        int turnNumber = stoi(line.substr(0, p1));
-        string username   = line.substr(p1 + 1, p2 - p1 - 1);
-        string actionType = line.substr(p2 + 1, p3 - p2 - 1);
-        string detail     = line.substr(p3 + 1);
-
+        getline(ls, detail);
+        detail = trim(detail);
         lm.addLog(turnNumber, username, actionType, detail);
-        i++;
     }
 }
