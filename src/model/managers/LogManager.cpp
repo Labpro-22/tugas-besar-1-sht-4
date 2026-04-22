@@ -1,41 +1,73 @@
 #include "model/managers/LogManager.hpp"
 
+#include <iomanip>
+#include <sstream>
+
 using namespace std;
 
 LogManager::LogEntry::LogEntry() {}
 
-LogManager::LogEntry::LogEntry(int turnNumber, const string& username, const string& actionType, const string& detail) {}
+LogManager::LogEntry::LogEntry(int turnNumber, const string& username, const string& actionType, const string& detail)
+    : turnNumber(turnNumber), username(username), actionType(actionType), detail(detail) {}
 
-LogManager::LogEntry::LogEntry(const LogEntry& other) {}
+LogManager::LogEntry::LogEntry(const LogEntry& other)
+    : turnNumber(other.turnNumber),
+      username(other.username),
+      actionType(other.actionType),
+      detail(other.detail) {}
 
 LogManager::LogEntry::~LogEntry() {}
 
 LogManager::LogEntry& LogManager::LogEntry::operator=(const LogEntry& other) {
+    if (this != &other) {
+        turnNumber = other.turnNumber;
+        username = other.username;
+        actionType = other.actionType;
+        detail = other.detail;
+    }
     return *this;
 }
 
 string LogManager::LogEntry::format() const {
-    return "";
+    ostringstream stream;
+    stream << "[Turn " << turnNumber << "] "
+           << username << " | "
+           << left << setw(8) << actionType << " | "
+           << detail;
+    return stream.str();
 }
 
 LogManager::LogManager() {}
 
-LogManager::LogManager(const vector<LogEntry>& logs) {}
+LogManager::LogManager(const vector<LogEntry>& logs) : logs(logs) {}
 
-LogManager::LogManager(const LogManager& other) {}
+LogManager::LogManager(const LogManager& other) : logs(other.logs) {}
 
 LogManager::~LogManager() {}
 
 LogManager& LogManager::operator=(const LogManager& other) {
+    if (this != &other) {
+        logs = other.logs;
+    }
     return *this;
 }
 
-void LogManager::addLog(int turnNumber, const string& username, const string& actionType, const string& detail) {}
+void LogManager::addLog(int turnNumber, const string& username, const string& actionType, const string& detail) {
+    logs.push_back(LogEntry(turnNumber, username, actionType, detail));
+}
 
 const vector<LogManager::LogEntry>& LogManager::getLogs() const {
     return logs;
 }
 
 vector<LogManager::LogEntry> LogManager::getRecentLogs(int n) const {
-    return {};
+    if (n <= 0 || logs.empty()) {
+        return {};
+    }
+
+    if (n >= static_cast<int>(logs.size())) {
+        return logs;
+    }
+
+    return vector<LogEntry>(logs.end() - n, logs.end());
 }
