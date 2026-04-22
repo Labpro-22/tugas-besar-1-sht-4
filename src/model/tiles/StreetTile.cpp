@@ -107,7 +107,12 @@ void StreetTile::activateFestival() {
 }
 
 void StreetTile::decrementFestivalDuration() {
-    if (festivalDuration >= 0) festivalDuration--;
+    if (festivalDuration > 0) {
+        festivalDuration--;
+    }
+    if (festivalDuration == 0) {
+        festivalMultiplier = 1;
+    }
 }
 
 void StreetTile::acquire(Player& player) {
@@ -144,6 +149,18 @@ int StreetTile::getFestivalMultiplier() const {
 
 int StreetTile::getFestivalDuration() const {
     return festivalDuration;
+}
+
+void StreetTile::setBuildingLevel(int buildingLevel) {
+    this->buildingLevel = max(0, min(5, buildingLevel));
+}
+
+void StreetTile::setFestivalState(int festivalMultiplier, int festivalDuration) {
+    this->festivalMultiplier = max(1, festivalMultiplier);
+    this->festivalDuration = max(0, festivalDuration);
+    if (this->festivalDuration == 0) {
+        this->festivalMultiplier = 1;
+    }
 }
 
 int StreetTile::getBuildingValue() const  {
