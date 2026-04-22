@@ -97,7 +97,7 @@ int StreetTile::getBuildingLevel() const {
 
 void StreetTile::sellBuildings() {
     // TODO : make sure of what's asked, then edit this
-    this->buildingLevel == 0;
+    this->buildingLevel = 0;
 }
 
 void StreetTile::activateFestival() {
