@@ -44,7 +44,6 @@ public:
     void printFestivalMaxed(const string& tileName, const string& tileCode, int duration) const;
     void printAuctionState(const string& tileName, const string& tileCode, int currentBid, const string& highestBidderName, const string& currentPlayerName) const;
     string readAuctionAction() const;
-    int readBidAmount() const;
     void printAuctionWinner(const string& tileName, const string& tileCode, const string& winnerName, int finalBid) const;
     void printLiquidationState(const string& playerName, int playerMoney, int requiredAmount, int estimatedLiquidationValue) const;
     int readLiquidationChoice() const;

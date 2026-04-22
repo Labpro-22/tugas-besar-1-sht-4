@@ -900,15 +900,11 @@ string UIManager::readAuctionAction() const {
             return "PASS";
         }
         action = toUpperCopy(trim(action));
-        if (action == "PASS" || action == "BID" || action.rfind("BID ", 0) == 0) {
+        if (action == "PASS" || action.rfind("BID ", 0) == 0) {
             return action;
         }
         cout << "Aksi harus PASS atau BID <jumlah>: ";
     }
-}
-
-int UIManager::readBidAmount() const {
-    return readIntInRange("Masukkan jumlah bid: ", 1, 0, false);
 }
 
 void UIManager::printAuctionWinner(
