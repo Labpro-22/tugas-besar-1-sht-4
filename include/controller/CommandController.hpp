@@ -18,7 +18,7 @@ public:
     ~CommandController();
     CommandController& operator=(const CommandController& other);
 
-    void processCommand(const string& input);
+    bool processCommand(const string& input);
 
     void handleRollDice();
     void handleSetDice(int x, int y);
