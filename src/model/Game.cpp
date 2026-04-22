@@ -99,6 +99,7 @@ void Game::startNewGame() {
     gameContext.setCurrentTurn(1);
     gameContext.setIsRunning(false);
     bankruptcyManager = BankruptcyManager();
+    logManager.clear();
     dice = Dice();
 
     configManager.loadAllConfigs();
