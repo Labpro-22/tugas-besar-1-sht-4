@@ -139,6 +139,14 @@ void CardManager::discardHandCard(shared_ptr<HandCard> card) {
     handDeck.discardCard(card);
 }
 
+void CardManager::discardChanceCard(shared_ptr<ChanceCard> card) {
+    chanceDeck.discardCard(card);
+}
+
+void CardManager::discardCommunityChestCard(shared_ptr<CommunityChestCard> card) {
+    communityChestDeck.discardCard(card);
+}
+
 void CardManager::reshuffleIfNeeded() {
     if (handDeck.isEmpty()) {
         handDeck.reshuffleDiscardIntoDrawPile();
