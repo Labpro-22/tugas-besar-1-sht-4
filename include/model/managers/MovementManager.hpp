@@ -13,7 +13,7 @@ public:
 
     void movePlayer(Player& player, int steps);
     void movePlayerTo(Player& player, int targetPosition);
-    void movePlayerToNearestRailroad(Player& player);
+    void movePlayerToNearestRailroad(Player& player, const Board& board);
     void movePlayerBack(Player& player, int steps);
     bool passedGo(const Board& board, int newPos) const;
     void resolveLanding(Player& player);
