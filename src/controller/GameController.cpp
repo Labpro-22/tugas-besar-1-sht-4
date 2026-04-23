@@ -88,7 +88,7 @@ void GameController::runGameLoop() {
     }
 
     while (game.isGameRunning()) {
-        if (activePlayerCount(game) <= 1 || game.getCurrentTurn() > game.getMaxTurn()) {
+        if (activePlayerCount(game) <= 1 || game.hasReachedMaxTurn()) {
             break;
         }
 
@@ -96,7 +96,7 @@ void GameController::runGameLoop() {
     }
 
     const bool endedByBankruptcy = activePlayerCount(game) <= 1;
-    const bool endedByMaxTurn = game.getCurrentTurn() > game.getMaxTurn();
+    const bool endedByMaxTurn = game.hasReachedMaxTurn();
     if (!endedByBankruptcy && !endedByMaxTurn) {
         return;
     }
@@ -124,7 +124,7 @@ void GameController::runGameLoop() {
         winnerMoney,
         winnerPropertyCounts,
         winnerCardCounts,
-        game.getCurrentTurn() > game.getMaxTurn()
+        endedByMaxTurn
     );
 }
 
@@ -199,10 +199,11 @@ void GameController::handleStartTurn(bool resumeExistingTurn) {
 
     uiManager.printMessage("");
     uiManager.printMessage("=================================");
+    const string maxTurnText = game.hasTurnLimit() ? to_string(game.getMaxTurn()) : "TANPA BATAS";
     uiManager.printMessage(
         "Giliran " + player.getUsername() +
         " | Turn " + to_string(game.getCurrentTurn()) +
-        "/" + to_string(game.getMaxTurn())
+        "/" + maxTurnText
     );
     uiManager.printMessage("=================================");
 

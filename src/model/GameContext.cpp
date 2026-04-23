@@ -1,6 +1,6 @@
 #include "model/GameContext.hpp"
 
-GameContext::GameContext() : currentTurn(0), maxTurn(100), isRunning(false), board(), players() {}
+GameContext::GameContext() : currentTurn(0), maxTurn(0), isRunning(false), board(), players() {}
 
 GameContext::GameContext(int currentTurn, int maxTurn, bool isRunning)
     : currentTurn(currentTurn), maxTurn(maxTurn), isRunning(isRunning), board(), players() {}

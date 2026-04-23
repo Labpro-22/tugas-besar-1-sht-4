@@ -103,9 +103,7 @@ void Game::startNewGame() {
     dice = Dice();
 
     configManager.loadAllConfigs();
-    if (configManager.getMaxTurn() > 0) {
-        gameContext.setMaxTurn(configManager.getMaxTurn());
-    }
+    gameContext.setMaxTurn(configManager.getMaxTurn());
     gameContext.getBoard().initializeBoard(configManager);
     cardManager.initializeDecks();
 
@@ -207,6 +205,14 @@ int Game::getCurrentTurn() const {
 
 int Game::getMaxTurn() const {
     return gameContext.getMaxTurn();
+}
+
+bool Game::hasTurnLimit() const {
+    return gameContext.getMaxTurn() > 0;
+}
+
+bool Game::hasReachedMaxTurn() const {
+    return hasTurnLimit() && gameContext.getCurrentTurn() > gameContext.getMaxTurn();
 }
 
 bool Game::isGameRunning() const {
@@ -342,9 +348,9 @@ const vector<Player>& Game::getPlayers() const {
 }
 
 bool Game::isGameOver() {
-    return getBankruptcyManager().isBankruptcyActive() || gameContext.getCurrentTurn() > gameContext.getMaxTurn();
+    return getBankruptcyManager().isBankruptcyActive() || hasReachedMaxTurn();
 }
 
 bool Game::isGameOver() const {
-    return getBankruptcyManager().isBankruptcyActive() || gameContext.getCurrentTurn() > gameContext.getMaxTurn();
+    return getBankruptcyManager().isBankruptcyActive() || hasReachedMaxTurn();
 }

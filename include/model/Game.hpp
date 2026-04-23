@@ -78,6 +78,8 @@ public:
     const GameContext& getGameContext() const;
     int getCurrentTurn() const;
     int getMaxTurn() const;
+    bool hasTurnLimit() const;
+    bool hasReachedMaxTurn() const;
     bool isGameRunning() const;
     void setCurrentTurn(int currentTurn);
     void setGameRunning(bool isRunning);
