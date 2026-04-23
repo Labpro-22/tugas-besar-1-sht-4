@@ -119,6 +119,7 @@ void Application::handleLoadGame() {
             "Permainan berhasil dimuat. Melanjutkan giliran " +
             game.getCurrentPlayer().getUsername() + "..."
         );
+        controller.resumeLoadedTurn();
         controller.runGameLoop();
     } catch (const exception& exception) {
         uiManager.printError(exception.what());

@@ -53,7 +53,8 @@ GameController::GameController(Game& game, UIManager& uiManager)
       commandController(make_unique<CommandController>(game, uiManager)),
       tileController(make_unique<TileController>(game, uiManager)),
       rolledThisTurn(false),
-      diceRolledThisTurn(false) {}
+      diceRolledThisTurn(false),
+      resumeLoadedTurnPending(false) {}
 
 GameController::GameController(const GameController& other)
     : game(other.game),
@@ -61,7 +62,8 @@ GameController::GameController(const GameController& other)
       commandController(make_unique<CommandController>(game, uiManager)),
       tileController(make_unique<TileController>(game, uiManager)),
       rolledThisTurn(other.rolledThisTurn),
-      diceRolledThisTurn(other.diceRolledThisTurn) {}
+      diceRolledThisTurn(other.diceRolledThisTurn),
+      resumeLoadedTurnPending(other.resumeLoadedTurnPending) {}
 
 GameController::~GameController() = default;
 
@@ -71,6 +73,7 @@ GameController& GameController::operator=(const GameController& other) {
         tileController = make_unique<TileController>(game, uiManager);
         rolledThisTurn = other.rolledThisTurn;
         diceRolledThisTurn = other.diceRolledThisTurn;
+        resumeLoadedTurnPending = other.resumeLoadedTurnPending;
     }
     return *this;
 }
@@ -125,7 +128,9 @@ void GameController::runGameLoop() {
 }
 
 void GameController::runTurn() {
-    handleStartTurn();
+    const bool resumeExistingTurn = resumeLoadedTurnPending;
+    resumeLoadedTurnPending = false;
+    handleStartTurn(resumeExistingTurn);
 
     Player& player = game.getCurrentPlayer();
     if (player.isBankrupt()) {
@@ -169,19 +174,30 @@ void GameController::runTurn() {
     handleEndTurn();
 }
 
-void GameController::handleStartTurn() {
+void GameController::resumeLoadedTurn() {
+    resumeLoadedTurnPending = true;
+}
+
+void GameController::handleStartTurn(bool resumeExistingTurn) {
     rolledThisTurn = false;
     diceRolledThisTurn = false;
-    game.getTurnManager().startTurn(game.getGameContext());
+    if (!resumeExistingTurn) {
+        game.getTurnManager().startTurn(game.getGameContext());
+    } else {
+        game.getTurnManager().setRolledThisTurn(false);
+    }
 
     Player& player = game.getCurrentPlayer();
     if (player.isBankrupt()) {
         return;
     }
-    player.setUsedHandCardThisTurn(false);
 
-    vector<OwnableTile*> ownedProperties = game.getPropertyManager().getOwnedProperties(game.getBoard(), player);
-    game.getFestivalManager().decrementFestivalDurations(ownedProperties);
+    if (!resumeExistingTurn) {
+        player.setUsedHandCardThisTurn(false);
+
+        vector<OwnableTile*> ownedProperties = game.getPropertyManager().getOwnedProperties(game.getBoard(), player);
+        game.getFestivalManager().decrementFestivalDurations(ownedProperties);
+    }
 
     uiManager.printMessage("");
     uiManager.printMessage("=================================");
@@ -191,6 +207,10 @@ void GameController::handleStartTurn() {
         "/" + to_string(game.getMaxTurn())
     );
     uiManager.printMessage("=================================");
+
+    if (resumeExistingTurn) {
+        return;
+    }
 
     game.getCardManager().giveStartTurnCard(player);
     if (game.getCardManager().needsForceDrop(player)) {
