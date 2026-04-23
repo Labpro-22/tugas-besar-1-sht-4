@@ -234,19 +234,16 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
             Player* owner = property.getOwner();
 
             if (owner == nullptr || property.getOwnershipStatus() == OwnershipStatus::BANK) {
-                const int price = discountedPurchasePrice(player, property);
-                if (player.getMoney() < price) {
-                    uiManager.printError("Uang kamu tidak cukup untuk membeli " + tile.getName() + ".");
-                    return;
-                }
-                acquireProperty(player, property, price);
+                property.setOwner(&player);
+                property.setOwnershipStatus(OwnershipStatus::OWNED);
                 if (tile.onLand() == Tile::TileType::Railroad) {
                     uiManager.printRailroadAcquired(player.getUsername(), tile.getName(), tile.getCode());
                     game.getLogManager().addLog(
                         game.getCurrentTurn(),
                         player.getUsername(),
                         "RAILROAD",
-                        "Membeli otomatis " + tile.getName() + " (" + tile.getCode() + ") seharga M" + to_string(price)
+                        tile.getName() + " (" + tile.getCode() + ") menjadi milik " +
+                        player.getUsername() + " secara otomatis"
                     );
                 } else {
                     uiManager.printUtilityAcquired(player.getUsername(), tile.getName(), tile.getCode());
@@ -254,7 +251,8 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
                         game.getCurrentTurn(),
                         player.getUsername(),
                         "UTILITY",
-                        "Membeli otomatis " + tile.getName() + " (" + tile.getCode() + ") seharga M" + to_string(price)
+                        tile.getName() + " (" + tile.getCode() + ") menjadi milik " +
+                        player.getUsername() + " secara otomatis"
                     );
                 }
                 return;
