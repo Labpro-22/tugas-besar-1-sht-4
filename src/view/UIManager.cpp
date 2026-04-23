@@ -1172,12 +1172,11 @@ void UIManager::printJailOptions(
     cout << "Gagal double : " << failedRolls << " kali\n\n";
     cout << "1. Bayar denda\n";
     cout << "2. Coba lempar double\n";
-    cout << "3. Gunakan kartu bebas penjara (jika ada)\n";
     cout << "0. Batal\n";
 }
 
 int UIManager::readJailChoice() const {
-    return readIntInRange("Pilihan (0-3): ", 0, 3, true);
+    return readIntInRange("Pilihan (0-2): ", 0, 2, true);
 }
 
 string UIManager::readFilename() const {

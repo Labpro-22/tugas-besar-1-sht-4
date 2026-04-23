@@ -872,8 +872,6 @@ bool TileController::handleJailTurn(Player& player) {
         );
         resolveLanding(*destination, player);
         return true;
-    } else if (choice == 3) {
-        uiManager.printMessage("Belum ada kartu bebas penjara yang terhubung. Pilih opsi lain pada giliran berikutnya.");
     }
 
     return true;
