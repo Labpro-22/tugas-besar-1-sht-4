@@ -12,10 +12,10 @@ UiToolkit toolkit;
 
 Color playerAccent(int index) {
     switch (index) {
-        case 0: return toolkit.theme().coral;
-        case 1: return toolkit.theme().teal;
-        case 2: return toolkit.theme().gold;
-        default: return toolkit.theme().navy;
+        case 0: return toolkit.theme().getCoral();
+        case 1: return toolkit.theme().getTeal();
+        case 2: return toolkit.theme().getGold();
+        default: return toolkit.theme().getNavy();
     }
 }
 }
@@ -24,8 +24,8 @@ GUIGameController::GUIGameController()
     : cardController_(*this),
       commandController_(*this),
       tileController_(*this) {
-    appState_.rng = std::mt19937(static_cast<unsigned int>(std::time(nullptr)));
-    appState_.saveSlots = createInitialSaveSlots();
+    appState_.setRng(std::mt19937(static_cast<unsigned int>(std::time(nullptr))));
+    appState_.setSaveSlots(createInitialSaveSlots());
 }
 
 AppState& GUIGameController::state() {
@@ -102,16 +102,17 @@ int GUIGameController::computeTileAssetValue(const TileInfo& tile) const {
 }
 
 int GUIGameController::computeNetWorth(int playerIndex) const {
-    if (playerIndex < 0 || playerIndex >= static_cast<int>(appState_.game.players.size())) {
+    const GameState& game = appState_.getGame();
+    if (playerIndex < 0 || playerIndex >= static_cast<int>(game.getPlayers().size())) {
         return 0;
     }
 
-    const PlayerInfo& player = appState_.game.players.at(playerIndex);
-    int wealth = player.money;
-    for (int tileIndex : player.properties) {
-        wealth += computeTileAssetValue(appState_.game.board.at(tileIndex));
+    const PlayerInfo& player = game.getPlayers().at(playerIndex);
+    int wealth = player.getMoney();
+    for (int tileIndex : player.getProperties()) {
+        wealth += computeTileAssetValue(game.getBoard().at(tileIndex));
     }
-    wealth += static_cast<int>(player.handCards.size()) * 75;
+    wealth += static_cast<int>(player.getHandCards().size()) * 75;
     return wealth;
 }
 
@@ -205,15 +206,15 @@ void GUIGameController::openGameOver() {
 
 void GUIGameController::startFreshSession() {
     closeOverlay();
-    appState_.game = createBaseGame();
-    appState_.screen = Screen::Gameplay;
+    appState_.setGame(createBaseGame());
+    appState_.setScreen(Screen::Gameplay);
 }
 
 void GUIGameController::loadSessionFromSlot(int slotIndex) {
-    appState_.selectedSave = slotIndex;
-    appState_.game = createBaseGame();
-    applyScenario(appState_.game, slotIndex);
-    appState_.screen = Screen::Gameplay;
+    appState_.setSelectedSave(slotIndex);
+    appState_.setGame(createBaseGame());
+    applyScenario(appState_.getGame(), slotIndex);
+    appState_.setScreen(Screen::Gameplay);
     closeOverlay();
 }
 
@@ -362,114 +363,118 @@ std::vector<int> GUIGameController::currentPlayerRedeemOptions() const {
 }
 
 void GUIGameController::addToast(const std::string& text, Color accent, float duration) {
-    if (appState_.game.toasts.size() >= 4) {
-        appState_.game.toasts.pop_front();
+    std::deque<Toast>& toasts = appState_.getGame().getToasts();
+    if (toasts.size() >= 4) {
+        toasts.pop_front();
     }
 
-    appState_.game.toasts.push_back({text, accent, duration, duration});
+    toasts.push_back({text, accent, duration, duration});
 }
 
 void GUIGameController::updateToasts(float deltaTime) {
-    for (Toast& toast : appState_.game.toasts) {
-        toast.timeLeft -= deltaTime;
+    std::deque<Toast>& toasts = appState_.getGame().getToasts();
+    for (Toast& toast : toasts) {
+        toast.setTimeLeft(toast.getTimeLeft() - deltaTime);
     }
 
-    while (!appState_.game.toasts.empty() && appState_.game.toasts.front().timeLeft <= 0.0f) {
-        appState_.game.toasts.pop_front();
+    while (!toasts.empty() && toasts.front().getTimeLeft() <= 0.0f) {
+        toasts.pop_front();
     }
 }
 
 void GUIGameController::addLog(const std::string& actor, const std::string& action, const std::string& detail) {
-    appState_.game.logs.push_back({appState_.game.turn, actor, action, detail});
-    if (static_cast<int>(appState_.game.logs.size()) > kMaxLogEntries) {
-        appState_.game.logs.erase(appState_.game.logs.begin());
+    GameState& game = appState_.getGame();
+    game.getLogs().push_back({game.getTurn(), actor, action, detail});
+    if (static_cast<int>(game.getLogs().size()) > kMaxLogEntries) {
+        game.getLogs().erase(game.getLogs().begin());
     }
 }
 
 void GUIGameController::maybeOpenLiquidation() {
-    if (appState_.game.players.empty()) {
+    const GameState& game = appState_.getGame();
+    if (game.getPlayers().empty()) {
         return;
     }
 
-    if (appState_.game.players.at(appState_.game.currentPlayer).money < 0) {
+    if (game.getPlayers().at(game.getCurrentPlayer()).getMoney() < 0) {
         openLiquidation();
     }
 }
 
 GameState GUIGameController::createBaseGame() const {
     GameState game;
-    game.sessionLabel = "NIMONSPOLI";
-    game.board = createBoard();
-    game.turn = 1;
-    game.turnLimit = std::max(12, appState_.turnLimit);
-    game.currentPlayer = 0;
-    game.selectedTile = 0;
-    game.startCash = appState_.startingCash;
+    game.setSessionLabel("NIMONSPOLI");
+    game.setBoard(createBoard());
+    game.setTurn(1);
+    game.setTurnLimit(std::max(12, appState_.getTurnLimit()));
+    game.setCurrentPlayer(0);
+    game.setSelectedTile(0);
+    game.setStartCash(appState_.getStartingCash());
 
-    for (int index = 0; index < appState_.playerCount; index++) {
+    for (int index = 0; index < appState_.getPlayerCount(); index++) {
         PlayerInfo player;
-        player.name = appState_.playerNames.at(index);
-        player.accent = playerAccent(index);
-        player.money = appState_.startingCash;
-        player.position = 0;
-        game.players.push_back(player);
+        player.setName(appState_.getPlayerNames().at(index));
+        player.setAccent(playerAccent(index));
+        player.setMoney(appState_.getStartingCash());
+        player.setPosition(0);
+        game.getPlayers().push_back(player);
     }
 
     return game;
 }
 
 void GUIGameController::applyScenario(GameState& game, int scenarioIndex) const {
-    if (game.players.empty()) {
+    if (game.getPlayers().empty()) {
         return;
     }
 
     if (scenarioIndex == 0) {
-        game.turn = 7;
+        game.setTurn(7);
     } else if (scenarioIndex == 1) {
-        game.turn = 15;
-        game.players.at(0).jailed = true;
-        game.players.at(0).position = 6;
+        game.setTurn(15);
+        game.getPlayers().at(0).setJailed(true);
+        game.getPlayers().at(0).setPosition(6);
     } else {
-        game.turn = 28;
-        if (game.players.size() > 1) {
-            game.players.resize(2);
+        game.setTurn(28);
+        if (game.getPlayers().size() > 1) {
+            game.getPlayers().resize(2);
         }
     }
 }
 
 std::vector<TileInfo> GUIGameController::createBoard() const {
     return {
-        {0, "GO", "GO", "Mulai perjalananmu di sini.", "", TileKind::Go, toolkit.theme().gold, 0, 0, 0, 0, 0, -1, 0, 0, false},
+        {0, "GO", "GO", "Mulai perjalananmu di sini.", "", TileKind::Go, toolkit.theme().getGold(), 0, 0, 0, 0, 0, -1, 0, 0, false},
         {1, "MTR", "Menteng", "Street awal dengan harga terjangkau.", "Amber", TileKind::Street, toolkit.colorForGroup("Amber"), 100, 50, 8, 50, 100, -1, 0, 0, false},
-        {2, "CC1", "Dana Umum", "Ambil kartu komunitas.", "", TileKind::CommunityChest, toolkit.theme().sage, 0, 0, 0, 0, 0, -1, 0, 0, false},
+        {2, "CC1", "Dana Umum", "Ambil kartu komunitas.", "", TileKind::CommunityChest, toolkit.theme().getSage(), 0, 0, 0, 0, 0, -1, 0, 0, false},
         {3, "SNT", "Senen", "Street awal lain untuk membuka set pertama.", "Amber", TileKind::Street, toolkit.colorForGroup("Amber"), 120, 60, 10, 50, 100, -1, 0, 0, false},
-        {4, "PPH", "PPh", "Bayar pajak penghasilan.", "", TileKind::IncomeTax, toolkit.theme().coral, 0, 0, 0, 0, 0, -1, 0, 0, false},
-        {5, "KRL", "KRL", "Railroad pertama di board.", "", TileKind::Railroad, toolkit.theme().navy, 200, 100, 25, 0, 0, -1, 0, 0, false},
-        {6, "JIL", "Jail", "Tempat singgah atau hukuman.", "", TileKind::Jail, toolkit.theme().danger, 0, 0, 0, 0, 0, -1, 0, 0, false},
-        {7, "CHA", "Chance", "Ambil kartu chance.", "", TileKind::Chance, toolkit.theme().teal, 0, 0, 0, 0, 0, -1, 0, 0, false},
+        {4, "PPH", "PPh", "Bayar pajak penghasilan.", "", TileKind::IncomeTax, toolkit.theme().getCoral(), 0, 0, 0, 0, 0, -1, 0, 0, false},
+        {5, "KRL", "KRL", "Railroad pertama di board.", "", TileKind::Railroad, toolkit.theme().getNavy(), 200, 100, 25, 0, 0, -1, 0, 0, false},
+        {6, "JIL", "Jail", "Tempat singgah atau hukuman.", "", TileKind::Jail, toolkit.theme().getDanger(), 0, 0, 0, 0, 0, -1, 0, 0, false},
+        {7, "CHA", "Chance", "Ambil kartu chance.", "", TileKind::Chance, toolkit.theme().getTeal(), 0, 0, 0, 0, 0, -1, 0, 0, false},
         {8, "BDG", "Bandung", "Street menengah dengan potensi sewa yang naik.", "Cyan", TileKind::Street, toolkit.colorForGroup("Cyan"), 140, 70, 12, 50, 100, -1, 0, 0, false},
         {9, "PLM", "Palmerah", "Street menengah pelengkap set cyan.", "Cyan", TileKind::Street, toolkit.colorForGroup("Cyan"), 160, 80, 14, 50, 100, -1, 0, 0, false},
-        {10, "PLN", "PLN", "Utility pertama.", "", TileKind::Utility, toolkit.theme().teal, 150, 75, 40, 0, 0, -1, 0, 0, false},
-        {11, "FES", "Festival", "Pilih properti untuk boost festival.", "", TileKind::Festival, toolkit.theme().coral, 0, 0, 0, 0, 0, -1, 0, 0, false},
+        {10, "PLN", "PLN", "Utility pertama.", "", TileKind::Utility, toolkit.theme().getTeal(), 150, 75, 40, 0, 0, -1, 0, 0, false},
+        {11, "FES", "Festival", "Pilih properti untuk boost festival.", "", TileKind::Festival, toolkit.theme().getCoral(), 0, 0, 0, 0, 0, -1, 0, 0, false},
         {12, "PRA", "Pramuka", "Street transisi menuju mid board.", "Jade", TileKind::Street, toolkit.colorForGroup("Jade"), 180, 90, 16, 100, 200, -1, 0, 0, false},
-        {13, "CC2", "Dana Umum", "Ambil kartu komunitas lain.", "", TileKind::CommunityChest, toolkit.theme().sage, 0, 0, 0, 0, 0, -1, 0, 0, false},
+        {13, "CC2", "Dana Umum", "Ambil kartu komunitas lain.", "", TileKind::CommunityChest, toolkit.theme().getSage(), 0, 0, 0, 0, 0, -1, 0, 0, false},
         {14, "TMN", "Taman", "Street jade kedua.", "Jade", TileKind::Street, toolkit.colorForGroup("Jade"), 200, 100, 18, 100, 200, -1, 0, 0, false},
-        {15, "PBM", "PBM", "Bayar pajak barang mewah.", "", TileKind::LuxuryTax, toolkit.theme().coral, 0, 0, 0, 0, 0, -1, 0, 0, false},
-        {16, "KAI", "KAI", "Railroad kedua.", "", TileKind::Railroad, toolkit.theme().navy, 200, 100, 25, 0, 0, -1, 0, 0, false},
-        {17, "GJL", "Go To Jail", "Langsung ke jail jika mendarat di sini.", "", TileKind::GoToJail, toolkit.theme().danger, 0, 0, 0, 0, 0, -1, 0, 0, false},
-        {18, "CH2", "Chance", "Chance kedua.", "", TileKind::Chance, toolkit.theme().teal, 0, 0, 0, 0, 0, -1, 0, 0, false},
+        {15, "PBM", "PBM", "Bayar pajak barang mewah.", "", TileKind::LuxuryTax, toolkit.theme().getCoral(), 0, 0, 0, 0, 0, -1, 0, 0, false},
+        {16, "KAI", "KAI", "Railroad kedua.", "", TileKind::Railroad, toolkit.theme().getNavy(), 200, 100, 25, 0, 0, -1, 0, 0, false},
+        {17, "GJL", "Go To Jail", "Langsung ke jail jika mendarat di sini.", "", TileKind::GoToJail, toolkit.theme().getDanger(), 0, 0, 0, 0, 0, -1, 0, 0, false},
+        {18, "CH2", "Chance", "Chance kedua.", "", TileKind::Chance, toolkit.theme().getTeal(), 0, 0, 0, 0, 0, -1, 0, 0, false},
         {19, "KNN", "Kuningan", "Street premium pertama.", "Scarlet", TileKind::Street, toolkit.colorForGroup("Scarlet"), 320, 160, 34, 120, 240, -1, 0, 0, false},
-        {20, "DU2", "Dana Sosial", "Komunitas lain dengan efek kejutan.", "", TileKind::CommunityChest, toolkit.theme().sage, 0, 0, 0, 0, 0, -1, 0, 0, false},
+        {20, "DU2", "Dana Sosial", "Komunitas lain dengan efek kejutan.", "", TileKind::CommunityChest, toolkit.theme().getSage(), 0, 0, 0, 0, 0, -1, 0, 0, false},
         {21, "THM", "Thamrin", "Street premium kedua.", "Scarlet", TileKind::Street, toolkit.colorForGroup("Scarlet"), 340, 170, 38, 120, 240, -1, 0, 0, false},
-        {22, "PAM", "PAM", "Utility kedua.", "", TileKind::Utility, toolkit.theme().teal, 150, 75, 40, 0, 0, -1, 0, 0, false},
-        {23, "PRK", "Free Parking", "Tempat istirahat sementara.", "", TileKind::FreeParking, toolkit.theme().paper, 0, 0, 0, 0, 0, -1, 0, 0, false},
+        {22, "PAM", "PAM", "Utility kedua.", "", TileKind::Utility, toolkit.theme().getTeal(), 150, 75, 40, 0, 0, -1, 0, 0, false},
+        {23, "PRK", "Free Parking", "Tempat istirahat sementara.", "", TileKind::FreeParking, toolkit.theme().getPaper(), 0, 0, 0, 0, 0, -1, 0, 0, false},
     };
 }
 
 std::vector<SaveSlot> GUIGameController::createInitialSaveSlots() const {
     return {
-        {"Save 1", "Permainan tengah dengan aset tersebar", 7, 4, toolkit.theme().coral},
-        {"Save 2", "Pemain berada di jail dan aset tergadai", 15, 3, toolkit.theme().teal},
-        {"Save 3", "Duel akhir menjelang batas turn", 28, 2, toolkit.theme().gold},
+        {"Save 1", "Permainan tengah dengan aset tersebar", 7, 4, toolkit.theme().getCoral()},
+        {"Save 2", "Pemain berada di jail dan aset tergadai", 15, 3, toolkit.theme().getTeal()},
+        {"Save 3", "Duel akhir menjelang batas turn", 28, 2, toolkit.theme().getGold()},
     };
 }

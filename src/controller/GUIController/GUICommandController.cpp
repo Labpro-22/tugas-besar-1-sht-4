@@ -10,30 +10,33 @@ GUICommandController::GUICommandController(GUIGameController& controller)
     : controller_(controller) {}
 
 void GUICommandController::tick(float deltaTime) {
-    controller_.state().time += deltaTime;
-    if (controller_.state().overlay.type == OverlayType::None) {
-        controller_.state().overlay.anim = 0.0f;
+    AppState& state = controller_.state();
+    state.setTime(state.getTime() + deltaTime);
+    if (state.getOverlay().getType() == OverlayType::None) {
+        state.getOverlay().setAnim(0.0f);
         return;
     }
 
-    controller_.state().overlay.anim = std::min(1.0f, controller_.state().overlay.anim + deltaTime * 8.0f);
+    state.getOverlay().setAnim(std::min(1.0f, state.getOverlay().getAnim() + deltaTime * 8.0f));
 }
 
 void GUICommandController::handleGlobalShortcuts() {}
 
 void GUICommandController::openOverlay(OverlayType type) {
-    controller_.state().overlay.type = type;
-    controller_.state().overlay.anim = 0.0f;
-    controller_.state().activeField = type == OverlayType::Save ? "save-name" : "";
+    AppState& state = controller_.state();
+    state.getOverlay().setType(type);
+    state.getOverlay().setAnim(0.0f);
+    state.setActiveField(type == OverlayType::Save ? "save-name" : "");
 }
 
 void GUICommandController::closeOverlay() {
-    controller_.state().overlay = OverlayState{};
-    controller_.state().activeField.clear();
+    AppState& state = controller_.state();
+    state.setOverlay(OverlayState{});
+    state.getActiveField().clear();
 }
 
 bool GUICommandController::isOverlayOpen() const {
-    return controller_.state().overlay.type != OverlayType::None;
+    return controller_.state().getOverlay().getType() != OverlayType::None;
 }
 
 void GUICommandController::openPortfolio() {
@@ -49,8 +52,9 @@ void GUICommandController::openLogs() {
 }
 
 void GUICommandController::openSetDice() {
-    controller_.state().overlay.manualDieOne = std::max(1, controller_.state().game.lastDieOne);
-    controller_.state().overlay.manualDieTwo = std::max(1, controller_.state().game.lastDieTwo);
+    AppState& state = controller_.state();
+    state.getOverlay().setManualDieOne(std::max(1, state.getGame().getLastDieOne()));
+    state.getOverlay().setManualDieTwo(std::max(1, state.getGame().getLastDieTwo()));
     openOverlay(OverlayType::SetDice);
 }
 
@@ -59,7 +63,7 @@ void GUICommandController::openHelp() {
 }
 
 void GUICommandController::openForceDrop() {
-    controller_.state().overlay.selectedIndex = 0;
+    controller_.state().getOverlay().setSelectedIndex(0);
     openOverlay(OverlayType::ForceDrop);
 }
 
@@ -68,8 +72,8 @@ void GUICommandController::openGameOver() {
 }
 
 void GUICommandController::startTurn() {
-    controller_.state().game.turnStarted = true;
-    controller_.state().game.rolledThisTurn = false;
+    controller_.state().getGame().setTurnStarted(true);
+    controller_.state().getGame().setRolledThisTurn(false);
 }
 
 void GUICommandController::rollDice() {}
@@ -77,24 +81,31 @@ void GUICommandController::rollDice() {}
 void GUICommandController::applyManualDice() {}
 
 void GUICommandController::endTurn() {
-    if (controller_.state().game.players.empty()) {
+    GameState& game = controller_.state().getGame();
+    if (game.getPlayers().empty()) {
         return;
     }
 
-    controller_.state().game.currentPlayer =
-        (controller_.state().game.currentPlayer + 1) % static_cast<int>(controller_.state().game.players.size());
-    controller_.state().game.turn += 1;
-    controller_.state().game.turnStarted = false;
-    controller_.state().game.rolledThisTurn = false;
+    game.setCurrentPlayer((game.getCurrentPlayer() + 1) % static_cast<int>(game.getPlayers().size()));
+    game.setTurn(game.getTurn() + 1);
+    game.setTurnStarted(false);
+    game.setRolledThisTurn(false);
 }
 
 bool GUICommandController::canSaveNow() const {
-    return !controller_.state().game.rolledThisTurn;
+    return !controller_.state().getGame().isRolledThisTurn();
 }
 
 void GUICommandController::adjustManualDie(int dieIndex, int delta) {
-    int& die = dieIndex == 1 ? controller_.state().overlay.manualDieOne : controller_.state().overlay.manualDieTwo;
-    die = std::max(1, std::min(6, die + delta));
+    OverlayState& overlay = controller_.state().getOverlay();
+    const int die = dieIndex == 1 ? overlay.getManualDieOne() : overlay.getManualDieTwo();
+    const int adjusted = std::max(1, std::min(6, die + delta));
+    if (dieIndex == 1) {
+        overlay.setManualDieOne(adjusted);
+        return;
+    }
+
+    overlay.setManualDieTwo(adjusted);
 }
 
 void GUICommandController::saveSession() {}
