@@ -23,5 +23,8 @@ MoveBackThreeCard& MoveBackThreeCard::operator=(const MoveBackThreeCard& other) 
 }
 
 void MoveBackThreeCard::apply(Game& game, Player& player) {
-    game.getMovementManager().movePlayerBack(player, 3);
+    const int boardSize = game.getBoard().getBoardSize();
+    int newPos = player.getPosition() - 3;
+    if (newPos < 1) newPos += boardSize;
+    player.moveTo(newPos);
 }

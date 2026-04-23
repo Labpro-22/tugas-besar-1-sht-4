@@ -273,7 +273,7 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
                 uiManager.printMessage("[SHIELD ACTIVE]: Tagihan sewa M" + to_string(rent) + " dibatalkan.");
                 return;
             }
-            if (player.getMoney() < rent) {
+            if (player.getMoney() < player.effectiveCost(rent)) {
                 uiManager.printError("Kamu tidak mampu membayar sewa penuh! (M" + to_string(rent) + ")");
                 pendingDebtAmount = rent;
                 pendingCreditor = owner;
@@ -296,8 +296,9 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
                 "",
                 rent
             );
+            const int actualRent = player.effectiveCost(rent);
             player -= rent;
-            *owner += rent;
+            *owner += actualRent;
             game.getLogManager().addLog(
                 game.getCurrentTurn(),
                 player.getUsername(),
@@ -393,7 +394,7 @@ void TileController::handleStreetPurchase(StreetTile& tile) {
             ownerName
         );
 
-        purchasePrice = game.getPropertyManager().getDiscountedPrice(player, tile.getPurchasePrice());
+        purchasePrice = player.effectiveCost(tile.getPurchasePrice());
 
         uiManager.printStreetPurchasePrompt(
             player.getUsername(),
@@ -410,9 +411,8 @@ void TileController::handleStreetPurchase(StreetTile& tile) {
         );
 
         const bool wantsToBuy = uiManager.readYesNo();
-        const int price = game.getPropertyManager().getDiscountedPrice(player, tile.getPurchasePrice());
-        if (wantsToBuy && player.getMoney() >= price) {
-            acquireProperty(player, tile, price);
+        if (wantsToBuy && player.getMoney() >= player.effectiveCost(tile.getPurchasePrice())) {
+            acquireProperty(player, tile, tile.getPurchasePrice());
             uiManager.printMessage(tile.getName() + " kini menjadi milikmu!");
             uiManager.printMessage("Uang tersisa: M" + to_string(player.getMoney()));
             game.getLogManager().addLog(
@@ -450,7 +450,7 @@ void TileController::handleStreetPurchase(StreetTile& tile) {
         uiManager.printMessage("[SHIELD ACTIVE]: Tagihan sewa M" + to_string(rent) + " dibatalkan.");
         return;
     }
-    if (player.getMoney() < rent) {
+    if (player.getMoney() < player.effectiveCost(rent)) {
         uiManager.printError("Kamu tidak mampu membayar sewa penuh! (M" + to_string(rent) + ")");
         pendingDebtAmount = rent;
         pendingCreditor = owner;
@@ -470,8 +470,9 @@ void TileController::handleStreetPurchase(StreetTile& tile) {
         festivalStatus(tile),
         rent
     );
+    const int actualRent = player.effectiveCost(rent);
     player -= rent;
-    *owner += rent;
+    *owner += actualRent;
     game.getLogManager().addLog(
         game.getCurrentTurn(),
         player.getUsername(),
@@ -659,7 +660,7 @@ void TileController::handleIncomeTax(IncomeTaxTile& tile) {
         return;
     }
 
-    if (player.getMoney() < taxAmount) {
+    if (player.getMoney() < player.effectiveCost(taxAmount)) {
         uiManager.printError("Kamu tidak mampu membayar pajak! Uang kamu saat ini: M" + to_string(player.getMoney()));
         pendingDebtAmount = taxAmount;
         pendingCreditor = nullptr;
@@ -687,7 +688,7 @@ void TileController::handleLuxuryTax(LuxuryTaxTile& tile) {
         return;
     }
 
-    if (player.getMoney() < taxAmount) {
+    if (player.getMoney() < player.effectiveCost(taxAmount)) {
         uiManager.printError("Kamu tidak mampu membayar pajak! Uang kamu saat ini: M" + to_string(player.getMoney()));
         pendingDebtAmount = taxAmount;
         pendingCreditor = nullptr;
@@ -812,7 +813,7 @@ bool TileController::handleJailTurn(Player& player) {
     const int choice = uiManager.readJailChoice();
 
     if (choice == 1) {
-        if (player.getMoney() < jailFine) {
+        if (player.getMoney() < player.effectiveCost(jailFine)) {
             pendingDebtAmount = jailFine;
             pendingCreditor = nullptr;
             pendingDebtToBank = true;

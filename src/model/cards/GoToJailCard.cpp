@@ -24,4 +24,5 @@ GoToJailCard& GoToJailCard::operator=(const GoToJailCard& other) {
 
 void GoToJailCard::apply(Game& game, Player& player) {
     game.getJailManager().sendToJail(player);
+    player.moveTo(11);
 }

@@ -40,6 +40,8 @@ public:
     shared_ptr<CommunityChestCard> drawCommunityChestCard();
     shared_ptr<HandCard> drawHandCard();
     void discardHandCard(shared_ptr<HandCard> card);
+    void discardChanceCard(shared_ptr<ChanceCard> card);
+    void discardCommunityChestCard(shared_ptr<CommunityChestCard> card);
     void reshuffleIfNeeded();
     shared_ptr<HandCard> giveStartTurnCard(Player& player);
     void beginForceDrop(Game& game, Player& player);

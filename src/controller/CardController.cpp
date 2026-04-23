@@ -1,5 +1,6 @@
 #include "controller/CardController.hpp"
 
+#include "controller/TileController.hpp"
 #include "model/Game.hpp"
 #include "model/Player.hpp"
 #include "model/Board.hpp"
@@ -7,6 +8,7 @@
 #include "model/cards/CommunityChestCard.hpp"
 #include "model/cards/HandCard.hpp"
 #include "model/cards/TeleportCard.hpp"
+#include "model/cards/MoveCard.hpp"
 #include "model/cards/LassoCard.hpp"
 #include "model/cards/DemolitionCard.hpp"
 #include "model/tiles/StreetTile.hpp"
@@ -35,6 +37,13 @@ void CardController::drawAndApplyChanceCard(Player& player) {
     if (card != nullptr) {
         uiManager.printCardDrawn("Kartu Kesempatan", card->getName(), card->getDescription());
         card->apply(game, player);
+        game.getCardManager().discardChanceCard(card);
+
+        auto tile = game.getBoard().getTile(player.getPosition());
+        if (tile != nullptr) {
+            TileController tileController(game, uiManager);
+            tileController.resolveLanding(*tile, player);
+        }
     }
 }
 
@@ -43,6 +52,7 @@ void CardController::drawAndApplyCommunityChestCard(Player& player) {
     if (card != nullptr) {
         uiManager.printCardDrawn("Kartu Dana Umum", card->getName(), card->getDescription());
         card->apply(game, player);
+        game.getCardManager().discardCommunityChestCard(card);
     }
 }
 
@@ -157,4 +167,14 @@ void CardController::useHandCard(Player& player, int cardIndex) {
     }
 
     game.getCardManager().useHandCard(game, player, cardIndex);
+
+    // For movement cards, resolve landing at the new position
+    if (dynamic_cast<TeleportCard*>(targetCard.get()) != nullptr ||
+        dynamic_cast<MoveCard*>(targetCard.get()) != nullptr) {
+        auto tile = game.getBoard().getTile(player.getPosition());
+        if (tile != nullptr) {
+            TileController tileController(game, uiManager);
+            tileController.resolveLanding(*tile, player);
+        }
+    }
 }

@@ -272,7 +272,7 @@ bool GameController::isCommandValidThisTurn(const string& input) const {
         return false;
     }
 
-    if (rolledThisTurn && (command == "LEMPAR_DADU" || command == "ATUR_DADU")) {
+    if (rolledThisTurn && (command == "LEMPAR_DADU" || command == "ATUR_DADU" || command == "GUNAKAN_KEMAMPUAN")) {
         return false;
     }
 

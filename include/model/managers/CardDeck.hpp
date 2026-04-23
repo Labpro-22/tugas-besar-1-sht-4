@@ -27,6 +27,9 @@ public:
         if(drawPile.empty()) {
             reshuffleDiscardIntoDrawPile();
         }
+        if (drawPile.empty()) {
+            return nullptr;
+        }
         shared_ptr<T> card = drawPile.back();
         drawPile.pop_back();
         return card;
