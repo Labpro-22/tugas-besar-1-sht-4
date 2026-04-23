@@ -216,9 +216,22 @@ int PropertyManager::calculateTotalWealth(const Board& board, const Player& play
 vector<OwnableTile*> PropertyManager::getMortgageableProperties(const Game& game, const Player& player) const {
     vector<OwnableTile*> mortgageableProperties;
     for (OwnableTile* property : getOwnedProperties(game.getBoard(), player)) {
-        if (property != nullptr && canMortgage(player, *property)) {
-            mortgageableProperties.push_back(property);
+        if (property == nullptr || !canMortgage(player, *property)) {
+            continue;
         }
+
+        StreetTile* street = dynamic_cast<StreetTile*>(property);
+        if (street != nullptr) {
+            vector<shared_ptr<StreetTile>> streets = game.getBoard().getStreetTileByColorGroup(street->getColorGroup());
+            const bool hasBuildings = any_of(streets.begin(), streets.end(), [](const shared_ptr<StreetTile>& groupStreet) {
+                return groupStreet != nullptr && groupStreet->getBuildingLevel() > 0;
+            });
+            if (hasBuildings) {
+                continue;
+            }
+        }
+
+        mortgageableProperties.push_back(property);
     }
     return mortgageableProperties;
 }

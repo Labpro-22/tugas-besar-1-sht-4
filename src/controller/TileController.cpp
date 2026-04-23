@@ -799,7 +799,7 @@ void TileController::handleForceDrop(Player& player) {
 
 bool TileController::handleJailTurn(Player& player) {
     const int jailFine = game.getConfigManager().getJailFine();
-    uiManager.printJailOptions(player.getUsername(), player.getMoney(), jailFine, 0);
+    uiManager.printJailOptions(player.getUsername(), player.getMoney(), jailFine, player.getFailedJailRolls());
     const int choice = uiManager.readJailChoice();
 
     if (choice == 1) {
@@ -822,7 +822,22 @@ bool TileController::handleJailTurn(Player& player) {
 
         uiManager.printDiceRoll(die1, die2, total);
         if (!released) {
+            const int failedRolls = player.getFailedJailRolls() + 1;
+            player.setFailedJailRolls(failedRolls);
             uiManager.printMessage("Belum double. Kamu tetap di penjara.");
+            if (failedRolls >= 3) {
+                uiManager.printMessage("Kamu gagal double 3 kali dan wajib membayar denda penjara.");
+                if (player.getMoney() < jailFine) {
+                    pendingDebtAmount = jailFine;
+                    pendingCreditor = nullptr;
+                    pendingDebtToBank = true;
+                    handleBankruptcy(player);
+                    return true;
+                }
+                game.getJailManager().payJailFine(player, jailFine);
+                game.getJailManager().releaseFromJail(player);
+                uiManager.printMessage("Denda penjara dibayar. Kamu keluar dari penjara.");
+            }
             return true;
         }
 

@@ -21,6 +21,7 @@ JailManager& JailManager::operator=(const JailManager& other) {
 }
 
 void JailManager::sendToJail(Player& player) {
+    player.setFailedJailRolls(0);
     player.setJailed(true);
 }
 
@@ -41,6 +42,7 @@ bool JailManager::tryRollForRelease(Dice& dice, Player& player) {
 }
 
 void JailManager::releaseFromJail(Player& player) {
+    player.setFailedJailRolls(0);
     player.setJailed(false);
 }
 

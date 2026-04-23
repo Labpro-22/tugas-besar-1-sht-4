@@ -7,6 +7,7 @@
 #include "model/managers/PropertyManager.hpp"
 #include "model/managers/WinConditionManager.hpp"
 #include "model/tiles/OwnableTile.hpp"
+#include "model/tiles/Tile.hpp"
 #include "view/UIManager.hpp"
 
 #include <algorithm>
@@ -194,9 +195,6 @@ void GameController::handleStartTurn(bool resumeExistingTurn) {
 
     if (!resumeExistingTurn) {
         player.setUsedHandCardThisTurn(false);
-
-        vector<OwnableTile*> ownedProperties = game.getPropertyManager().getOwnedProperties(game.getBoard(), player);
-        game.getFestivalManager().decrementFestivalDurations(ownedProperties);
     }
 
     uiManager.printMessage("");
@@ -229,7 +227,19 @@ void GameController::handleEndTurn() {
     Player& player = game.getCurrentPlayer();
     player.setShieldActive(false);
     player.decrementDiscountDuration();
+    const int previousTurn = game.getCurrentTurn();
     game.getTurnManager().endTurn(game.getGameContext());
+    if (game.getCurrentTurn() > previousTurn) {
+        vector<OwnableTile*> properties;
+        const vector<shared_ptr<Tile>>& tiles = game.getBoard().getTiles();
+        for (const shared_ptr<Tile>& tile : tiles) {
+            shared_ptr<OwnableTile> property = dynamic_pointer_cast<OwnableTile>(tile);
+            if (property != nullptr) {
+                properties.push_back(property.get());
+            }
+        }
+        game.getFestivalManager().decrementFestivalDurations(properties);
+    }
 }
 
 bool GameController::canSaveNow() const {
