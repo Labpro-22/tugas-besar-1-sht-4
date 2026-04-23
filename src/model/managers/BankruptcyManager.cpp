@@ -96,7 +96,8 @@ void BankruptcyManager::settleDebt(Player& debtor) {
 }
 
 void BankruptcyManager::declareBankrupt(Player& debtor, Player* creditor) {
-    (void) creditor;
+    this->debtor = &debtor;
+    this->creditor = creditor;
     debtor.setBankrupt(true);
     bankruptcyActive = true;
 }

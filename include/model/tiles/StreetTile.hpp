@@ -20,8 +20,6 @@ private:
     int hotelBuildCost;
     vector<int> rentLevels;
     int buildingLevel;
-    int festivalMultiplier;
-    int festivalDuration;
 
 public:
     StreetTile();
@@ -53,17 +51,12 @@ public:
     int getBuildingLevel() const;
     string getColorGroup() const;
     void sellBuildings();
-    void activateFestival() override;
-    void decrementFestivalDuration() override;
     void setBuildingLevel(int level);
-    void setFestivalState(int multiplier, int duration) override;
     void acquire(Player& player) override;
 
     int getHouseBuildCost() const;
     int getHotelBuildCost() const;
     const vector<int>& getRentLevels() const;
-    int getFestivalMultiplier() const override;
-    int getFestivalDuration() const override;
 
     int getBuildingValue() const override;
     int getSelltoBankValue() const override;

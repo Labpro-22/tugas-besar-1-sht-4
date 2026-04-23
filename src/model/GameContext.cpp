@@ -10,7 +10,10 @@ GameContext::GameContext(const GameContext& other)
       maxTurn(other.maxTurn),
       isRunning(other.isRunning),
       board(other.board),
-      players(other.players) {}
+      players(other.players)
+{
+    board.fixupOwnerPointers(other.players, players);
+}
 
 GameContext::~GameContext() {}
 
@@ -21,6 +24,7 @@ GameContext& GameContext::operator=(const GameContext& other) {
         isRunning = other.isRunning;
         board = other.board;
         players = other.players;
+        board.fixupOwnerPointers(other.players, players);
     }
     return *this;
 }

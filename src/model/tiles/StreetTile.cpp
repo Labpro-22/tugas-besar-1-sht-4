@@ -10,9 +10,7 @@ StreetTile::StreetTile()
       houseBuildCost(0),
       hotelBuildCost(0),
       rentLevels(),
-      buildingLevel(0),
-      festivalMultiplier(1),
-      festivalDuration(0)
+      buildingLevel(0)
 {}
 
 StreetTile::StreetTile(
@@ -31,25 +29,24 @@ StreetTile::StreetTile(
     int festivalMultiplier,
     int festivalDuration
 )  
-    : OwnableTile(index, code, name, owner, ownershipStatus, purchasePrice, mortgageValue), 
-    colorGroup(colorGroup), 
+    : OwnableTile(index, code, name, owner, ownershipStatus, purchasePrice, mortgageValue),
+    colorGroup(colorGroup),
     houseBuildCost(houseBuildCost),
     hotelBuildCost(hotelBuildCost),
     rentLevels(rentLevels),
-    buildingLevel(buildingLevel),
-    festivalMultiplier(festivalMultiplier),
-    festivalDuration(festivalDuration)
-{}
+    buildingLevel(buildingLevel)
+{
+    this->festivalMultiplier = festivalMultiplier;
+    this->festivalDuration = festivalDuration;
+}
 
-StreetTile::StreetTile(const StreetTile& other) 
-    : OwnableTile(other), 
-    colorGroup(other.colorGroup), 
-    houseBuildCost(other.houseBuildCost), 
-    hotelBuildCost(other.hotelBuildCost), 
-    rentLevels(other.rentLevels), 
-    buildingLevel(other.buildingLevel), 
-    festivalMultiplier(other.festivalMultiplier), 
-    festivalDuration(other.festivalDuration)
+StreetTile::StreetTile(const StreetTile& other)
+    : OwnableTile(other),
+    colorGroup(other.colorGroup),
+    houseBuildCost(other.houseBuildCost),
+    hotelBuildCost(other.hotelBuildCost),
+    rentLevels(other.rentLevels),
+    buildingLevel(other.buildingLevel)
 {}
 
 StreetTile::~StreetTile() {}
@@ -62,8 +59,6 @@ StreetTile& StreetTile::operator=(const StreetTile& other) {
         this->hotelBuildCost = other.hotelBuildCost;
         this->rentLevels = other.rentLevels;
         this->buildingLevel = other.buildingLevel;
-        this->festivalMultiplier = other.festivalMultiplier;
-        this->festivalDuration = other.festivalDuration;
     }
     return *this;
 }
@@ -73,15 +68,16 @@ Tile::TileType StreetTile::onLand() const {
 }
 
 int StreetTile::calculateRent(const RentContext& rentContext) const {
-    // TODO : make sure post build rent rules 
     if (ownershipStatus == OwnershipStatus::MORTGAGED) return 0;
+    if (rentLevels.empty()) return 0;
     int rent = 0;
     if (buildingLevel == 0) {
         rent = rentLevels[0];
         if (rentContext.getOwnerHasColorGroup()) rent *= 2;
+    } else {
+        int idx = min(buildingLevel, static_cast<int>(rentLevels.size()) - 1);
+        rent = rentLevels[static_cast<size_t>(idx)];
     }
-    else rent = rentLevels[buildingLevel];
-
     rent *= festivalMultiplier;
     return rent;
 }
@@ -113,29 +109,6 @@ void StreetTile::setBuildingLevel(int level) {
     buildingLevel = max(0, min(5, level));
 }
 
-void StreetTile::setFestivalState(int multiplier, int duration) {
-    festivalMultiplier = max(1, multiplier);
-    festivalDuration = max(0, duration);
-    if (festivalDuration == 0) {
-        festivalMultiplier = 1;
-    }
-}
-
-void StreetTile::activateFestival() {
-    if (festivalMultiplier < 2) festivalMultiplier = 2;
-    else if (festivalMultiplier < 8) festivalMultiplier *= 2;
-    festivalDuration = 3;
-}
-
-void StreetTile::decrementFestivalDuration() {
-    if (festivalDuration > 0) {
-        festivalDuration--;
-    }
-    if (festivalDuration == 0) {
-        festivalMultiplier = 1;
-    }
-}
-
 void StreetTile::acquire(Player& player) {
     if (this->getOwner() != nullptr) throw InvalidActionException("Property already has an owner");
     if (this->ownershipStatus != OwnershipStatus::BANK) throw InvalidActionException("Property is not in BANK status");
@@ -162,14 +135,6 @@ int StreetTile::getHotelBuildCost() const {
 
 const vector<int>& StreetTile::getRentLevels() const {
     return rentLevels;
-}
-
-int StreetTile::getFestivalMultiplier() const {
-    return festivalMultiplier;
-}
-
-int StreetTile::getFestivalDuration() const {
-    return festivalDuration;
 }
 
 int StreetTile::getBuildingValue() const  {

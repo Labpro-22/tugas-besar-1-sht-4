@@ -348,9 +348,17 @@ const vector<Player>& Game::getPlayers() const {
 }
 
 bool Game::isGameOver() {
-    return getBankruptcyManager().isBankruptcyActive() || hasReachedMaxTurn();
+    int activePlayers = 0;
+    for (const Player& p : getPlayers()) {
+        if (!p.isBankrupt()) ++activePlayers;
+    }
+    return activePlayers <= 1 || hasReachedMaxTurn();
 }
 
 bool Game::isGameOver() const {
-    return getBankruptcyManager().isBankruptcyActive() || hasReachedMaxTurn();
+    int activePlayers = 0;
+    for (const Player& p : getPlayers()) {
+        if (!p.isBankrupt()) ++activePlayers;
+    }
+    return activePlayers <= 1 || hasReachedMaxTurn();
 }

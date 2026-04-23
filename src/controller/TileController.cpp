@@ -419,7 +419,7 @@ void TileController::handleStreetPurchase(StreetTile& tile) {
                 game.getCurrentTurn(),
                 player.getUsername(),
                 "BELI",
-                "Membeli " + tile.getName() + " (" + tile.getCode() + ") seharga M" + to_string(price)
+                "Membeli " + tile.getName() + " (" + tile.getCode() + ") seharga M" + to_string(purchasePrice)
             );
             return;
         }
@@ -960,8 +960,9 @@ void TileController::handleBankruptcy(Player& player) {
 
         if (player.getMoney() >= pendingDebtAmount) {
             if (!pendingDebtToBank && pendingCreditor != nullptr) {
+                int actualPayment = player.effectiveCost(pendingDebtAmount);
                 player -= pendingDebtAmount;
-                *pendingCreditor += pendingDebtAmount;
+                *pendingCreditor += actualPayment;
             } else {
                 player -= pendingDebtAmount;
             }
@@ -975,7 +976,7 @@ void TileController::handleBankruptcy(Player& player) {
     vector<OwnableTile*> properties = ownedProperties(game, player);
     if (!pendingDebtToBank && pendingCreditor != nullptr) {
         *pendingCreditor += max(0, player.getMoney());
-        player -= player.getMoney();
+        player.setMoney(0);
 
         for (OwnableTile* property : properties) {
             if (property != nullptr) {
@@ -993,8 +994,7 @@ void TileController::handleBankruptcy(Player& player) {
         }
         uiManager.printMessage("Aset dialihkan ke " + pendingCreditor->getUsername() + ".");
     } else {
-        player -= player.getMoney();
-        player.setBankrupt(true);
+        player.setMoney(0);
         for (OwnableTile* property : properties) {
             if (property != nullptr) {
                 returnPropertyToBank(*property);

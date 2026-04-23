@@ -35,19 +35,17 @@ AuctionManager::AuctionManager(
     triggerPlayer{triggerPlayer}
     {}
 
-AuctionManager::AuctionManager(const AuctionManager& other) {
-    if (this != &other) {
-        this->currentBid = other.currentBid;
-        this->highestBidder = other.highestBidder;
-        this->participants = other.participants;
-        this->currentAuctionPlayerIndex = other.currentAuctionPlayerIndex;
-        this->consecutivePasses = other.consecutivePasses;
-        this->auctionActive = other.auctionActive;
-        this->hasAnyBid = other.hasAnyBid;
-        this->currentTile = other.currentTile;
-        this->triggerPlayer = other.triggerPlayer;
-    }
-}
+AuctionManager::AuctionManager(const AuctionManager& other)
+    : currentBid(other.currentBid),
+      highestBidder(other.highestBidder),
+      participants(other.participants),
+      currentAuctionPlayerIndex(other.currentAuctionPlayerIndex),
+      consecutivePasses(other.consecutivePasses),
+      auctionActive(other.auctionActive),
+      hasAnyBid(other.hasAnyBid),
+      currentTile(other.currentTile),
+      triggerPlayer(other.triggerPlayer)
+{}
 
 AuctionManager::~AuctionManager() {}
 
@@ -84,6 +82,11 @@ void AuctionManager::initializeAuction(GameContext& gameContext, StreetTile& til
 }
 
 Player* AuctionManager::getCurrentAuctionPlayer() const {
+    if (participants.empty() ||
+        currentAuctionPlayerIndex < 0 ||
+        currentAuctionPlayerIndex >= static_cast<int>(participants.size())) {
+        return nullptr;
+    }
     return participants[currentAuctionPlayerIndex];
 }
 
@@ -115,8 +118,10 @@ bool AuctionManager::isAuctionOver() const {
 }
 
 void AuctionManager::advanceToNextAuctionPlayer() {
+    if (participants.empty()) return;
     pass(*participants[currentAuctionPlayerIndex]);
-    currentAuctionPlayerIndex = (currentAuctionPlayerIndex + 1) % participants.size();
+    currentAuctionPlayerIndex =
+        (currentAuctionPlayerIndex + 1) % static_cast<int>(participants.size());
 }
 
 void AuctionManager::finalizeAuction(StreetTile& tile) {

@@ -240,7 +240,8 @@ int Board::getTileIndex(const string& code) const {
 }
 
 int Board::getNextPosition(int currentPos, int steps) const {
-    return (currentPos + steps) % tiles.size();
+    if (tiles.empty()) return currentPos;
+    return (currentPos + steps) % static_cast<int>(tiles.size());
 }
 
 int Board::getBoardSize() const {
@@ -272,4 +273,18 @@ int Board::countUtilitiesOwned(const Player& player) const {
         if (utility != nullptr) return utility->getOwner() == &player;
         return false;
     });
+}
+
+void Board::fixupOwnerPointers(const vector<Player>& oldPlayers, vector<Player>& newPlayers) {
+    for (const auto& tile : tiles) {
+        OwnableTile* ownable = dynamic_cast<OwnableTile*>(tile.get());
+        if (ownable == nullptr || ownable->getOwner() == nullptr) continue;
+        const Player* oldOwner = ownable->getOwner();
+        for (size_t i = 0; i < oldPlayers.size(); ++i) {
+            if (&oldPlayers[i] == oldOwner) {
+                ownable->setOwner(&newPlayers[i]);
+                break;
+            }
+        }
+    }
 }

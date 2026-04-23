@@ -8,11 +8,11 @@
 #include "model/tiles/StreetTile.hpp"
 #include "model/tiles/RailroadTile.hpp"
 #include "model/tiles/UtilityTile.hpp"
+#include "model/Player.hpp"
 
 using namespace std;
 
 class ConfigManager;
-class Player;
 class Tile;
 
 class Board {
@@ -39,4 +39,6 @@ public:
     vector<shared_ptr<StreetTile>> getStreetTileByColorGroup(const string& colorGroup) const;
     int countRailroadsOwned(const Player& player) const;
     int countUtilitiesOwned(const Player& player) const;
+
+    void fixupOwnerPointers(const vector<Player>& oldPlayers, vector<Player>& newPlayers);
 };
