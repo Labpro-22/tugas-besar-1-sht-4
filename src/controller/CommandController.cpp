@@ -843,8 +843,8 @@ void CommandController::handleBuild() {
 
     StreetTile* street = streets[static_cast<size_t>(tileChoice - 1)];
     const int oldLevel = street->getBuildingLevel();
-    int buildCost = street->getHouseBuildCost();
-    if (oldLevel >= 4) buildCost = street->getHotelBuildCost();
+    const int basePrice = (oldLevel >= 4) ? street->getHotelBuildCost() : street->getHouseBuildCost();
+    const int buildCost = game.getPropertyManager().getDiscountedPrice(player, basePrice);
     if (oldLevel >= 4) {
         uiManager.printMessage("Upgrade ke hotel? Biaya: " + formatMoney(buildCost) + " (y/n): ");
         if (!uiManager.readYesNo()) {

@@ -177,13 +177,6 @@ int liquidationValue(Game& game, Player& player) {
     return total;
 }
 
-int discountedPurchasePrice(const Player& player, const OwnableTile& property) {
-    int price = property.getPurchasePrice();
-    if (player.getDiscountDuration() > 0 && player.getDiscountPercent() > 0) {
-        price = price * (100 - player.getDiscountPercent()) / 100;
-    }
-    return max(0, price);
-}
 
 void acquireProperty(Player& player, OwnableTile& property, int price) {
     player -= price;
@@ -236,7 +229,7 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
             Player* owner = property.getOwner();
 
             if (owner == nullptr || property.getOwnershipStatus() == OwnershipStatus::BANK) {
-                const int price = discountedPurchasePrice(player, property);
+                const int price = game.getPropertyManager().getDiscountedPrice(player, property.getPurchasePrice());
                 if (player.getMoney() < price) {
                     uiManager.printError("Uang kamu tidak cukup untuk membeli " + tile.getName() + ".");
                     return;
@@ -371,6 +364,8 @@ void TileController::handleStreetPurchase(StreetTile& tile) {
             ownerName
         );
 
+        purchasePrice = game.getPropertyManager().getDiscountedPrice(player, tile.getPurchasePrice());
+
         uiManager.printStreetPurchasePrompt(
             player.getUsername(),
             player.getMoney(),
@@ -386,7 +381,7 @@ void TileController::handleStreetPurchase(StreetTile& tile) {
         );
 
         const bool wantsToBuy = uiManager.readYesNo();
-        const int price = discountedPurchasePrice(player, tile);
+        const int price = game.getPropertyManager().getDiscountedPrice(player, tile.getPurchasePrice());
         if (wantsToBuy && player.getMoney() >= price) {
             acquireProperty(player, tile, price);
             uiManager.printMessage(tile.getName() + " kini menjadi milikmu!");
