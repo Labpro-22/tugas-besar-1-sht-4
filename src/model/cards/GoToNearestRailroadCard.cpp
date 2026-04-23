@@ -23,5 +23,5 @@ GoToNearestRailroadCard& GoToNearestRailroadCard::operator=(const GoToNearestRai
 }
 
 void GoToNearestRailroadCard::apply(Game& game, Player& player) {
-    game.getMovementManager().movePlayerToNearestRailroad(player);
+    game.getMovementManager().movePlayerToNearestRailroad(player, game.getBoard());
 }
