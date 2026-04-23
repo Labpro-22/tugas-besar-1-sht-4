@@ -838,7 +838,7 @@ void UIManager::printFestivalState(
     count = min(count, propertyStatuses.size());
 
     if (count == 0) {
-        cout << playerName << " belum memiliki street yang dapat diberi efek festival.\n";
+        cout << playerName << " belum memiliki properti yang dapat diberi efek festival.\n";
         return;
     }
 

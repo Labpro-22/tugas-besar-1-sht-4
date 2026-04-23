@@ -38,7 +38,7 @@ int UtilityTile::calculateRent(const RentContext& rentContext) const {
     if (this->getOwner() == nullptr) return 0;
     if (this->getOwnershipStatus() == OwnershipStatus::MORTGAGED) return 0;
 
-    return rentContext.getDiceTotal() * rentContext.getUtilityMultiplier();
+    return rentContext.getDiceTotal() * rentContext.getUtilityMultiplier() * getFestivalMultiplier();
 }
 
 Tile::TileType UtilityTile::onLand() const {
@@ -57,5 +57,5 @@ int UtilityTile::getBuildingValue() const {
 }
 
 int UtilityTile::getSelltoBankValue() const {
-    return purchasePrice;
+    return mortgageValue;
 }

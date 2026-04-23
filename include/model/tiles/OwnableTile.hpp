@@ -23,6 +23,8 @@ protected:
     OwnershipStatus ownershipStatus;
     int purchasePrice;
     int mortgageValue;
+    int festivalMultiplier;
+    int festivalDuration;
 
 public:
     OwnableTile();
@@ -53,6 +55,11 @@ public:
     OwnershipStatus getOwnershipStatus() const;
     int getPurchasePrice() const;
     int getMortgageValue() const;
+    virtual int getFestivalMultiplier() const;
+    virtual int getFestivalDuration() const;
+    virtual void activateFestival();
+    virtual void decrementFestivalDuration();
+    virtual void setFestivalState(int multiplier, int duration);
 
     virtual int getBuildingValue() const = 0;
     virtual int getSelltoBankValue() const = 0;

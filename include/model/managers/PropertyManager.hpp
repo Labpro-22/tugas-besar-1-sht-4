@@ -27,6 +27,7 @@ public:
 
     void payRent(const Board& board, const ConfigManager& configManager, const Dice& dice, Player& player, OwnableTile& tile);
     void mortgageProperty(Player& player, OwnableTile& tile);
+    int getRedeemCost(const OwnableTile& tile) const;
     void redeemProperty(Player& player, OwnableTile& tile);
     void buildOnStreet(const Board& board, Player& player, StreetTile& tile);
     void sellBuildingsInColorGroup(Player& player, const string& colorGroup);

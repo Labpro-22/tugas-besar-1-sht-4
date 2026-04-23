@@ -807,7 +807,17 @@ void CommandController::handleRedeem() {
     vector<string> valueLabels;
     vector<int> values;
     vector<string> statuses;
-    fillPropertyOptionVectors(properties, "Harga Tebus", groups, names, codes, valueLabels, values, statuses, false);
+    for (OwnableTile* property : properties) {
+        if (property == nullptr) {
+            continue;
+        }
+        groups.push_back(propertyGroupLabel(*property));
+        names.push_back(property->getName());
+        codes.push_back(property->getCode());
+        valueLabels.push_back("Harga Tebus");
+        values.push_back(game.getPropertyManager().getRedeemCost(*property));
+        statuses.push_back(ownershipStatusText(property->getOwnershipStatus()));
+    }
 
     uiManager.printRedeemOptions(player.getMoney(), groups, names, codes, valueLabels, values, statuses);
     if (properties.empty()) {
@@ -825,7 +835,7 @@ void CommandController::handleRedeem() {
     }
 
     OwnableTile* property = properties[static_cast<size_t>(choice - 1)];
-    const int redeemCost = property->getPurchasePrice();
+    const int redeemCost = game.getPropertyManager().getRedeemCost(*property);
     if (player.getMoney() < redeemCost) {
         uiManager.printError("Uang kamu tidak cukup untuk menebus " + property->getName() + ".");
         uiManager.printError(

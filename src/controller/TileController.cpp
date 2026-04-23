@@ -75,7 +75,7 @@ string TileController::buildingText(const StreetTile& tile) const {
     return to_string(tile.getBuildingLevel()) + " rumah";
 }
 
-string TileController::festivalStatus(const StreetTile& tile) const {
+string TileController::festivalStatus(const OwnableTile& tile) const {
     if (tile.getFestivalDuration() <= 0 || tile.getFestivalMultiplier() <= 1) {
         return "";
     }
@@ -83,13 +83,14 @@ string TileController::festivalStatus(const StreetTile& tile) const {
            " (" + to_string(tile.getFestivalDuration()) + " giliran)";
 }
 
-int TileController::rentPreview(const StreetTile& tile) const {
-    const vector<int>& rentLevels = tile.getRentLevels();
-    const int level = min(tile.getBuildingLevel(), static_cast<int>(rentLevels.size()) - 1);
-    if (level < 0 || rentLevels.empty()) {
-        return 0;
-    }
-    return rentLevels[static_cast<size_t>(level)] * tile.getFestivalMultiplier();
+int TileController::rentPreview(const OwnableTile& tile) const {
+    RentContext rentContext = game.getPropertyManager().createRentContext(
+        game.getBoard(),
+        game.getConfigManager(),
+        game.getDice(),
+        tile
+    );
+    return tile.calculateRent(rentContext);
 }
 
 void TileController::buildDeedData(
@@ -714,36 +715,35 @@ void TileController::handleFestival(FestivalTile& tile) {
     Player& player = game.getCurrentPlayer();
     vector<OwnableTile*> properties = ownedProperties(game, player);
 
-    vector<StreetTile*> streets;
+    vector<OwnableTile*> festivalProperties;
     vector<string> names;
     vector<string> codes;
     vector<string> statuses;
     for (OwnableTile* property : properties) {
-        StreetTile* street = dynamic_cast<StreetTile*>(property);
-        if (street != nullptr) {
-            streets.push_back(street);
-            names.push_back(street->getName());
-            codes.push_back(street->getCode());
-            statuses.push_back(festivalStatus(*street));
+        if (property != nullptr) {
+            festivalProperties.push_back(property);
+            names.push_back(property->getName());
+            codes.push_back(property->getCode());
+            statuses.push_back(festivalStatus(*property));
         }
     }
 
     uiManager.printFestivalState(player.getUsername(), names, codes, statuses);
-    if (streets.empty()) {
+    if (festivalProperties.empty()) {
         return;
     }
 
-    const int choice = uiManager.readFestivalPropertyChoice(static_cast<int>(streets.size()));
+    const int choice = uiManager.readFestivalPropertyChoice(static_cast<int>(festivalProperties.size()));
     if (choice == 0) {
         uiManager.printMessage("Festival dibatalkan.");
         return;
     }
-    if (choice < 1 || choice > static_cast<int>(streets.size())) {
+    if (choice < 1 || choice > static_cast<int>(festivalProperties.size())) {
         uiManager.printMessage("Festival dibatalkan.");
         return;
     }
 
-    StreetTile* selected = streets[static_cast<size_t>(choice - 1)];
+    OwnableTile* selected = festivalProperties[static_cast<size_t>(choice - 1)];
     const int oldRent = rentPreview(*selected);
     const int oldMultiplier = selected->getFestivalMultiplier();
     const bool alreadyMaxed = selected->getFestivalMultiplier() >= 8;
@@ -798,6 +798,22 @@ void TileController::handleForceDrop(Player& player) {
 bool TileController::handleJailTurn(Player& player) {
     const int jailFine = game.getConfigManager().getJailFine();
     uiManager.printJailOptions(player.getUsername(), player.getMoney(), jailFine, player.getFailedJailRolls());
+
+    if (player.getFailedJailRolls() >= 3) {
+        uiManager.printMessage("Kamu sudah gagal double 3 kali dan wajib membayar denda penjara.");
+        if (player.getMoney() < jailFine) {
+            pendingDebtAmount = jailFine;
+            pendingCreditor = nullptr;
+            pendingDebtToBank = true;
+            handleBankruptcy(player);
+            return true;
+        }
+        game.getJailManager().payJailFine(player, jailFine);
+        game.getJailManager().releaseFromJail(player);
+        uiManager.printMessage("Denda penjara dibayar. Kamu keluar dari penjara.");
+        return false;
+    }
+
     const int choice = uiManager.readJailChoice();
 
     if (choice == 1) {
@@ -823,19 +839,6 @@ bool TileController::handleJailTurn(Player& player) {
             const int failedRolls = player.getFailedJailRolls() + 1;
             player.setFailedJailRolls(failedRolls);
             uiManager.printMessage("Belum double. Kamu tetap di penjara.");
-            if (failedRolls >= 3) {
-                uiManager.printMessage("Kamu gagal double 3 kali dan wajib membayar denda penjara.");
-                if (player.getMoney() < jailFine) {
-                    pendingDebtAmount = jailFine;
-                    pendingCreditor = nullptr;
-                    pendingDebtToBank = true;
-                    handleBankruptcy(player);
-                    return true;
-                }
-                game.getJailManager().payJailFine(player, jailFine);
-                game.getJailManager().releaseFromJail(player);
-                uiManager.printMessage("Denda penjara dibayar. Kamu keluar dari penjara.");
-            }
             return true;
         }
 

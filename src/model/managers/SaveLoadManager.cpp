@@ -110,8 +110,21 @@ static string statusToStr(PlayerStatus s) {
 static PlayerStatus strToStatus(const string& s) {
     if (s == "ACTIVE")   return PlayerStatus::ACTIVE;
     if (s == "JAILED")   return PlayerStatus::JAILED;
+    if (s.rfind("JAILED_", 0) == 0) return PlayerStatus::JAILED;
     if (s == "BANKRUPT") return PlayerStatus::BANKRUPT;
     throw FileException("Status pemain tidak valid: " + s);
+}
+
+static int jailAttemptsFromStatus(const string& s) {
+    if (s.rfind("JAILED_", 0) != 0) {
+        return 0;
+    }
+
+    int attempts = 0;
+    if (!tryParseInt(s.substr(7), attempts)) {
+        throw FileException("Status penjara tidak valid: " + s);
+    }
+    return max(0, min(3, attempts));
 }
 
 static string ownershipToStr(OwnershipStatus s) {
@@ -258,10 +271,15 @@ void SaveLoadManager::savePlayers(const Game& game, ostream& out) {
         shared_ptr<Tile> tile = board.getTile(p.getPosition());
         if (tile) posCode = tile->getCode();
 
+        string statusText = statusToStr(p.getStatus());
+        if (p.getStatus() == PlayerStatus::JAILED) {
+            statusText = "JAILED_" + to_string(max(0, min(3, p.getFailedJailRolls())));
+        }
+
         out << p.getUsername() << " "
             << p.getMoney() << " "
             << posCode << " "
-            << statusToStr(p.getStatus()) << "\n";
+            << statusText << "\n";
 
         vector<shared_ptr<HandCard>> cards = p.getHandCards();
         int cardCount = 0;
@@ -321,8 +339,9 @@ void SaveLoadManager::loadPlayers(Game& game, istream& in) {
         }
 
         PlayerStatus status = strToStatus(statusStr);
+        int failedJailRolls = jailAttemptsFromStatus(statusStr);
 
-        Player p(username, money, position, status, 0, false, false, 0, 0);
+        Player p(username, money, position, status, failedJailRolls, false, false, 0, 0);
 
         int numCards = parseCountLine(in, "PLAYER_CARD_COUNT_" + username);
 
@@ -478,7 +497,8 @@ void SaveLoadManager::saveProperties(const Game& game, ostream& out) {
             out << railroad->getCode() << " railroad "
                 << ownerStr << " "
                 << ownershipToStr(ownership) << " "
-                << "1 0 0\n";
+                << railroad->getFestivalMultiplier() << " "
+                << railroad->getFestivalDuration() << " 0\n";
             continue;
         }
 
@@ -487,7 +507,8 @@ void SaveLoadManager::saveProperties(const Game& game, ostream& out) {
             out << utility->getCode() << " utility "
                 << ownerStr << " "
                 << ownershipToStr(ownership) << " "
-                << "1 0 0\n";
+                << utility->getFestivalMultiplier() << " "
+                << utility->getFestivalDuration() << " 0\n";
             continue;
         }
     }
@@ -565,6 +586,7 @@ void SaveLoadManager::loadProperties(Game& game, istream& in) {
 
             railroad->setOwnershipStatus(os);
             railroad->setOwner(owner);
+            railroad->setFestivalState(fmult, fdur);
         } else if (type == "utility") {
             shared_ptr<UtilityTile> utility = dynamic_pointer_cast<UtilityTile>(tile);
             if (!utility) {
@@ -573,6 +595,7 @@ void SaveLoadManager::loadProperties(Game& game, istream& in) {
 
             utility->setOwnershipStatus(os);
             utility->setOwner(owner);
+            utility->setFestivalState(fmult, fdur);
         } else {
             throw FileException("Jenis properti tidak valid: " + type);
         }

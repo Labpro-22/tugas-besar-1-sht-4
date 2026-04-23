@@ -88,9 +88,17 @@ void PropertyManager::mortgageProperty(Player& player, OwnableTile& tile) {
     player += tile.getMortgageValue();
 }
 
+int PropertyManager::getRedeemCost(const OwnableTile& tile) const {
+    if (dynamic_cast<const RailroadTile*>(&tile) != nullptr ||
+        dynamic_cast<const UtilityTile*>(&tile) != nullptr) {
+        return tile.getMortgageValue() * 2;
+    }
+    return tile.getPurchasePrice();
+}
+
 void PropertyManager::redeemProperty(Player& player, OwnableTile& tile) {
     if (!tile.isMortgaged()) return;
-    int redeemCost = tile.getPurchasePrice();
+    int redeemCost = getRedeemCost(tile);
     if (player.getMoney() < redeemCost) return;
     player -= redeemCost;
     tile.redeem();
@@ -219,18 +227,6 @@ vector<OwnableTile*> PropertyManager::getMortgageableProperties(const Game& game
         if (property == nullptr || !canMortgage(player, *property)) {
             continue;
         }
-
-        StreetTile* street = dynamic_cast<StreetTile*>(property);
-        if (street != nullptr) {
-            vector<shared_ptr<StreetTile>> streets = game.getBoard().getStreetTileByColorGroup(street->getColorGroup());
-            const bool hasBuildings = any_of(streets.begin(), streets.end(), [](const shared_ptr<StreetTile>& groupStreet) {
-                return groupStreet != nullptr && groupStreet->getBuildingLevel() > 0;
-            });
-            if (hasBuildings) {
-                continue;
-            }
-        }
-
         mortgageableProperties.push_back(property);
     }
     return mortgageableProperties;

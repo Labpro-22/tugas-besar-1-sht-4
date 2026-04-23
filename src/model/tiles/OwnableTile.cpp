@@ -1,5 +1,7 @@
 #include "model/tiles/OwnableTile.hpp"
 
+#include <algorithm>
+
 using namespace std;
 
 OwnableTile::OwnableTile()
@@ -7,7 +9,9 @@ OwnableTile::OwnableTile()
       owner(nullptr),
       ownershipStatus(OwnershipStatus::BANK),
       purchasePrice(0),
-      mortgageValue(0)
+      mortgageValue(0),
+      festivalMultiplier(1),
+      festivalDuration(0)
 {}
 
 OwnableTile::OwnableTile(
@@ -23,7 +27,9 @@ OwnableTile::OwnableTile(
     owner(owner), 
     ownershipStatus(ownershipStatus), 
     purchasePrice(purchasePrice), 
-    mortgageValue(mortgageValue)
+    mortgageValue(mortgageValue),
+    festivalMultiplier(1),
+    festivalDuration(0)
 {}
 
 OwnableTile::OwnableTile(const OwnableTile& other) 
@@ -31,7 +37,9 @@ OwnableTile::OwnableTile(const OwnableTile& other)
     owner(other.owner), 
     ownershipStatus(other.ownershipStatus), 
     purchasePrice(other.purchasePrice), 
-    mortgageValue(other.mortgageValue)  {}
+    mortgageValue(other.mortgageValue),
+    festivalMultiplier(other.festivalMultiplier),
+    festivalDuration(other.festivalDuration)  {}
 
 OwnableTile::~OwnableTile() {}
 
@@ -42,6 +50,8 @@ OwnableTile& OwnableTile::operator=(const OwnableTile& other) {
         this->ownershipStatus = other.ownershipStatus;
         this->purchasePrice = other.purchasePrice;
         this->mortgageValue = other.mortgageValue;
+        this->festivalMultiplier = other.festivalMultiplier;
+        this->festivalDuration = other.festivalDuration;
     }
     return *this;
 }
@@ -86,4 +96,35 @@ int OwnableTile::getPurchasePrice() const {
 
 int OwnableTile::getMortgageValue() const {
     return mortgageValue;
+}
+
+int OwnableTile::getFestivalMultiplier() const {
+    return festivalMultiplier;
+}
+
+int OwnableTile::getFestivalDuration() const {
+    return festivalDuration;
+}
+
+void OwnableTile::activateFestival() {
+    if (festivalMultiplier < 2) festivalMultiplier = 2;
+    else if (festivalMultiplier < 8) festivalMultiplier *= 2;
+    festivalDuration = 3;
+}
+
+void OwnableTile::decrementFestivalDuration() {
+    if (festivalDuration > 0) {
+        festivalDuration--;
+    }
+    if (festivalDuration == 0) {
+        festivalMultiplier = 1;
+    }
+}
+
+void OwnableTile::setFestivalState(int multiplier, int duration) {
+    festivalMultiplier = max(1, multiplier);
+    festivalDuration = max(0, duration);
+    if (festivalDuration == 0) {
+        festivalMultiplier = 1;
+    }
 }
