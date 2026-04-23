@@ -63,8 +63,9 @@ void Board::initializeBoard(const ConfigManager& configManager) {
 
     auto addPropertyById = [&](int id) {
         const ConfigManager::PropertyConfig& cfg = configManager.getPropertyConfigById(id);
+        const string propertyType = this->normalizeConfigKey(cfg.getPropertyType());
 
-        if (id == 6 || id == 16 || id == 26 || id == 36) {
+        if (propertyType == "RAILROAD") {
             addTile(make_shared<RailroadTile>(
                 id,
                 cfg.getCode(),
@@ -77,7 +78,7 @@ void Board::initializeBoard(const ConfigManager& configManager) {
             return;
         }
 
-        if (id == 13 || id == 29) {
+        if (propertyType == "UTILITY") {
             addTile(make_shared<UtilityTile>(
                 id,
                 cfg.getCode(),
@@ -88,6 +89,13 @@ void Board::initializeBoard(const ConfigManager& configManager) {
                 cfg.getMortgageValue()
             ));
             return;
+        }
+
+        if (propertyType != "STREET") {
+            throw FileException(
+                "Jenis properti tidak dikenal pada ID " +
+                to_string(id) + ": " + cfg.getPropertyType()
+            );
         }
 
         addTile(make_shared<StreetTile>(

@@ -58,6 +58,7 @@ void Application::run() {
 
 void Application::initialize() {
     running = true;
+    game.getConfigManager().loadAllConfigs();
 }
 
 void Application::showMainMenu() {
