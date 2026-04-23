@@ -91,7 +91,8 @@ void PropertyManager::mortgageProperty(Player& player, OwnableTile& tile) {
 void PropertyManager::redeemProperty(Player& player, OwnableTile& tile) {
     if (!tile.isMortgaged()) return;
     int redeemCost = tile.getPurchasePrice();
-    if (player.getMoney() < redeemCost) return;
+    
+    if (player.getMoney() < player.effectiveCost(redeemCost)) return;
     player -= redeemCost;
     tile.redeem();
 }
@@ -99,10 +100,10 @@ void PropertyManager::redeemProperty(Player& player, OwnableTile& tile) {
 void PropertyManager::buildOnStreet(const Board& board, Player& player, StreetTile& tile) {
     if (canBuildHouse(board, player, tile)) {
         tile.buildHouse();
-        player -= getDiscountedPrice(player, tile.getHouseBuildCost());
+        player -= tile.getHouseBuildCost();
     } else if (canBuildHotel(board, player, tile)) {
         tile.buildHotel();
-        player -= getDiscountedPrice(player, tile.getHotelBuildCost());
+        player -= tile.getHotelBuildCost();
     }
 }
 
@@ -123,7 +124,7 @@ bool PropertyManager::canBuild(const Board& board, const Player& player, const S
 bool PropertyManager::canBuildHouse(const Board& board, const Player& player, const StreetTile& tile) const {
     if (!tile.isOwned() || tile.getOwner() != &player) return false;
     if (tile.hasHotel() || tile.getBuildingLevel() == 4) return false;
-    if (player.getMoney() < getDiscountedPrice(player, tile.getHouseBuildCost())) return false;
+    if (player.getMoney() < player.effectiveCost(tile.getHouseBuildCost())) return false;
 
     vector<shared_ptr<StreetTile>> streets = board.getStreetTileByColorGroup(tile.getColorGroup());
     if (streets.empty()) return false;
@@ -142,7 +143,7 @@ bool PropertyManager::canBuildHouse(const Board& board, const Player& player, co
 bool PropertyManager::canBuildHotel(const Board& board, const Player& player, const StreetTile& tile) const {
     if (!tile.isOwned() || tile.getOwner() != &player) return false;
     if (tile.hasHotel()) return false;
-    if (player.getMoney() < getDiscountedPrice(player, tile.getHotelBuildCost())) return false;
+    if (player.getMoney() < player.effectiveCost(tile.getHotelBuildCost())) return false;
 
     vector<shared_ptr<StreetTile>> streets = board.getStreetTileByColorGroup(tile.getColorGroup());
     if (streets.empty()) return false;
@@ -179,13 +180,6 @@ void PropertyManager::sellPropertyToBank(Player& player, OwnableTile& tile) {
 
 int PropertyManager::calculateSellToBankValue(const OwnableTile& tile) const {
     return tile.getSelltoBankValue();
-}
-
-int PropertyManager::getDiscountedPrice(const Player& player, int basePrice) const {
-    if (player.getDiscountDuration() > 0 && player.getDiscountPercent() > 0) {
-        return max(0, basePrice * (100 - player.getDiscountPercent()) / 100);
-    }
-    return basePrice;
 }
 
 vector<OwnableTile*> PropertyManager::getOwnedProperties(const Board& board, const Player& player) const {
