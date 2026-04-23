@@ -2,7 +2,9 @@
 
 using namespace std;
 
-TaxTile::TaxTile() {}
+TaxTile::TaxTile()
+    : ActionTile(), taxAmount(0)
+{}
 
 TaxTile::TaxTile(int index, const string& code, const string& name, int taxAmount)
     : ActionTile(index, code, name), taxAmount(taxAmount)

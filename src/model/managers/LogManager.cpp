@@ -5,7 +5,12 @@
 
 using namespace std;
 
-LogManager::LogEntry::LogEntry() {}
+LogManager::LogEntry::LogEntry()
+    : turnNumber(0),
+      username(""),
+      actionType(""),
+      detail("")
+{}
 
 LogManager::LogEntry::LogEntry(int turnNumber, const string& username, const string& actionType, const string& detail)
     : turnNumber(turnNumber), username(username), actionType(actionType), detail(detail) {}
@@ -42,7 +47,9 @@ string LogManager::LogEntry::format() const {
     return stream.str();
 }
 
-LogManager::LogManager() {}
+LogManager::LogManager()
+    : logs()
+{}
 
 LogManager::LogManager(const vector<LogEntry>& logs) : logs(logs) {}
 

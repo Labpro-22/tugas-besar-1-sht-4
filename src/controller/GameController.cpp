@@ -13,32 +13,32 @@
 #include <algorithm>
 #include <cctype>
 #include <iostream>
+#include <memory>
 #include <sstream>
 
 using namespace std;
 
-namespace {
-string toUpperCopy(string value) {
+string GameController::toUpperCopy(string value) const {
     transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
         return static_cast<char>(toupper(ch));
     });
     return value;
 }
 
-string firstToken(const string& input) {
+string GameController::firstToken(const string& input) const {
     istringstream stream(input);
     string command;
     stream >> command;
     return toUpperCopy(command);
 }
 
-bool isTurnEndingCommand(const string& input) {
+bool GameController::isTurnEndingCommand(const string& input) const {
     const string command = firstToken(input);
     return command == "LEMPAR_DADU" ||
            command == "ATUR_DADU";
 }
 
-size_t activePlayerCount(const Game& game) {
+size_t GameController::activePlayerCount(const Game& game) const {
     size_t count = 0;
     for (const Player& player : game.getPlayers()) {
         if (!player.isBankrupt()) {
@@ -47,44 +47,41 @@ size_t activePlayerCount(const Game& game) {
     }
     return count;
 }
-}
 
 GameController::GameController(Game& game, UIManager& uiManager)
     : game(game),
       uiManager(uiManager),
-      commandController(new CommandController(game, uiManager)),
-      tileController(new TileController(game, uiManager)),
-      rolledThisTurn(false) {}
+      commandController(make_unique<CommandController>(game, uiManager)),
+      tileController(make_unique<TileController>(game, uiManager)),
+      rolledThisTurn(false),
+      diceRolledThisTurn(false) {}
 
 GameController::GameController(const GameController& other)
     : game(other.game),
       uiManager(other.uiManager),
-      commandController(new CommandController(game, uiManager)),
-      tileController(new TileController(game, uiManager)),
-      rolledThisTurn(other.rolledThisTurn) {}
+      commandController(make_unique<CommandController>(game, uiManager)),
+      tileController(make_unique<TileController>(game, uiManager)),
+      rolledThisTurn(other.rolledThisTurn),
+      diceRolledThisTurn(other.diceRolledThisTurn) {}
 
-GameController::~GameController() {
-    delete commandController;
-    delete tileController;
-}
+GameController::~GameController() = default;
 
 GameController& GameController::operator=(const GameController& other) {
     if (this != &other) {
-        delete commandController;
-        delete tileController;
-        commandController = new CommandController(game, uiManager);
-        tileController = new TileController(game, uiManager);
+        commandController = make_unique<CommandController>(game, uiManager);
+        tileController = make_unique<TileController>(game, uiManager);
         rolledThisTurn = other.rolledThisTurn;
+        diceRolledThisTurn = other.diceRolledThisTurn;
     }
     return *this;
 }
 
 void GameController::runGameLoop() {
     if (commandController == nullptr) {
-        commandController = new CommandController(game, uiManager);
+        commandController = make_unique<CommandController>(game, uiManager);
     }
     if (tileController == nullptr) {
-        tileController = new TileController(game, uiManager);
+        tileController = make_unique<TileController>(game, uiManager);
     }
 
     while (game.isGameRunning()) {
@@ -155,6 +152,17 @@ void GameController::runTurn() {
         const bool commandSucceeded = commandController->processCommand(input);
 
         if (commandSucceeded && isTurnEndingCommand(input)) {
+            diceRolledThisTurn = true;
+            if (game.getTurnManager().getConsecutiveDoubles() >= 3) {
+                rolledThisTurn = true;
+                continue;
+            }
+
+            if (game.getDice().isDouble() && game.isGameRunning() && !player.isBankrupt() && !player.isJailed()) {
+                uiManager.printMessage("Dadu double! Kamu mendapat kesempatan melempar lagi.");
+                rolledThisTurn = false;
+                continue;
+            }
             rolledThisTurn = true;
         }
     }
@@ -164,6 +172,9 @@ void GameController::runTurn() {
 
 void GameController::handleStartTurn() {
     rolledThisTurn = false;
+    diceRolledThisTurn = false;
+    game.getTurnManager().setRolledThisTurn(false);
+    game.getTurnManager().setConsecutiveDoubles(0);
 
     Player& player = game.getCurrentPlayer();
     if (player.isBankrupt()) {
@@ -194,6 +205,9 @@ void GameController::handleStartTurn() {
 
     if (player.isJailed()) {
         tileController->handleJailTurn(player);
+        if (player.isJailed()) {
+            rolledThisTurn = true;
+        }
     }
 }
 
@@ -205,7 +219,7 @@ void GameController::handleEndTurn() {
 }
 
 bool GameController::canSaveNow() const {
-    return !rolledThisTurn;
+    return !diceRolledThisTurn;
 }
 
 bool GameController::isCommandValidThisTurn(const string& input) const {
@@ -237,5 +251,6 @@ bool GameController::isCommandValidThisTurn(const string& input) const {
            command == "BANGUN" ||
            command == "SIMPAN" ||
            command == "CETAK_LOG" ||
-           command == "GUNAKAN_KEMAMPUAN";
+           command == "GUNAKAN_KEMAMPUAN" ||
+           command == "HELP";
 }

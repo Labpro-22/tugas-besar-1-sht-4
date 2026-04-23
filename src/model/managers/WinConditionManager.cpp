@@ -6,7 +6,7 @@
 using namespace std;
 
 // not used?
-WinConditionManager::WinConditionManager() {}
+WinConditionManager::WinConditionManager() = default;
 // not used?
 WinConditionManager::WinConditionManager(const WinConditionManager& other) {
     (void) other;

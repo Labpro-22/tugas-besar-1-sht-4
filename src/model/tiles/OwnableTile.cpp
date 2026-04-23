@@ -2,7 +2,13 @@
 
 using namespace std;
 
-OwnableTile::OwnableTile() {}
+OwnableTile::OwnableTile()
+    : Tile(),
+      owner(nullptr),
+      ownershipStatus(OwnershipStatus::BANK),
+      purchasePrice(0),
+      mortgageValue(0)
+{}
 
 OwnableTile::OwnableTile(
     int index,

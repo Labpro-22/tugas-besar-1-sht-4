@@ -8,6 +8,34 @@ using namespace std;
 
 class ConfigManager {
 public:
+    class ActionTileConfig {
+    private:
+        int id;
+        string code;
+        string name;
+        string tileType;
+        string color;
+
+    public:
+        ActionTileConfig();
+        ActionTileConfig(
+            int id,
+            const string& code,
+            const string& name,
+            const string& tileType,
+            const string& color
+        );
+        ActionTileConfig(const ActionTileConfig& other);
+        ~ActionTileConfig();
+        ActionTileConfig& operator=(const ActionTileConfig& other);
+
+        int getId() const;
+        const string& getCode() const;
+        const string& getName() const;
+        const string& getTileType() const;
+        const string& getColor() const;
+    };
+
     class PropertyConfig {
     private:
         string code;
@@ -46,6 +74,15 @@ public:
     };
 
 private:
+    static constexpr const char* PROPERTY_CONFIG_PATH = "config/property.txt";
+    static constexpr const char* RAILROAD_CONFIG_PATH = "config/railroad.txt";
+    static constexpr const char* UTILITY_CONFIG_PATH = "config/utility.txt";
+    static constexpr const char* TAX_CONFIG_PATH = "config/tax.txt";
+    static constexpr const char* ACTION_CONFIG_PATH = "config/aksi.txt";
+    static constexpr const char* SPECIAL_CONFIG_PATH = "config/special.txt";
+    static constexpr const char* MISC_CONFIG_PATH = "config/misc.txt";
+
+    map<int, ActionTileConfig> actionTileConfigs;
     map<string, PropertyConfig> propertyConfigs;
     map<int, string> propertyCodeById;
     map<int, int> railroadRentTable;
@@ -57,6 +94,18 @@ private:
     int jailFine;
     int maxTurn;
     int initialBalance;
+
+    string trim(const string& value) const;
+    string toUpperCopy(string value) const;
+    string stripInlineComment(const string& line) const;
+    vector<string> splitWhitespace(const string& line) const;
+    vector<vector<string>> readTokenRows(const string& filename) const;
+    int parseInt(const string& token, const string& filename, const string& fieldName) const;
+    bool isIntegerToken(const string& token) const;
+    map<string, size_t> buildHeaderIndex(const vector<string>& headerRow) const;
+    bool hasHeaderFields(const vector<string>& row, const vector<string>& requiredFields) const;
+    int getValueByAliases(const map<string, int>& values, const vector<string>& aliases, const string& filename) const;
+    map<string, int> parseScalarConfig(const string& filename, const vector<string>& expectedFields) const;
 
 public:
     ConfigManager();
@@ -82,8 +131,13 @@ public:
     void loadRailroadConfig(const string& filename);
     void loadUtilityConfig(const string& filename);
     void loadTaxConfig(const string& filename);
+    void loadActionTileConfig(const string& filename);
     void loadSpecialConfig(const string& filename);
     void loadMiscConfig(const string& filename);
+
+    const map<int, ActionTileConfig>& getActionTileConfigs() const;
+    const ActionTileConfig& getActionTileConfigById(int id) const;
+    bool hasActionTileId(int id) const;
 
     const map<string, PropertyConfig>& getPropertyConfigs() const;
     const PropertyConfig& getPropertyConfig(const string& code) const;

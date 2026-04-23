@@ -7,7 +7,7 @@
 using namespace std;
 
 //Ga perlu
-JailManager::JailManager() {}
+JailManager::JailManager() = default;
 
 //Ga perlu
 JailManager::JailManager(const JailManager& other) {}

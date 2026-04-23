@@ -24,22 +24,21 @@
 
 using namespace std;
 
-namespace {
-string toUpperCopy(string value) {
+string CommandController::toUpperCopy(string value) const {
     transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
         return static_cast<char>(toupper(ch));
     });
     return value;
 }
 
-string firstToken(const string& input) {
+string CommandController::firstToken(const string& input) const {
     istringstream stream(input);
     string token;
     stream >> token;
     return toUpperCopy(token);
 }
 
-string formatMoney(int amount) {
+string CommandController::formatMoney(int amount) const {
     const bool negative = amount < 0;
     long long value = amount;
     if (negative) {
@@ -65,7 +64,7 @@ string formatMoney(int amount) {
     return prefix + formatted;
 }
 
-int playerNumberByPointer(const vector<Player>& players, const Player* player) {
+int CommandController::playerNumberByPointer(const vector<Player>& players, const Player* player) const {
     if (player == nullptr) {
         return 0;
     }
@@ -78,7 +77,7 @@ int playerNumberByPointer(const vector<Player>& players, const Player* player) {
     return 0;
 }
 
-string ownerLabel(const OwnableTile& tile, const vector<Player>& players) {
+string CommandController::ownerLabel(const OwnableTile& tile, const vector<Player>& players) const {
     Player* owner = tile.getOwner();
     if (owner == nullptr) {
         return "BANK";
@@ -92,13 +91,13 @@ string ownerLabel(const OwnableTile& tile, const vector<Player>& players) {
     return owner->getUsername();
 }
 
-string ownershipStatusText(OwnershipStatus status) {
+string CommandController::ownershipStatusText(OwnershipStatus status) const {
     if (status == OwnershipStatus::BANK) return "BANK";
     if (status == OwnershipStatus::OWNED) return "OWNED";
     return "MORTGAGED";
 }
 
-string normalizeColorKey(string value) {
+string CommandController::normalizeColorKey(string value) const {
     string normalized;
     for (char ch : value) {
         if (isalnum(static_cast<unsigned char>(ch))) {
@@ -108,7 +107,7 @@ string normalizeColorKey(string value) {
     return normalized;
 }
 
-string shortColorCode(const string& colorGroup) {
+string CommandController::shortColorCode(const string& colorGroup) const {
     const string key = normalizeColorKey(colorGroup);
     if (key == "COKLAT" || key == "BROWN" || key == "CK") return "CK";
     if (key == "BIRUMUDA" || key == "LIGHTBLUE" || key == "BM") return "BM";
@@ -122,7 +121,7 @@ string shortColorCode(const string& colorGroup) {
     return colorGroup;
 }
 
-string colorDisplayName(const string& colorGroup) {
+string CommandController::colorDisplayName(const string& colorGroup) const {
     const string code = shortColorCode(colorGroup);
     if (code == "CK") return "COKLAT";
     if (code == "BM") return "BIRU MUDA";
@@ -137,14 +136,14 @@ string colorDisplayName(const string& colorGroup) {
     return "AKSI";
 }
 
-string categoryCode(const Tile& tile) {
+string CommandController::categoryCode(const Tile& tile) const {
     const StreetTile* street = dynamic_cast<const StreetTile*>(&tile);
     if (street != nullptr) return shortColorCode(street->getColorGroup());
     if (dynamic_cast<const UtilityTile*>(&tile) != nullptr) return "AB";
     return "DF";
 }
 
-string buildingText(const StreetTile& tile) {
+string CommandController::buildingText(const StreetTile& tile) const {
     if (tile.hasHotel()) {
         return "Hotel";
     }
@@ -154,14 +153,14 @@ string buildingText(const StreetTile& tile) {
     return to_string(tile.getBuildingLevel()) + " rumah";
 }
 
-string buildingMarker(const StreetTile& tile) {
+string CommandController::buildingMarker(const StreetTile& tile) const {
     if (tile.hasHotel()) {
         return "*";
     }
     return string(static_cast<size_t>(max(0, tile.getBuildingLevel())), '^');
 }
 
-string propertyGroupLabel(const OwnableTile& property) {
+string CommandController::propertyGroupLabel(const OwnableTile& property) const {
     const StreetTile* street = dynamic_cast<const StreetTile*>(&property);
     if (street != nullptr) {
         return street->getColorGroup();
@@ -175,7 +174,7 @@ string propertyGroupLabel(const OwnableTile& property) {
     return "DF";
 }
 
-int normalizedPosition(int rawPosition, int boardSize) {
+int CommandController::normalizedPosition(int rawPosition, int boardSize) const {
     if (boardSize <= 0) {
         return rawPosition;
     }
@@ -189,7 +188,7 @@ int normalizedPosition(int rawPosition, int boardSize) {
     return zeroBased + 1;
 }
 
-string playerTokensForTile(const Game& game, int tileIndex) {
+string CommandController::playerTokensForTile(const Game& game, int tileIndex) const {
     const vector<Player>& players = game.getPlayers();
     const int boardSize = game.getBoard().getBoardSize();
     vector<string> jailed;
@@ -246,7 +245,7 @@ string playerTokensForTile(const Game& game, int tileIndex) {
     return text;
 }
 
-void buildDeedData(
+void CommandController::buildDeedData(
     const OwnableTile& tile,
     string& title,
     int& purchasePrice,
@@ -257,7 +256,7 @@ void buildDeedData(
     vector<string>& detailRowValues,
     string& ownershipStatus,
     string& ownerName
-) {
+) const {
     const StreetTile* street = dynamic_cast<const StreetTile*>(&tile);
     const RailroadTile* railroad = dynamic_cast<const RailroadTile*>(&tile);
     const UtilityTile* utility = dynamic_cast<const UtilityTile*>(&tile);
@@ -311,7 +310,7 @@ void buildDeedData(
     else ownerName = "BANK";
 }
 
-void printDeedFromTile(UIManager& uiManager, const OwnableTile& tile) {
+void CommandController::printDeedFromTile(UIManager& uiManager, const OwnableTile& tile) const {
     string title;
     int purchasePrice = 0;
     int mortgageValue = 0;
@@ -348,7 +347,7 @@ void printDeedFromTile(UIManager& uiManager, const OwnableTile& tile) {
     );
 }
 
-int wrappedMove(Game& game, Player& player, int steps) {
+int CommandController::wrappedMove(Game& game, Player& player, int steps) const {
     Board& board = game.getBoard();
     const int boardSize = board.getBoardSize();
     if (boardSize <= 0) {
@@ -378,7 +377,7 @@ int wrappedMove(Game& game, Player& player, int steps) {
     return newPosition;
 }
 
-void fillPropertyOptionVectors(
+void CommandController::fillPropertyOptionVectors(
     const vector<OwnableTile*>& properties,
     const string& valueLabel,
     vector<string>& groups,
@@ -388,7 +387,7 @@ void fillPropertyOptionVectors(
     vector<int>& values,
     vector<string>& statuses,
     bool useMortgageValue
-) {
+) const {
     for (OwnableTile* property : properties) {
         if (property == nullptr) {
             continue;
@@ -404,7 +403,7 @@ void fillPropertyOptionVectors(
     }
 }
 
-bool colorGroupHasBuildings(Game& game, const StreetTile& tile) {
+bool CommandController::colorGroupHasBuildings(Game& game, const StreetTile& tile) const {
     vector<shared_ptr<StreetTile>> streets = game.getBoard().getStreetTileByColorGroup(tile.getColorGroup());
     for (const shared_ptr<StreetTile>& street : streets) {
         if (street != nullptr && street->getBuildingLevel() > 0) return true;
@@ -412,7 +411,7 @@ bool colorGroupHasBuildings(Game& game, const StreetTile& tile) {
     return false;
 }
 
-int sellColorGroupBuildings(Game& game, Player& player, const StreetTile& tile) {
+int CommandController::sellColorGroupBuildings(Game& game, Player& player, const StreetTile& tile) const {
     int total = 0;
     vector<shared_ptr<StreetTile>> streets = game.getBoard().getStreetTileByColorGroup(tile.getColorGroup());
     for (const shared_ptr<StreetTile>& street : streets) {
@@ -425,7 +424,6 @@ int sellColorGroupBuildings(Game& game, Player& player, const StreetTile& tile) 
         street->sellBuildings();
     }
     return total;
-}
 }
 
 CommandController::CommandController(Game& game, UIManager& uiManager)
@@ -484,6 +482,8 @@ bool CommandController::processCommand(const string& input) {
             handlePrintLog(parseRecentLogCount(input));
         } else if (command == "GUNAKAN_KEMAMPUAN") {
             handleUseCard();
+        } else if (command == "HELP") {
+            handleHelp();
         } else {
             uiManager.printError("Perintah tidak dikenal.");
             return false;
@@ -496,6 +496,27 @@ bool CommandController::processCommand(const string& input) {
     return true;
 }
 
+void CommandController::handleHelp() {
+    uiManager.printHelp();
+}
+
+bool CommandController::handleTripleDoubleJail(Player& player) const {
+    if (game.getTurnManager().getConsecutiveDoubles() < 3 || player.isBankrupt()) {
+        return false;
+    }
+
+    uiManager.printMessage("Dadu double tiga kali berturut-turut! Kamu masuk penjara.");
+    game.getJailManager().sendToJail(player);
+    player.moveTo(11);
+    game.getLogManager().addLog(
+        game.getCurrentTurn(),
+        player.getUsername(),
+        "JAIL",
+        "Masuk penjara karena double tiga kali berturut-turut"
+    );
+    return true;
+}
+
 void CommandController::handleRollDice() {
     Player& player = game.getCurrentPlayer();
     game.getDice().roll();
@@ -504,6 +525,11 @@ void CommandController::handleRollDice() {
     const int total = game.getDice().getTotal();
 
     uiManager.printDiceRoll(die1, die2, total);
+    game.getTurnManager().registerDiceResult(game.getDice().isDouble());
+    if (handleTripleDoubleJail(player)) {
+        return;
+    }
+
     const int destinationIndex = wrappedMove(game, player, total);
     shared_ptr<Tile> destination = game.getBoard().getTile(destinationIndex);
     if (destination == nullptr) {
@@ -538,6 +564,10 @@ void CommandController::handleSetDice(int x, int y) {
     Player& player = game.getCurrentPlayer();
     const int total = game.getDice().getTotal();
     uiManager.printDiceRoll(x, y, total);
+    game.getTurnManager().registerDiceResult(game.getDice().isDouble());
+    if (handleTripleDoubleJail(player)) {
+        return;
+    }
 
     const int destinationIndex = wrappedMove(game, player, total);
     shared_ptr<Tile> destination = game.getBoard().getTile(destinationIndex);
@@ -703,7 +733,7 @@ void CommandController::handleMortgage() {
         return;
     }
 
-    const int choice = uiManager.readMortgageChoice();
+    const int choice = uiManager.readMortgageChoice(static_cast<int>(properties.size()));
     if (choice == 0) {
         uiManager.printMessage("Gadai dibatalkan.");
         return;
@@ -761,7 +791,7 @@ void CommandController::handleRedeem() {
         return;
     }
 
-    const int choice = uiManager.readRedeemChoice();
+    const int choice = uiManager.readRedeemChoice(static_cast<int>(properties.size()));
     if (choice == 0) {
         uiManager.printMessage("Tebus dibatalkan.");
         return;
@@ -797,7 +827,7 @@ void CommandController::handleBuild() {
         return;
     }
 
-    const int groupChoice = uiManager.readBuildGroupChoice();
+    const int groupChoice = uiManager.readBuildGroupChoice(static_cast<int>(groups.size()));
     if (groupChoice == 0) {
         uiManager.printMessage("Bangun dibatalkan.");
         return;
@@ -831,7 +861,7 @@ void CommandController::handleBuild() {
         return;
     }
 
-    const int tileChoice = uiManager.readBuildTileChoice();
+    const int tileChoice = uiManager.readBuildTileChoice(static_cast<int>(streets.size()));
     if (tileChoice == 0) {
         uiManager.printMessage("Bangun dibatalkan.");
         return;

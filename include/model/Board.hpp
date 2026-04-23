@@ -20,6 +20,8 @@ private:
     vector<shared_ptr<Tile>> tiles;
     map<string, int> tileIndexByCode;
 
+    string normalizeConfigKey(string value) const;
+
 public:
     Board();
     Board(const vector<shared_ptr<Tile>>& tiles, const map<string, int>& tileIndexByCode);

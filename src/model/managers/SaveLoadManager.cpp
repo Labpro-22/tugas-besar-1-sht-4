@@ -23,7 +23,7 @@
 
 using namespace std;
 
-SaveLoadManager::SaveLoadManager() {}
+SaveLoadManager::SaveLoadManager() = default;
 SaveLoadManager::SaveLoadManager(const SaveLoadManager&) {}
 SaveLoadManager::~SaveLoadManager() {}
 SaveLoadManager& SaveLoadManager::operator=(const SaveLoadManager&) { return *this; }
@@ -295,6 +295,12 @@ void SaveLoadManager::loadPlayers(Game& game, istream& in) {
         }
 
         string username = tokens[0];
+        if (find_if(players.begin(), players.end(), [&](const Player& player) {
+                return player.getUsername() == username;
+            }) != players.end()) {
+            throw FileException("Username pemain duplikat pada save file: " + username);
+        }
+
         string tileCode = tokens[2];
         string statusStr = tokens[3];
         int money = 0;

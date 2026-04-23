@@ -2,7 +2,9 @@
 
 using namespace std;
 
-CardTile::CardTile() {}
+CardTile::CardTile()
+    : ActionTile(), deckType("")
+{}
 
 CardTile::CardTile(int index, const string& code, const string& name, const string& deckType)
     : ActionTile(index, code, name), deckType(deckType)

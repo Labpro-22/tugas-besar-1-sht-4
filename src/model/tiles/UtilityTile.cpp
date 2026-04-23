@@ -5,7 +5,9 @@
 
 using namespace std;
 
-UtilityTile::UtilityTile() {}
+UtilityTile::UtilityTile()
+    : OwnableTile()
+{}
 
 UtilityTile::UtilityTile(
     int index,

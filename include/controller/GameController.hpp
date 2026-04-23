@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 
 using namespace std;
@@ -13,9 +14,15 @@ class GameController {
 private:
     Game& game;
     UIManager& uiManager;
-    CommandController* commandController;
-    TileController* tileController;
+    unique_ptr<CommandController> commandController;
+    unique_ptr<TileController> tileController;
     bool rolledThisTurn;
+    bool diceRolledThisTurn;
+
+    string toUpperCopy(string value) const;
+    string firstToken(const string& input) const;
+    bool isTurnEndingCommand(const string& input) const;
+    size_t activePlayerCount(const Game& game) const;
 
 public:
     GameController(Game& game, UIManager& uiManager);

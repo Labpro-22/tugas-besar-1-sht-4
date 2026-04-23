@@ -6,7 +6,7 @@
 using namespace std;
 
 //not used?
-FestivalManager::FestivalManager() {}
+FestivalManager::FestivalManager() = default;
 //not used?
 FestivalManager::FestivalManager(const FestivalManager& other) {}
 //not used?

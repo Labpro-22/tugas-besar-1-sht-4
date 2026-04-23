@@ -2,7 +2,9 @@
 
 using namespace std;
 
-GoToJailTile::GoToJailTile() {}
+GoToJailTile::GoToJailTile()
+    : SpecialTile()
+{}
 
 GoToJailTile::GoToJailTile(int index, const string& code, const string& name)
     : SpecialTile(index, code, name)

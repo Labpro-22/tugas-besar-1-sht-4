@@ -27,21 +27,20 @@
 
 using namespace std;
 
-namespace {
-string toUpperCopy(string value) {
+string TileController::toUpperCopy(string value) const {
     transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
         return static_cast<char>(toupper(ch));
     });
     return value;
 }
 
-string ownershipStatusText(OwnershipStatus status) {
+string TileController::ownershipStatusText(OwnershipStatus status) const {
     if (status == OwnershipStatus::BANK) return "BANK";
     if (status == OwnershipStatus::OWNED) return "OWNED";
     return "MORTGAGED";
 }
 
-string normalizeColorKey(string value) {
+string TileController::normalizeColorKey(string value) const {
     string normalized;
     for (char ch : value) {
         if (isalnum(static_cast<unsigned char>(ch))) {
@@ -51,7 +50,7 @@ string normalizeColorKey(string value) {
     return normalized;
 }
 
-string colorDisplayName(const string& colorGroup) {
+string TileController::colorDisplayName(const string& colorGroup) const {
     const string key = normalizeColorKey(colorGroup);
     if (key == "COKLAT" || key == "BROWN" || key == "CK") return "COKLAT";
     if (key == "BIRUMUDA" || key == "LIGHTBLUE" || key == "BM") return "BIRU MUDA";
@@ -66,7 +65,7 @@ string colorDisplayName(const string& colorGroup) {
     return "AKSI";
 }
 
-string buildingText(const StreetTile& tile) {
+string TileController::buildingText(const StreetTile& tile) const {
     if (tile.hasHotel()) {
         return "Hotel";
     }
@@ -76,7 +75,7 @@ string buildingText(const StreetTile& tile) {
     return to_string(tile.getBuildingLevel()) + " rumah";
 }
 
-string festivalStatus(const StreetTile& tile) {
+string TileController::festivalStatus(const StreetTile& tile) const {
     if (tile.getFestivalDuration() <= 0 || tile.getFestivalMultiplier() <= 1) {
         return "";
     }
@@ -84,7 +83,7 @@ string festivalStatus(const StreetTile& tile) {
            " (" + to_string(tile.getFestivalDuration()) + " giliran)";
 }
 
-int rentPreview(const StreetTile& tile) {
+int TileController::rentPreview(const StreetTile& tile) const {
     const vector<int>& rentLevels = tile.getRentLevels();
     const int level = min(tile.getBuildingLevel(), static_cast<int>(rentLevels.size()) - 1);
     if (level < 0 || rentLevels.empty()) {
@@ -93,7 +92,7 @@ int rentPreview(const StreetTile& tile) {
     return rentLevels[static_cast<size_t>(level)] * tile.getFestivalMultiplier();
 }
 
-void buildDeedData(
+void TileController::buildDeedData(
     const OwnableTile& tile,
     string& title,
     int& purchasePrice,
@@ -104,7 +103,7 @@ void buildDeedData(
     vector<string>& detailRowValues,
     string& ownershipStatus,
     string& ownerName
-) {
+) const {
     const StreetTile* street = dynamic_cast<const StreetTile*>(&tile);
     const RailroadTile* railroad = dynamic_cast<const RailroadTile*>(&tile);
     const UtilityTile* utility = dynamic_cast<const UtilityTile*>(&tile);
@@ -150,7 +149,7 @@ void buildDeedData(
     else ownerName = "BANK";
 }
 
-void returnPropertyToBank(OwnableTile& property) {
+void TileController::returnPropertyToBank(OwnableTile& property) const {
     StreetTile* street = dynamic_cast<StreetTile*>(&property);
     if (street != nullptr) {
         street->sellBuildings();
@@ -159,11 +158,11 @@ void returnPropertyToBank(OwnableTile& property) {
     property.setOwnershipStatus(OwnershipStatus::BANK);
 }
 
-vector<OwnableTile*> ownedProperties(Game& game, Player& player) {
+vector<OwnableTile*> TileController::ownedProperties(Game& game, Player& player) const {
     return game.getPropertyManager().getOwnedProperties(game.getBoard(), player);
 }
 
-int liquidationValue(Game& game, Player& player) {
+int TileController::liquidationValue(Game& game, Player& player) const {
     int total = 0;
     for (OwnableTile* property : ownedProperties(game, player)) {
         if (property != nullptr) {
@@ -178,19 +177,18 @@ int liquidationValue(Game& game, Player& player) {
 }
 
 
-void acquireProperty(Player& player, OwnableTile& property, int price) {
+void TileController::acquireProperty(Player& player, OwnableTile& property, int price) const {
     player -= price;
     property.setOwner(&player);
     property.setOwnershipStatus(OwnershipStatus::OWNED);
 }
 
-size_t activePlayerCount(Game& game) {
+size_t TileController::activePlayerCount(Game& game) const {
     size_t count = 0;
     for (const Player& player : game.getPlayers()) {
         if (!player.isBankrupt()) count++;
     }
     return count;
-}
 }
 
 TileController::TileController(Game& game, UIManager& uiManager)
@@ -640,20 +638,17 @@ void TileController::handleFestival(FestivalTile& tile) {
         return;
     }
 
-    const string code = toUpperCopy(uiManager.readFestivalPropertyCode());
-    StreetTile* selected = nullptr;
-    for (StreetTile* street : streets) {
-        if (toUpperCopy(street->getCode()) == code) {
-            selected = street;
-            break;
-        }
+    const int choice = uiManager.readFestivalPropertyChoice(static_cast<int>(streets.size()));
+    if (choice == 0) {
+        uiManager.printMessage("Festival dibatalkan.");
+        return;
     }
-
-    if (selected == nullptr) {
-        uiManager.printError("Kode properti tidak valid atau bukan milikmu.");
+    if (choice < 1 || choice > static_cast<int>(streets.size())) {
+        uiManager.printMessage("Festival dibatalkan.");
         return;
     }
 
+    StreetTile* selected = streets[static_cast<size_t>(choice - 1)];
     const int oldRent = rentPreview(*selected);
     const bool alreadyMaxed = selected->getFestivalMultiplier() >= 8;
     game.getFestivalManager().activateFestival(*selected);
@@ -766,7 +761,7 @@ void TileController::handleBankruptcy(Player& player) {
                 break;
             }
 
-            const int choice = uiManager.readLiquidationChoice();
+            const int choice = uiManager.readLiquidationChoice(static_cast<int>(actions.size()));
             if (choice == 0) {
                 uiManager.printError("Kewajiban belum terpenuhi. Kamu wajib melikuidasi aset.");
                 continue;

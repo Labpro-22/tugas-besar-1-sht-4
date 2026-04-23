@@ -16,7 +16,7 @@
 
 using namespace std;
 
-PropertyManager::PropertyManager() {}
+PropertyManager::PropertyManager() = default;
 
 PropertyManager::PropertyManager(const PropertyManager& other) {
     (void) other;

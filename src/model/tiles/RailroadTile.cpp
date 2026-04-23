@@ -5,7 +5,9 @@
 
 using namespace std;
 
-RailroadTile::RailroadTile() {}
+RailroadTile::RailroadTile()
+    : OwnableTile()
+{}
 
 RailroadTile::RailroadTile(
     int index,

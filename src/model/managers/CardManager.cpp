@@ -21,7 +21,12 @@
 
 using namespace std;
 
-CardManager::CardManager() : forceDropActive(false) {}
+CardManager::CardManager()
+    : chanceDeck(),
+      communityChestDeck(),
+      handDeck(),
+      forceDropActive(false)
+{}
 
 CardManager::CardManager(
     const CardDeck<ChanceCard>& chanceDeck,

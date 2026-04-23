@@ -2,7 +2,9 @@
 
 using namespace std;
 
-FestivalTile::FestivalTile() {}
+FestivalTile::FestivalTile()
+    : ActionTile()
+{}
 
 FestivalTile::FestivalTile(int index, const string& code, const string& name)
     : ActionTile(index, code, name)

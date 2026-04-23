@@ -6,6 +6,35 @@
 using namespace std;
 
 class UIManager {
+private:
+    static const int CELL_WIDTH = 10;
+    static const int CELL_HEIGHT = 3;
+    static const int CENTER_WIDTH = CELL_WIDTH * 9 + 8;
+
+    string repeatChar(char ch, int count) const;
+    string trim(const string& value) const;
+    string toUpperCopy(string value) const;
+    string normalizeKey(const string& value) const;
+    string truncateToWidth(const string& value, int width) const;
+    string padRight(const string& value, int width) const;
+    string centerText(const string& value, int width) const;
+    string formatMoney(int amount) const;
+    string colorCode(const string& colorGroup) const;
+    string colorName(const string& colorGroup) const;
+    string ansiForCode(const string& rawCode) const;
+    int findCellOffset(const vector<int>& cellIndices, int index) const;
+    string boardCellColor(const vector<int>& cellIndices, const vector<string>& cellColorCodes, int index) const;
+    string boardCellLine(const vector<int>& cellIndices, const vector<vector<string>>& cellLines, int index, int lineIndex) const;
+    string colorizeCellLine(const string& colorCodeValue, const string& line) const;
+    string horizontalBorder(int cellCount) const;
+    string sideBorder() const;
+    void printTileRow(const vector<int>& cellIndices, const vector<string>& cellColorCodes, const vector<vector<string>>& cellLines, const vector<int>& rowIndices) const;
+    vector<string> boardCenterLines(int currentTurn, int maxTurn, const string& currentPlayerLabel) const;
+    int readIntInRange(const string& prompt, int minimum, int maximum, bool hasMaximum) const;
+    size_t propertyOptionCount(const vector<string>& propertyGroups, const vector<string>& propertyNames, const vector<string>& propertyCodes, const vector<string>& valueLabels, const vector<int>& values, const vector<string>& propertyStatuses) const;
+    void printShortPropertyLine(int index, const string& propertyGroup, const string& propertyName, const string& propertyCode, const string& valueLabel, int value, const string& propertyStatus) const;
+    string displayTitleFromDeedTitle(const string& title) const;
+
 public:
     UIManager();
     UIManager(const UIManager& other);
@@ -19,6 +48,7 @@ public:
     string readCommand() const;
     void printMessage(const string& msg) const;
     void printError(const string& msg) const;
+    void printHelp() const;
     string readPropertyCode() const;
 
     void printBoard(const vector<int>& cellIndices, const vector<string>& cellColorCodes, const vector<vector<string>>& cellLines, int currentTurn, int maxTurn, const string& currentPlayerLabel) const;
@@ -39,26 +69,26 @@ public:
     void printIncomeTaxBreakdown(int currentMoney, int cash, int propertyValue, int buildingValue, int totalWealth, int percent, int taxAmount) const;
     void printLuxuryTaxState(int playerMoney, int taxAmount) const;
     void printFestivalState(const string& playerName, const vector<string>& propertyNames, const vector<string>& propertyCodes, const vector<string>& propertyStatuses) const;
-    string readFestivalPropertyCode() const;
+    int readFestivalPropertyChoice(int maxIndex) const;
     void printFestivalActivated(const string& tileName, const string& tileCode, int oldRent, int newRent, int duration) const;
     void printFestivalMaxed(const string& tileName, const string& tileCode, int duration) const;
     void printAuctionState(const string& tileName, const string& tileCode, int currentBid, const string& highestBidderName, const string& currentPlayerName) const;
     string readAuctionAction() const;
     void printAuctionWinner(const string& tileName, const string& tileCode, const string& winnerName, int finalBid) const;
     void printLiquidationState(const string& playerName, int playerMoney, int requiredAmount, int estimatedLiquidationValue) const;
-    int readLiquidationChoice() const;
+    int readLiquidationChoice(int maxIndex) const;
     void printForceDropState(const string& playerName, const vector<string>& cardNames) const;
     int readForceDropChoice(int maxIndex) const;
     void printAbilityCardOptions(const vector<string>& cardNames, const vector<string>& cardDescriptions) const;
     int readAbilityCardChoice(int maxIndex) const;
     void printBuildOptions(int playerMoney, const vector<string>& eligibleGroups) const;
-    int readBuildGroupChoice() const;
+    int readBuildGroupChoice(int maxIndex) const;
     void printBuildableTiles(const string& colorGroup, const vector<string>& tileNames, const vector<string>& tileCodes, const vector<string>& buildingStatuses, const vector<string>& buildStatuses) const;
-    int readBuildTileChoice() const;
+    int readBuildTileChoice(int maxIndex) const;
     void printRedeemOptions(int playerMoney, const vector<string>& propertyGroups, const vector<string>& propertyNames, const vector<string>& propertyCodes, const vector<string>& valueLabels, const vector<int>& values, const vector<string>& propertyStatuses) const;
-    int readRedeemChoice() const;
+    int readRedeemChoice(int maxIndex) const;
     void printMortgageOptions(int playerMoney, const vector<string>& propertyGroups, const vector<string>& propertyNames, const vector<string>& propertyCodes, const vector<string>& valueLabels, const vector<int>& values, const vector<string>& propertyStatuses) const;
-    int readMortgageChoice() const;
+    int readMortgageChoice(int maxIndex) const;
     void printJailOptions(const string& playerName, int playerMoney, int jailFine, int failedRolls) const;
     int readJailChoice() const;
     string readFilename() const;

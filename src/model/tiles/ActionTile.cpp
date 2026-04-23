@@ -2,7 +2,9 @@
 
 using namespace std;
 
-ActionTile::ActionTile() {}
+ActionTile::ActionTile()
+    : Tile()
+{}
 
 ActionTile::ActionTile(int index, const string& code, const string& name)
     : Tile(index, code, name)

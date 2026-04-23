@@ -2,7 +2,9 @@
 
 using namespace std;
 
-FreeParkingTile::FreeParkingTile() {}
+FreeParkingTile::FreeParkingTile()
+    : SpecialTile()
+{}
 
 FreeParkingTile::FreeParkingTile(int index, const string& code, const string& name)
     : SpecialTile(index, code, name)

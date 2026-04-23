@@ -2,7 +2,9 @@
 
 using namespace std;
 
-Tile::Tile() {}
+Tile::Tile()
+    : index(0), code(""), name("")
+{}
 
 Tile::Tile(int index, const string& code, const string& name) : index(index), code(code), name(name) {}
 

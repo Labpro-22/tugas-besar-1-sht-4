@@ -1,4 +1,5 @@
 #include "model/Board.hpp"
+#include "model/NimonException.hpp"
 #include "model/managers/ConfigManager.hpp"
 
 #include "model/tiles/Tile.hpp"
@@ -12,9 +13,23 @@
 #include "model/tiles/ChanceTile.hpp"
 #include "model/tiles/CommunityChestTile.hpp"
 
+#include <cctype>
+
 using namespace std;
 
-Board::Board() {}
+string Board::normalizeConfigKey(string value) const {
+    string normalized;
+    for (char ch : value) {
+        if (isalnum(static_cast<unsigned char>(ch))) {
+            normalized += static_cast<char>(toupper(static_cast<unsigned char>(ch)));
+        }
+    }
+    return normalized;
+}
+
+Board::Board()
+    : tiles(), tileIndexByCode()
+{}
 
 Board::Board(const vector<shared_ptr<Tile>>& tiles, const map<string, int>& tileIndexByCode) 
     : tiles(tiles), tileIndexByCode(tileIndexByCode)
@@ -93,58 +108,99 @@ void Board::initializeBoard(const ConfigManager& configManager) {
         ));
     };
 
-    addTile(make_shared<GoTile>(1, "GO", "Petak Mulai", configManager.getGoSalary()));
-    addPropertyById(2);
-    addTile(make_shared<CommunityChestTile>(3, "DNU", "Dana Umum", "COMMUNITY_CHEST"));
-    addPropertyById(4);
-    addTile(make_shared<IncomeTaxTile>(
-        5,
-        "PPH",
-        "Pajak Penghasilan",
-        configManager.getPphFlat(),
-        configManager.getPphFlat(),
-        configManager.getPphPercent()
-    ));
-    addPropertyById(6);
-    addPropertyById(7);
-    addTile(make_shared<FestivalTile>(8, "FES", "Festival"));
-    addPropertyById(9);
-    addPropertyById(10);
-    addTile(make_shared<JailTile>(11, "PEN", "Penjara", configManager.getJailFine()));
-    addPropertyById(12);
-    addPropertyById(13);
-    addPropertyById(14);
-    addPropertyById(15);
-    addPropertyById(16);
-    addPropertyById(17);
-    addTile(make_shared<CommunityChestTile>(18, "DNU", "Dana Umum", "COMMUNITY_CHEST"));
-    addPropertyById(19);
-    addPropertyById(20);
-    addTile(make_shared<FreeParkingTile>(21, "BBP", "Bebas Parkir"));
-    addPropertyById(22);
-    addTile(make_shared<ChanceTile>(23, "KSP", "Kesempatan", "CHANCE"));
-    addPropertyById(24);
-    addPropertyById(25);
-    addPropertyById(26);
-    addPropertyById(27);
-    addPropertyById(28);
-    addPropertyById(29);
-    addPropertyById(30);
-    addTile(make_shared<GoToJailTile>(31, "PPJ", "Petak Pergi ke Penjara"));
-    addPropertyById(32);
-    addPropertyById(33);
-    addTile(make_shared<FestivalTile>(34, "FES", "Festival"));
-    addPropertyById(35);
-    addPropertyById(36);
-    addTile(make_shared<ChanceTile>(37, "KSP", "Kesempatan", "CHANCE"));
-    addPropertyById(38);
-    addTile(make_shared<LuxuryTaxTile>(
-        39,
-        "PBM",
-        "Pajak Barang Mewah",
-        configManager.getPbmFlat()
-    ));
-    addPropertyById(40);
+    auto addActionById = [&](int id) {
+        const ConfigManager::ActionTileConfig& cfg = configManager.getActionTileConfigById(id);
+        const string type = this->normalizeConfigKey(cfg.getTileType());
+        const string code = this->normalizeConfigKey(cfg.getCode());
+
+        if (type == "FESTIVAL" || type == "PETAKFESTIVAL") {
+            addTile(make_shared<FestivalTile>(id, cfg.getCode(), cfg.getName()));
+            return;
+        }
+
+        if (type == "KARTU" || type == "CARD" || type == "PETAKKARTU") {
+            if (code == "DNU") {
+                addTile(make_shared<CommunityChestTile>(
+                    id,
+                    cfg.getCode(),
+                    cfg.getName(),
+                    "COMMUNITY_CHEST"
+                ));
+                return;
+            }
+            if (code == "KSP") {
+                addTile(make_shared<ChanceTile>(id, cfg.getCode(), cfg.getName(), "CHANCE"));
+                return;
+            }
+        }
+
+        if (type == "PAJAK" || type == "TAX" || type == "PETAKPAJAK") {
+            if (code == "PPH") {
+                addTile(make_shared<IncomeTaxTile>(
+                    id,
+                    cfg.getCode(),
+                    cfg.getName(),
+                    configManager.getPphFlat(),
+                    configManager.getPphFlat(),
+                    configManager.getPphPercent()
+                ));
+                return;
+            }
+            if (code == "PBM") {
+                addTile(make_shared<LuxuryTaxTile>(
+                    id,
+                    cfg.getCode(),
+                    cfg.getName(),
+                    configManager.getPbmFlat()
+                ));
+                return;
+            }
+        }
+
+        if (type == "SPESIAL" || type == "SPECIAL" || type == "PETAKSPESIAL") {
+            if (code == "GO") {
+                addTile(make_shared<GoTile>(
+                    id,
+                    cfg.getCode(),
+                    cfg.getName(),
+                    configManager.getGoSalary()
+                ));
+                return;
+            }
+            if (code == "PEN") {
+                addTile(make_shared<JailTile>(
+                    id,
+                    cfg.getCode(),
+                    cfg.getName(),
+                    configManager.getJailFine()
+                ));
+                return;
+            }
+            if (code == "BBP") {
+                addTile(make_shared<FreeParkingTile>(id, cfg.getCode(), cfg.getName()));
+                return;
+            }
+            if (code == "PPJ") {
+                addTile(make_shared<GoToJailTile>(id, cfg.getCode(), cfg.getName()));
+                return;
+            }
+        }
+
+        throw FileException(
+            "Konfigurasi petak aksi tidak dikenal pada ID " +
+            to_string(id) + ": " + cfg.getCode() + " " + cfg.getTileType()
+        );
+    };
+
+    for (int id = 1; id <= 40; id++) {
+        if (configManager.hasPropertyId(id)) {
+            addPropertyById(id);
+        } else if (configManager.hasActionTileId(id)) {
+            addActionById(id);
+        } else {
+            throw FileException("Konfigurasi petak tidak ditemukan untuk ID " + to_string(id));
+        }
+    }
 }
 
 const vector<shared_ptr<Tile>>& Board::getTiles() const {

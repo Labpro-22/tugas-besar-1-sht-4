@@ -2,7 +2,9 @@
 
 using namespace std;
 
-LuxuryTaxTile::LuxuryTaxTile() {}
+LuxuryTaxTile::LuxuryTaxTile()
+    : TaxTile()
+{}
 
 LuxuryTaxTile::LuxuryTaxTile(int index, const string& code, const string& name, int taxAmount)
     : TaxTile(index, code, name, taxAmount)

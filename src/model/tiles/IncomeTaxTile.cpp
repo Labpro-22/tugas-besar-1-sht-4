@@ -2,7 +2,9 @@
 
 using namespace std;
 
-IncomeTaxTile::IncomeTaxTile() {}
+IncomeTaxTile::IncomeTaxTile()
+    : TaxTile(), flatTax(0), percentageTax(0)
+{}
 
 IncomeTaxTile::IncomeTaxTile(
     int index,

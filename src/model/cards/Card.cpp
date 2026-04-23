@@ -2,7 +2,9 @@
 
 using namespace std;
 
-Card::Card() {}
+Card::Card()
+    : name(""), description("")
+{}
 
 Card::Card(const string& name, const string& description) : name(name), description(description) {}
 

@@ -2,7 +2,9 @@
 
 using namespace std;
 
-ChanceTile::ChanceTile() {}
+ChanceTile::ChanceTile()
+    : CardTile()
+{}
 
 ChanceTile::ChanceTile(int index, const string& code, const string& name, const string& deckType)
     : CardTile(index, code, name, deckType)

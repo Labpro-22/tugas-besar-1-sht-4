@@ -4,7 +4,16 @@
 
 using namespace std;
 
-StreetTile::StreetTile() {}
+StreetTile::StreetTile()
+    : OwnableTile(),
+      colorGroup(""),
+      houseBuildCost(0),
+      hotelBuildCost(0),
+      rentLevels(),
+      buildingLevel(0),
+      festivalMultiplier(1),
+      festivalDuration(0)
+{}
 
 StreetTile::StreetTile(
     int index,

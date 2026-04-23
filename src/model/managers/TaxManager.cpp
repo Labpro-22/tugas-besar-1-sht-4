@@ -7,7 +7,7 @@
 using namespace std;
 
 //not used?
-TaxManager::TaxManager() {}
+TaxManager::TaxManager() = default;
 //not used?
 TaxManager::TaxManager(const TaxManager& other) {}
 //not used?

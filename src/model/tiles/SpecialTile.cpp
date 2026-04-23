@@ -2,7 +2,9 @@
 
 using namespace std;
 
-SpecialTile::SpecialTile() {}
+SpecialTile::SpecialTile()
+    : ActionTile()
+{}
 
 SpecialTile::SpecialTile(int index, const string& code, const string& name)
     : ActionTile(index, code, name)
