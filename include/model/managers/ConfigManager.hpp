@@ -40,6 +40,7 @@ public:
     private:
         string code;
         string name;
+        string propertyType;
         int purchasePrice;
         int mortgageValue;
         string colorGroup;
@@ -52,6 +53,7 @@ public:
         PropertyConfig(
             const string& code,
             const string& name,
+            const string& propertyType,
             int purchasePrice,
             int mortgageValue,
             const string& colorGroup,
@@ -65,6 +67,7 @@ public:
 
         const string& getCode() const;
         const string& getName() const;
+        const string& getPropertyType() const;
         int getPurchasePrice() const;
         int getMortgageValue() const;
         const string& getColorGroup() const;
@@ -102,6 +105,18 @@ private:
     vector<vector<string>> readTokenRows(const string& filename) const;
     int parseInt(const string& token, const string& filename, const string& fieldName) const;
     bool isIntegerToken(const string& token) const;
+    string joinFields(const vector<string>& fields) const;
+    void requireExactHeader(
+        const vector<string>& row,
+        const vector<string>& expectedFields,
+        const string& filename
+    ) const;
+    void requireRowSize(
+        const vector<string>& row,
+        size_t expectedSize,
+        const string& filename,
+        size_t rowNumber
+    ) const;
     map<string, size_t> buildHeaderIndex(const vector<string>& headerRow) const;
     bool hasHeaderFields(const vector<string>& row, const vector<string>& requiredFields) const;
     int getValueByAliases(const map<string, int>& values, const vector<string>& aliases, const string& filename) const;

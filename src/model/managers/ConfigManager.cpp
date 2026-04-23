@@ -115,6 +115,55 @@ bool ConfigManager::isIntegerToken(const string& token) const {
     return true;
 }
 
+string ConfigManager::joinFields(const vector<string>& fields) const {
+    string result;
+    for (size_t index = 0; index < fields.size(); index++) {
+        if (index > 0) {
+            result += " ";
+        }
+        result += fields[index];
+    }
+    return result;
+}
+
+void ConfigManager::requireExactHeader(
+    const vector<string>& row,
+    const vector<string>& expectedFields,
+    const string& filename
+) const {
+    if (row.size() != expectedFields.size()) {
+        throw FileException(
+            "Header file " + filename + " tidak sesuai. Format wajib: " +
+            joinFields(expectedFields)
+        );
+    }
+
+    for (size_t index = 0; index < expectedFields.size(); index++) {
+        if (toUpperCopy(row[index]) != expectedFields[index]) {
+            throw FileException(
+                "Header file " + filename + " tidak sesuai. Format wajib: " +
+                joinFields(expectedFields)
+            );
+        }
+    }
+}
+
+void ConfigManager::requireRowSize(
+    const vector<string>& row,
+    size_t expectedSize,
+    const string& filename,
+    size_t rowNumber
+) const {
+    if (row.size() != expectedSize) {
+        throw FileException(
+            "Jumlah kolom tidak valid pada file " + filename +
+            " baris " + to_string(rowNumber) + ". Diharapkan " +
+            to_string(expectedSize) + " kolom, ditemukan " +
+            to_string(row.size()) + "."
+        );
+    }
+}
+
 map<string, size_t> ConfigManager::buildHeaderIndex(const vector<string>& headerRow) const {
     map<string, size_t> indexByHeader;
     for (size_t index = 0; index < headerRow.size(); index++) {
@@ -163,36 +212,18 @@ map<string, int> ConfigManager::parseScalarConfig(
     const vector<vector<string>> rows = readTokenRows(filename);
     map<string, int> values;
 
-    if (
-        rows.size() >= 2 &&
-        hasHeaderFields(rows[0], expectedFields) &&
-        rows[1].size() >= rows[0].size()
-    ) {
-        const map<string, size_t> headerIndex = buildHeaderIndex(rows[0]);
-        for (const string& field : expectedFields) {
-            const size_t valueIndex = headerIndex.at(field);
-            if (valueIndex >= rows[1].size()) {
-                throw FileException(
-                    "Nilai untuk field '" + field +
-                    "' tidak ditemukan pada file " + filename
-                );
-            }
-            values[field] = parseInt(rows[1][valueIndex], filename, field);
-        }
-        return values;
+    if (rows.size() != 2) {
+        throw FileException(
+            "Format file " + filename +
+            " tidak valid. Diharapkan 1 baris header dan 1 baris nilai."
+        );
     }
 
-    for (const vector<string>& row : rows) {
-        if (row.size() < 2) {
-            continue;
-        }
+    requireExactHeader(rows[0], expectedFields, filename);
+    requireRowSize(rows[1], expectedFields.size(), filename, 2);
 
-        const string key = toUpperCopy(row[0]);
-        if (find(expectedFields.begin(), expectedFields.end(), key) == expectedFields.end()) {
-            continue;
-        }
-
-        values[key] = parseInt(row[1], filename, key);
+    for (size_t index = 0; index < expectedFields.size(); index++) {
+        values[expectedFields[index]] = parseInt(rows[1][index], filename, expectedFields[index]);
     }
 
     return values;
@@ -272,6 +303,7 @@ ConfigManager::PropertyConfig::PropertyConfig()
 ConfigManager::PropertyConfig::PropertyConfig(
     const string& code,
     const string& name,
+    const string& propertyType,
     int purchasePrice,
     int mortgageValue,
     const string& colorGroup,
@@ -281,6 +313,7 @@ ConfigManager::PropertyConfig::PropertyConfig(
 )
     : code(code),
       name(name),
+      propertyType(propertyType),
       purchasePrice(purchasePrice),
       mortgageValue(mortgageValue),
       colorGroup(colorGroup),
@@ -292,6 +325,7 @@ ConfigManager::PropertyConfig::PropertyConfig(
 ConfigManager::PropertyConfig::PropertyConfig(const ConfigManager::PropertyConfig& other)
     : code(other.code),
       name(other.name),
+      propertyType(other.propertyType),
       purchasePrice(other.purchasePrice),
       mortgageValue(other.mortgageValue),
       colorGroup(other.colorGroup),
@@ -308,6 +342,7 @@ ConfigManager::PropertyConfig& ConfigManager::PropertyConfig::operator=(
     if (this != &other) {
         code = other.code;
         name = other.name;
+        propertyType = other.propertyType;
         purchasePrice = other.purchasePrice;
         mortgageValue = other.mortgageValue;
         colorGroup = other.colorGroup;
@@ -324,6 +359,10 @@ const string& ConfigManager::PropertyConfig::getCode() const {
 
 const string& ConfigManager::PropertyConfig::getName() const {
     return name;
+}
+
+const string& ConfigManager::PropertyConfig::getPropertyType() const {
+    return propertyType;
 }
 
 int ConfigManager::PropertyConfig::getPurchasePrice() const {
@@ -446,98 +485,78 @@ void ConfigManager::loadAllConfigs() {
 
 void ConfigManager::loadPropertyConfig(const string& filename) {
     const vector<vector<string>> rows = readTokenRows(filename);
+    const vector<string> expectedHeader = {
+        "ID", "KODE", "NAMA", "JENIS", "WARNA", "HARGA_LAHAN",
+        "NILAI_GADAI", "UPG_RUMAH", "UPG_HT",
+        "RENT_L0", "RENT_L1", "RENT_L2", "RENT_L3", "RENT_L4", "RENT_L5"
+    };
+    const vector<int> requiredPropertyIds = {
+        2, 4, 6, 7, 9, 10, 12, 13, 14, 15, 16, 17, 19, 20,
+        22, 24, 25, 26, 27, 28, 29, 30, 32, 33, 35, 36, 38, 40
+    };
 
-    size_t idIndex = 0;
-    size_t codeIndex = 1;
-    size_t nameIndex = 2;
-    size_t colorIndex = 4;
-    size_t purchasePriceIndex = 5;
-    size_t mortgageValueIndex = 6;
-    size_t houseBuildCostIndex = 7;
-    size_t hotelBuildCostIndex = 8;
-    size_t rentStartIndex = 9;
-    size_t dataStartIndex = 0;
-
-    if (hasHeaderFields(rows[0], {
-        "ID", "KODE", "NAMA", "WARNA", "HARGA_LAHAN",
-        "NILAI_GADAI", "UPG_RUMAH", "UPG_HT"
-    })) {
-        const map<string, size_t> headerIndex = buildHeaderIndex(rows[0]);
-        idIndex = headerIndex.at("ID");
-        codeIndex = headerIndex.at("KODE");
-        nameIndex = headerIndex.at("NAMA");
-        colorIndex = headerIndex.at("WARNA");
-        purchasePriceIndex = headerIndex.at("HARGA_LAHAN");
-        mortgageValueIndex = headerIndex.at("NILAI_GADAI");
-        houseBuildCostIndex = headerIndex.at("UPG_RUMAH");
-        hotelBuildCostIndex = headerIndex.at("UPG_HT");
-        rentStartIndex = hotelBuildCostIndex + 1;
-        dataStartIndex = 1;
-    }
-
-    const size_t requiredIndex = max({
-        idIndex,
-        codeIndex,
-        nameIndex,
-        colorIndex,
-        purchasePriceIndex,
-        mortgageValueIndex,
-        houseBuildCostIndex,
-        hotelBuildCostIndex
-    });
+    requireExactHeader(rows[0], expectedHeader, filename);
 
     size_t parsedRowCount = 0;
-    for (size_t rowIndex = dataStartIndex; rowIndex < rows.size(); rowIndex++) {
+    for (size_t rowIndex = 1; rowIndex < rows.size(); rowIndex++) {
         const vector<string>& row = rows[rowIndex];
-        if (row.size() <= requiredIndex) {
-            continue;
+        const size_t rowNumber = rowIndex + 1;
+        if (row.size() < 4) {
+            requireRowSize(row, 4, filename, rowNumber);
         }
 
-        const string& idToken = row[idIndex];
-        const string& purchasePriceToken = row[purchasePriceIndex];
-        const string& mortgageToken = row[mortgageValueIndex];
-        const string& houseCostToken = row[houseBuildCostIndex];
-        const string& hotelCostToken = row[hotelBuildCostIndex];
-
-        if (
-            !isIntegerToken(idToken) ||
-            !isIntegerToken(purchasePriceToken) ||
-            !isIntegerToken(mortgageToken) ||
-            !isIntegerToken(houseCostToken) ||
-            !isIntegerToken(hotelCostToken)
-        ) {
-            continue;
+        const string propertyType = toUpperCopy(row[3]);
+        const bool isStreet = propertyType == "STREET";
+        const bool isRailroad = propertyType == "RAILROAD";
+        const bool isUtility = propertyType == "UTILITY";
+        if (!isStreet && !isRailroad && !isUtility) {
+            throw FileException(
+                "Jenis properti tidak valid pada file " + filename +
+                " baris " + to_string(rowNumber) + ": " + row[3]
+            );
         }
 
-        const int id = parseInt(idToken, filename, "ID");
-        const string code = row[codeIndex];
+        requireRowSize(row, isStreet ? 15 : 7, filename, rowNumber);
+
+        const int id = parseInt(row[0], filename, "ID");
+        const string code = row[1];
 
         if (code.empty()) {
             throw FileException("Kode properti kosong pada file " + filename);
+        }
+        if (row[2].empty()) {
+            throw FileException("Nama properti kosong pada file " + filename);
+        }
+        if (row[4].empty()) {
+            throw FileException("Warna properti kosong pada file " + filename);
         }
         if (propertyConfigs.find(code) != propertyConfigs.end()) {
             throw FileException("Kode properti duplikat pada file " + filename + ": " + code);
         }
         if (propertyCodeById.find(id) != propertyCodeById.end()) {
-            throw FileException("ID properti duplikat pada file " + filename + ": " + idToken);
+            throw FileException("ID properti duplikat pada file " + filename + ": " + row[0]);
         }
 
         vector<int> rentLevels;
-        for (size_t i = rentStartIndex; i < row.size(); i++) {
-            if (!isIntegerToken(row[i])) {
-                continue;
+        int houseBuildCost = 0;
+        int hotelBuildCost = 0;
+        if (isStreet) {
+            houseBuildCost = parseInt(row[7], filename, "UPG_RUMAH");
+            hotelBuildCost = parseInt(row[8], filename, "UPG_HT");
+            for (size_t i = 9; i < row.size(); i++) {
+                rentLevels.push_back(parseInt(row[i], filename, "RENT_L" + to_string(i - 9)));
             }
-            rentLevels.push_back(parseInt(row[i], filename, "RENT_LEVEL"));
         }
 
         propertyConfigs[code] = PropertyConfig(
             code,
-            row[nameIndex],
-            parseInt(purchasePriceToken, filename, "HARGA_LAHAN"),
-            parseInt(mortgageToken, filename, "NILAI_GADAI"),
-            row[colorIndex],
-            parseInt(houseCostToken, filename, "UPG_RUMAH"),
-            parseInt(hotelCostToken, filename, "UPG_HT"),
+            row[2],
+            propertyType,
+            parseInt(row[5], filename, "HARGA_LAHAN"),
+            parseInt(row[6], filename, "NILAI_GADAI"),
+            row[4],
+            houseBuildCost,
+            hotelBuildCost,
             rentLevels
         );
 
@@ -548,83 +567,82 @@ void ConfigManager::loadPropertyConfig(const string& filename) {
     if (parsedRowCount == 0) {
         throw FileException("Tidak ada data properti valid pada file " + filename);
     }
+
+    if (propertyCodeById.size() != requiredPropertyIds.size()) {
+        throw FileException(
+            "Jumlah data properti pada file " + filename +
+            " harus " + to_string(requiredPropertyIds.size()) + " baris."
+        );
+    }
+
+    for (int requiredId : requiredPropertyIds) {
+        if (propertyCodeById.find(requiredId) == propertyCodeById.end()) {
+            throw FileException(
+                "ID properti wajib tidak ditemukan pada file " +
+                filename + ": " + to_string(requiredId)
+            );
+        }
+    }
 }
 
 void ConfigManager::loadRailroadConfig(const string& filename) {
     const vector<vector<string>> rows = readTokenRows(filename);
+    const vector<string> expectedHeader = {"JUMLAH_RAILROAD", "BIAYA_SEWA"};
+    requireExactHeader(rows[0], expectedHeader, filename);
 
-    size_t countIndex = 0;
-    size_t rentIndex = 1;
-    size_t dataStartIndex = 0;
-
-    if (hasHeaderFields(rows[0], {"JUMLAH_RAILROAD", "BIAYA_SEWA"})) {
-        const map<string, size_t> headerIndex = buildHeaderIndex(rows[0]);
-        countIndex = headerIndex.at("JUMLAH_RAILROAD");
-        rentIndex = headerIndex.at("BIAYA_SEWA");
-        dataStartIndex = 1;
-    }
-
-    const size_t requiredIndex = max(countIndex, rentIndex);
     size_t parsedRowCount = 0;
-    for (size_t rowIndex = dataStartIndex; rowIndex < rows.size(); rowIndex++) {
+    for (size_t rowIndex = 1; rowIndex < rows.size(); rowIndex++) {
         const vector<string>& row = rows[rowIndex];
-        if (row.size() <= requiredIndex) {
-            continue;
-        }
-        if (!isIntegerToken(row[countIndex]) || !isIntegerToken(row[rentIndex])) {
-            continue;
-        }
+        requireRowSize(row, expectedHeader.size(), filename, rowIndex + 1);
 
-        const int railroadCount = parseInt(row[countIndex], filename, "JUMLAH_RAILROAD");
+        const int railroadCount = parseInt(row[0], filename, "JUMLAH_RAILROAD");
         if (railroadRentTable.find(railroadCount) != railroadRentTable.end()) {
             throw FileException(
-                "Jumlah railroad duplikat pada file " + filename + ": " + row[countIndex]
+                "Jumlah railroad duplikat pada file " + filename + ": " + row[0]
             );
         }
 
-        railroadRentTable[railroadCount] = parseInt(row[rentIndex], filename, "BIAYA_SEWA");
+        railroadRentTable[railroadCount] = parseInt(row[1], filename, "BIAYA_SEWA");
         parsedRowCount++;
     }
 
     if (parsedRowCount == 0) {
         throw FileException("Tidak ada data railroad valid pada file " + filename);
     }
+
+    if (railroadRentTable.size() != 4) {
+        throw FileException("File " + filename + " harus memuat sewa untuk 1 sampai 4 railroad.");
+    }
+
+    for (int count = 1; count <= 4; count++) {
+        if (railroadRentTable.find(count) == railroadRentTable.end()) {
+            throw FileException(
+                "Jumlah railroad wajib tidak ditemukan pada file " +
+                filename + ": " + to_string(count)
+            );
+        }
+    }
 }
 
 void ConfigManager::loadUtilityConfig(const string& filename) {
     const vector<vector<string>> rows = readTokenRows(filename);
+    const vector<string> expectedHeader = {"JUMLAH_UTILITY", "FAKTOR_PENGALI"};
+    requireExactHeader(rows[0], expectedHeader, filename);
 
-    size_t countIndex = 0;
-    size_t multiplierIndex = 1;
-    size_t dataStartIndex = 0;
-
-    if (hasHeaderFields(rows[0], {"JUMLAH_UTILITY", "FAKTOR_PENGALI"})) {
-        const map<string, size_t> headerIndex = buildHeaderIndex(rows[0]);
-        countIndex = headerIndex.at("JUMLAH_UTILITY");
-        multiplierIndex = headerIndex.at("FAKTOR_PENGALI");
-        dataStartIndex = 1;
-    }
-
-    const size_t requiredIndex = max(countIndex, multiplierIndex);
     size_t parsedRowCount = 0;
-    for (size_t rowIndex = dataStartIndex; rowIndex < rows.size(); rowIndex++) {
+    for (size_t rowIndex = 1; rowIndex < rows.size(); rowIndex++) {
         const vector<string>& row = rows[rowIndex];
-        if (row.size() <= requiredIndex) {
-            continue;
-        }
-        if (!isIntegerToken(row[countIndex]) || !isIntegerToken(row[multiplierIndex])) {
-            continue;
-        }
+        requireRowSize(row, expectedHeader.size(), filename, rowIndex + 1);
 
-        const int utilityCount = parseInt(row[countIndex], filename, "JUMLAH_UTILITY");
+        const int utilityCount = parseInt(row[0], filename, "JUMLAH_UTILITY");
         if (utilityMultiplierTable.find(utilityCount) != utilityMultiplierTable.end()) {
             throw FileException(
-                "Jumlah utility duplikat pada file " + filename + ": " + row[countIndex]
+                "Jumlah utility duplikat pada file " + filename + ": " + row[0]
             );
         }
 
         utilityMultiplierTable[utilityCount] = parseInt(
-            row[multiplierIndex],
+            row[1],
             filename,
             "FAKTOR_PENGALI"
         );
@@ -633,6 +651,19 @@ void ConfigManager::loadUtilityConfig(const string& filename) {
 
     if (parsedRowCount == 0) {
         throw FileException("Tidak ada data utility valid pada file " + filename);
+    }
+
+    if (utilityMultiplierTable.size() != 2) {
+        throw FileException("File " + filename + " harus memuat faktor untuk 1 sampai 2 utility.");
+    }
+
+    for (int count = 1; count <= 2; count++) {
+        if (utilityMultiplierTable.find(count) == utilityMultiplierTable.end()) {
+            throw FileException(
+                "Jumlah utility wajib tidak ditemukan pada file " +
+                filename + ": " + to_string(count)
+            );
+        }
     }
 }
 
@@ -649,47 +680,21 @@ void ConfigManager::loadTaxConfig(const string& filename) {
 
 void ConfigManager::loadActionTileConfig(const string& filename) {
     const vector<vector<string>> rows = readTokenRows(filename);
+    const vector<string> expectedHeader = {"ID", "KODE", "NAMA", "JENIS_PETAK", "WARNA"};
+    const vector<int> requiredActionIds = {1, 3, 5, 8, 11, 18, 21, 23, 31, 34, 37, 39};
 
-    size_t idIndex = 0;
-    size_t codeIndex = 1;
-    size_t nameIndex = 2;
-    size_t typeIndex = 3;
-    size_t colorIndex = 4;
-    size_t dataStartIndex = 0;
-
-    if (hasHeaderFields(rows[0], {"ID", "KODE", "NAMA", "JENIS_PETAK", "WARNA"})) {
-        const map<string, size_t> headerIndex = buildHeaderIndex(rows[0]);
-        idIndex = headerIndex.at("ID");
-        codeIndex = headerIndex.at("KODE");
-        nameIndex = headerIndex.at("NAMA");
-        typeIndex = headerIndex.at("JENIS_PETAK");
-        colorIndex = headerIndex.at("WARNA");
-        dataStartIndex = 1;
-    }
-
-    const size_t requiredIndex = max({
-        idIndex,
-        codeIndex,
-        nameIndex,
-        typeIndex,
-        colorIndex
-    });
+    requireExactHeader(rows[0], expectedHeader, filename);
 
     size_t parsedRowCount = 0;
-    for (size_t rowIndex = dataStartIndex; rowIndex < rows.size(); rowIndex++) {
+    for (size_t rowIndex = 1; rowIndex < rows.size(); rowIndex++) {
         const vector<string>& row = rows[rowIndex];
-        if (row.size() <= requiredIndex) {
-            continue;
-        }
-        if (!isIntegerToken(row[idIndex])) {
-            continue;
-        }
+        requireRowSize(row, expectedHeader.size(), filename, rowIndex + 1);
 
-        const int id = parseInt(row[idIndex], filename, "ID");
-        const string& code = row[codeIndex];
-        const string& name = row[nameIndex];
-        const string& tileType = row[typeIndex];
-        const string& color = row[colorIndex];
+        const int id = parseInt(row[0], filename, "ID");
+        const string& code = row[1];
+        const string& name = row[2];
+        const string& tileType = row[3];
+        const string& color = row[4];
 
         if (code.empty()) {
             throw FileException("Kode petak aksi kosong pada file " + filename);
@@ -700,8 +705,20 @@ void ConfigManager::loadActionTileConfig(const string& filename) {
         if (tileType.empty()) {
             throw FileException("Jenis petak aksi kosong pada file " + filename);
         }
+        const string normalizedType = toUpperCopy(tileType);
+        if (
+            normalizedType != "SPESIAL" &&
+            normalizedType != "KARTU" &&
+            normalizedType != "PAJAK" &&
+            normalizedType != "FESTIVAL"
+        ) {
+            throw FileException(
+                "Jenis petak aksi tidak valid pada file " +
+                filename + " baris " + to_string(rowIndex + 1) + ": " + tileType
+            );
+        }
         if (actionTileConfigs.find(id) != actionTileConfigs.end()) {
-            throw FileException("ID petak aksi duplikat pada file " + filename + ": " + row[idIndex]);
+            throw FileException("ID petak aksi duplikat pada file " + filename + ": " + row[0]);
         }
 
         actionTileConfigs[id] = ActionTileConfig(id, code, name, tileType, color);
@@ -710,6 +727,22 @@ void ConfigManager::loadActionTileConfig(const string& filename) {
 
     if (parsedRowCount == 0) {
         throw FileException("Tidak ada data petak aksi valid pada file " + filename);
+    }
+
+    if (actionTileConfigs.size() != requiredActionIds.size()) {
+        throw FileException(
+            "Jumlah data petak aksi pada file " + filename +
+            " harus " + to_string(requiredActionIds.size()) + " baris."
+        );
+    }
+
+    for (int requiredId : requiredActionIds) {
+        if (actionTileConfigs.find(requiredId) == actionTileConfigs.end()) {
+            throw FileException(
+                "ID petak aksi wajib tidak ditemukan pada file " +
+                filename + ": " + to_string(requiredId)
+            );
+        }
     }
 }
 
@@ -726,11 +759,11 @@ void ConfigManager::loadSpecialConfig(const string& filename) {
 void ConfigManager::loadMiscConfig(const string& filename) {
     const map<string, int> values = parseScalarConfig(
         filename,
-        {"MAX_TURN", "MAX_TURNS", "SALDO_AWAL", "INITIAL_BALANCE"}
+        {"MAX_TURN", "SALDO_AWAL"}
     );
 
-    maxTurn = getValueByAliases(values, {"MAX_TURN", "MAX_TURNS"}, filename);
-    initialBalance = getValueByAliases(values, {"SALDO_AWAL", "INITIAL_BALANCE"}, filename);
+    maxTurn = getValueByAliases(values, {"MAX_TURN"}, filename);
+    initialBalance = getValueByAliases(values, {"SALDO_AWAL"}, filename);
 }
 
 const map<int, ConfigManager::ActionTileConfig>& ConfigManager::getActionTileConfigs() const {
