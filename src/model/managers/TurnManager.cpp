@@ -69,6 +69,7 @@ void TurnManager::startTurn(GameContext& gameContext) {
 void TurnManager::endTurn(GameContext& gameContext) {
     if (!turnOrder.empty() && currentPlayerIndex == static_cast<int>(turnOrder.size()) - 1){
         gameContext.setCurrentTurn(gameContext.getCurrentTurn()+1);
+        turnCount = gameContext.getCurrentTurn();
     }
     rolledThisTurn = false;
     consecutiveDoubles = 0;

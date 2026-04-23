@@ -172,8 +172,7 @@ void GameController::runTurn() {
 void GameController::handleStartTurn() {
     rolledThisTurn = false;
     diceRolledThisTurn = false;
-    game.getTurnManager().setRolledThisTurn(false);
-    game.getTurnManager().setConsecutiveDoubles(0);
+    game.getTurnManager().startTurn(game.getGameContext());
 
     Player& player = game.getCurrentPlayer();
     if (player.isBankrupt()) {
@@ -210,7 +209,7 @@ void GameController::handleEndTurn() {
     Player& player = game.getCurrentPlayer();
     player.setShieldActive(false);
     player.decrementDiscountDuration();
-    game.setCurrentTurn(game.getCurrentTurn() + 1);
+    game.getTurnManager().endTurn(game.getGameContext());
 }
 
 bool GameController::canSaveNow() const {
