@@ -797,7 +797,7 @@ void TileController::handleForceDrop(Player& player) {
     uiManager.printMessage(cardNames[static_cast<size_t>(choice - 1)] + " telah dibuang.");
 }
 
-void TileController::handleJailTurn(Player& player) {
+bool TileController::handleJailTurn(Player& player) {
     const int jailFine = game.getConfigManager().getJailFine();
     uiManager.printJailOptions(player.getUsername(), player.getMoney(), jailFine, 0);
     const int choice = uiManager.readJailChoice();
@@ -808,19 +808,59 @@ void TileController::handleJailTurn(Player& player) {
             pendingCreditor = nullptr;
             pendingDebtToBank = true;
             handleBankruptcy(player);
-            return;
+            return true;
         }
         game.getJailManager().payJailFine(player, jailFine);
         game.getJailManager().releaseFromJail(player);
         uiManager.printMessage("Kamu membayar denda dan keluar dari penjara.");
+        return false;
     } else if (choice == 2) {
         const bool released = game.getJailManager().tryRollForRelease(game.getDice(), player);
-        uiManager.printDiceRoll(game.getDice().getDie1(), game.getDice().getDie2(), game.getDice().getTotal());
-        if (released) uiManager.printMessage("Double! Kamu keluar dari penjara.");
-        else uiManager.printMessage("Belum double. Kamu tetap di penjara.");
+        const int die1 = game.getDice().getDie1();
+        const int die2 = game.getDice().getDie2();
+        const int total = game.getDice().getTotal();
+
+        uiManager.printDiceRoll(die1, die2, total);
+        if (!released) {
+            uiManager.printMessage("Belum double. Kamu tetap di penjara.");
+            return true;
+        }
+
+        uiManager.printMessage("Double! Kamu keluar dari penjara dan bergerak.");
+        const int boardSize = game.getBoard().getBoardSize();
+        int destinationIndex = player.getPosition() + total;
+        if (boardSize > 0) {
+            destinationIndex = ((destinationIndex - 1) % boardSize) + 1;
+        }
+        player.moveTo(destinationIndex);
+
+        shared_ptr<Tile> destination = game.getBoard().getTile(destinationIndex);
+        if (destination == nullptr) {
+            uiManager.printError("Petak tujuan tidak ditemukan.");
+            return true;
+        }
+
+        uiManager.printPlayerMovement(
+            player.getUsername(),
+            total,
+            destination->getName(),
+            destination->getCode()
+        );
+        game.getLogManager().addLog(
+            game.getCurrentTurn(),
+            player.getUsername(),
+            "DADU",
+            "Keluar penjara: " + to_string(die1) + "+" + to_string(die2) + "=" +
+            to_string(total) + " -> mendarat di " + destination->getName() +
+            " (" + destination->getCode() + ")"
+        );
+        resolveLanding(*destination, player);
+        return true;
     } else if (choice == 3) {
         uiManager.printMessage("Belum ada kartu bebas penjara yang terhubung. Pilih opsi lain pada giliran berikutnya.");
     }
+
+    return true;
 }
 
 void TileController::handleBankruptcy(Player& player) {

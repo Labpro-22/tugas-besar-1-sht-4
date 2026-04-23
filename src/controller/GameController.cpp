@@ -218,8 +218,8 @@ void GameController::handleStartTurn(bool resumeExistingTurn) {
     }
 
     if (player.isJailed()) {
-        tileController->handleJailTurn(player);
-        if (player.isJailed()) {
+        const bool jailRollConsumedTurn = tileController->handleJailTurn(player);
+        if (jailRollConsumedTurn || player.isJailed()) {
             rolledThisTurn = true;
         }
     }

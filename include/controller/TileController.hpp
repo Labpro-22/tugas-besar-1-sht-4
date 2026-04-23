@@ -54,6 +54,6 @@ public:
     void handleLuxuryTax(LuxuryTaxTile& tile);
     void handleFestival(FestivalTile& tile);
     void handleForceDrop(Player& player);
-    void handleJailTurn(Player& player);
+    bool handleJailTurn(Player& player);
     void handleBankruptcy(Player& player);
 };
