@@ -35,14 +35,23 @@ CardController& CardController::operator=(const CardController& other) {
 void CardController::drawAndApplyChanceCard(Player& player) {
     shared_ptr<ChanceCard> card = game.getCardManager().drawChanceCard();
     if (card != nullptr) {
+        const int previousPosition = player.getPosition();
         uiManager.printCardDrawn("Kartu Kesempatan", card->getName(), card->getDescription());
+        game.getLogManager().addLog(
+            game.getCurrentTurn(),
+            player.getUsername(),
+            "KESEMPATAN",
+            "Mengambil kartu " + card->getName() + ": " + card->getDescription()
+        );
         card->apply(game, player);
         game.getCardManager().discardChanceCard(card);
 
-        auto tile = game.getBoard().getTile(player.getPosition());
-        if (tile != nullptr) {
-            TileController tileController(game, uiManager);
-            tileController.resolveLanding(*tile, player);
+        if (player.getPosition() != previousPosition) {
+            auto tile = game.getBoard().getTile(player.getPosition());
+            if (tile != nullptr) {
+                TileController tileController(game, uiManager);
+                tileController.resolveLanding(*tile, player);
+            }
         }
     }
 }
@@ -50,9 +59,24 @@ void CardController::drawAndApplyChanceCard(Player& player) {
 void CardController::drawAndApplyCommunityChestCard(Player& player) {
     shared_ptr<CommunityChestCard> card = game.getCardManager().drawCommunityChestCard();
     if (card != nullptr) {
+        const int previousPosition = player.getPosition();
         uiManager.printCardDrawn("Kartu Dana Umum", card->getName(), card->getDescription());
+        game.getLogManager().addLog(
+            game.getCurrentTurn(),
+            player.getUsername(),
+            "DANA_UMUM",
+            "Mengambil kartu " + card->getName() + ": " + card->getDescription()
+        );
         card->apply(game, player);
         game.getCardManager().discardCommunityChestCard(card);
+
+        if (player.getPosition() != previousPosition) {
+            auto tile = game.getBoard().getTile(player.getPosition());
+            if (tile != nullptr) {
+                TileController tileController(game, uiManager);
+                tileController.resolveLanding(*tile, player);
+            }
+        }
     }
 }
 

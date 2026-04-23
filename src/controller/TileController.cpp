@@ -320,31 +320,15 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
         case Tile::TileType::Chance: {
             uiManager.printMessage("Kamu mendarat di Petak Kesempatan!");
             uiManager.printMessage("Mengambil kartu...");
-            shared_ptr<ChanceCard> card = game.getCardManager().drawChanceCard();
-            if (card != nullptr) {
-                game.getLogManager().addLog(
-                    game.getCurrentTurn(),
-                    player.getUsername(),
-                    "KESEMPATAN",
-                    "Mengambil kartu " + card->getName() + ": " + card->getDescription()
-                );
-                card->apply(game, player);
-            }
+            CardController cardController(game, uiManager);
+            cardController.drawAndApplyChanceCard(player);
             break;
         }
         case Tile::TileType::CommunityChest: {
             uiManager.printMessage("Kamu mendarat di Petak Dana Umum!");
             uiManager.printMessage("Mengambil kartu...");
-            shared_ptr<CommunityChestCard> card = game.getCardManager().drawCommunityChestCard();
-            if (card != nullptr) {
-                game.getLogManager().addLog(
-                    game.getCurrentTurn(),
-                    player.getUsername(),
-                    "DANA_UMUM",
-                    "Mengambil kartu " + card->getName() + ": " + card->getDescription()
-                );
-                card->apply(game, player);
-            }
+            CardController cardController(game, uiManager);
+            cardController.drawAndApplyCommunityChestCard(player);
             break;
         }
         case Tile::TileType::GoToJail:
