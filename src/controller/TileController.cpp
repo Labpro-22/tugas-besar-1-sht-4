@@ -489,9 +489,46 @@ void TileController::handleStreetPurchase(StreetTile& tile) {
 
 void TileController::handleAuction(OwnableTile& tile, Player* triggerPlayer) {
     vector<Player*> participants;
-    for (Player& player : game.getPlayers()) {
-        if (!player.isBankrupt()) {
-            participants.push_back(&player);
+    vector<Player>& players = game.getPlayers();
+    vector<int> auctionOrder = game.getTurnManager().getTurnOrder();
+    if (auctionOrder.empty()) {
+        for (size_t i = 0; i < players.size(); i++) {
+            auctionOrder.push_back(static_cast<int>(i));
+        }
+    }
+
+    int triggerPlayerIndex = -1;
+    if (triggerPlayer != nullptr) {
+        for (size_t i = 0; i < players.size(); i++) {
+            if (&players[i] == triggerPlayer) {
+                triggerPlayerIndex = static_cast<int>(i);
+                break;
+            }
+        }
+    }
+
+    int triggerOrderIndex = game.getTurnManager().getCurrentPlayerIndex();
+    if (triggerPlayerIndex >= 0) {
+        for (size_t i = 0; i < auctionOrder.size(); i++) {
+            if (auctionOrder[i] == triggerPlayerIndex) {
+                triggerOrderIndex = static_cast<int>(i);
+                break;
+            }
+        }
+    }
+    if (triggerOrderIndex < 0 || triggerOrderIndex >= static_cast<int>(auctionOrder.size())) {
+        triggerOrderIndex = -1;
+    }
+
+    for (size_t offset = 1; offset <= auctionOrder.size(); offset++) {
+        size_t orderIndex = offset - 1;
+        if (triggerOrderIndex >= 0) {
+            orderIndex = (static_cast<size_t>(triggerOrderIndex) + offset) % auctionOrder.size();
+        }
+
+        const int playerIndex = auctionOrder[orderIndex];
+        if (playerIndex >= 0 && playerIndex < static_cast<int>(players.size()) && !players[playerIndex].isBankrupt()) {
+            participants.push_back(&players[playerIndex]);
         }
     }
 
@@ -500,15 +537,6 @@ void TileController::handleAuction(OwnableTile& tile, Player* triggerPlayer) {
     }
 
     int currentIndex = 0;
-    if (triggerPlayer != nullptr) {
-        for (size_t i = 0; i < participants.size(); i++) {
-            if (participants[i] == triggerPlayer) {
-                currentIndex = (static_cast<int>(i) + 1) % static_cast<int>(participants.size());
-                break;
-            }
-        }
-    }
-
     int currentBid = 0;
     Player* highestBidder = nullptr;
     int passesAfterBid = 0;
@@ -539,22 +567,27 @@ void TileController::handleAuction(OwnableTile& tile, Player* triggerPlayer) {
                 continue;
             }
 
-            const bool bidTooLow = highestBidder == nullptr ? amount < 0 : amount <= currentBid;
-            if (bidTooLow || currentPlayer->getMoney() < amount) {
-                uiManager.printError("Bid harus lebih tinggi dari bid saat ini dan tidak boleh melebihi uang pemain.");
-            } else {
-                currentBid = amount;
-                highestBidder = currentPlayer;
-                passesAfterBid = 0;
-                totalPassesWithoutBid = 0;
-                uiManager.printMessage("Penawaran tertinggi: M" + to_string(currentBid) + " (" + currentPlayer->getUsername() + ")");
-                game.getLogManager().addLog(
-                    game.getCurrentTurn(),
-                    currentPlayer->getUsername(),
-                    "BID",
-                    "Menawar M" + to_string(currentBid) + " untuk " + tile.getName() + " (" + tile.getCode() + ")"
-                );
+            const int minimumBid = highestBidder == nullptr ? 0 : currentBid + 1;
+            if (amount < minimumBid) {
+                uiManager.printError("Bid minimal saat ini adalah M" + to_string(minimumBid) + ".");
+                continue;
             }
+            if (currentPlayer->getMoney() < amount) {
+                uiManager.printError("Bid tidak boleh melebihi uang pemain.");
+                continue;
+            }
+
+            currentBid = amount;
+            highestBidder = currentPlayer;
+            passesAfterBid = 0;
+            totalPassesWithoutBid = 0;
+            uiManager.printMessage("Penawaran tertinggi: M" + to_string(currentBid) + " (" + currentPlayer->getUsername() + ")");
+            game.getLogManager().addLog(
+                game.getCurrentTurn(),
+                currentPlayer->getUsername(),
+                "BID",
+                "Menawar M" + to_string(currentBid) + " untuk " + tile.getName() + " (" + tile.getCode() + ")"
+            );
         } else {
             if (highestBidder == nullptr && totalPassesWithoutBid >= static_cast<int>(participants.size()) - 1) {
                 uiManager.printError("Minimal harus ada satu bid. Pemain terakhir yang belum pass wajib melakukan BID.");
