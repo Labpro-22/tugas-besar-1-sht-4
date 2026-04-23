@@ -803,7 +803,7 @@ void CommandController::handleRedeem() {
 
     OwnableTile* property = properties[static_cast<size_t>(choice - 1)];
     const int redeemCost = property->getPurchasePrice();
-    if (player.getMoney() < redeemCost) {
+    if (player.getMoney() < player.effectiveCost(redeemCost)) {
         uiManager.printError("Uang kamu tidak cukup untuk menebus " + property->getName() + ".");
         uiManager.printError(
             "Harga tebus: " + formatMoney(redeemCost) +
@@ -874,7 +874,7 @@ void CommandController::handleBuild() {
     StreetTile* street = streets[static_cast<size_t>(tileChoice - 1)];
     const int oldLevel = street->getBuildingLevel();
     const int basePrice = (oldLevel >= 4) ? street->getHotelBuildCost() : street->getHouseBuildCost();
-    const int buildCost = game.getPropertyManager().getDiscountedPrice(player, basePrice);
+    const int buildCost = player.effectiveCost(basePrice);
     if (oldLevel >= 4) {
         uiManager.printMessage("Upgrade ke hotel? Biaya: " + formatMoney(buildCost) + " (y/n): ");
         if (!uiManager.readYesNo()) {
