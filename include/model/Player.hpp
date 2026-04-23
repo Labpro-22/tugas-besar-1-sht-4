@@ -75,6 +75,7 @@ public:
     Player& operator-=(int amount);
     Player operator+(int amount) const;
     Player operator-(int amount) const;
+    int effectiveCost(int amount) const;
     bool operator>(const Player& other) const;
     bool operator<(const Player& other) const;
     vector<shared_ptr<HandCard>> getHandCards() const;

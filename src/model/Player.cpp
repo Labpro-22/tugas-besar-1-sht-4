@@ -201,8 +201,15 @@ Player& Player::operator+=(int amount) {
 }
 
 Player& Player::operator-=(int amount) {
-    this->money -= amount;
+    this->money -= effectiveCost(amount);
     return *this;
+}
+
+int Player::effectiveCost(int amount) const {
+    if (discountDuration > 0 && discountPercent > 0) {
+        return max(0, amount * (100 - discountPercent) / 100);
+    }
+    return amount;
 }
 
 Player Player::operator+(int amount) const {
