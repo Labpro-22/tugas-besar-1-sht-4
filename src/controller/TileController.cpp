@@ -242,10 +242,20 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
                 acquireProperty(player, property, price);
                 if (tile.onLand() == Tile::TileType::Railroad) {
                     uiManager.printRailroadAcquired(player.getUsername(), tile.getName(), tile.getCode());
-                    game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "RAILROAD", tile.getCode());
+                    game.getLogManager().addLog(
+                        game.getCurrentTurn(),
+                        player.getUsername(),
+                        "RAILROAD",
+                        "Membeli otomatis " + tile.getName() + " (" + tile.getCode() + ") seharga M" + to_string(price)
+                    );
                 } else {
                     uiManager.printUtilityAcquired(player.getUsername(), tile.getName(), tile.getCode());
-                    game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "UTILITY", tile.getCode());
+                    game.getLogManager().addLog(
+                        game.getCurrentTurn(),
+                        player.getUsername(),
+                        "UTILITY",
+                        "Membeli otomatis " + tile.getName() + " (" + tile.getCode() + ") seharga M" + to_string(price)
+                    );
                 }
                 return;
             }
@@ -296,7 +306,13 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
             );
             player -= rent;
             *owner += rent;
-            game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "SEWA", tile.getCode());
+            game.getLogManager().addLog(
+                game.getCurrentTurn(),
+                player.getUsername(),
+                "SEWA",
+                "Membayar sewa M" + to_string(rent) + " untuk " + tile.getName() +
+                " (" + tile.getCode() + ") kepada " + owner->getUsername()
+            );
             break;
         }
         case Tile::TileType::IncomeTax:
@@ -313,6 +329,12 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
             uiManager.printMessage("Mengambil kartu...");
             shared_ptr<ChanceCard> card = game.getCardManager().drawChanceCard();
             if (card != nullptr) {
+                game.getLogManager().addLog(
+                    game.getCurrentTurn(),
+                    player.getUsername(),
+                    "KESEMPATAN",
+                    "Mengambil kartu " + card->getName() + ": " + card->getDescription()
+                );
                 card->apply(game, player);
             }
             break;
@@ -322,6 +344,12 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
             uiManager.printMessage("Mengambil kartu...");
             shared_ptr<CommunityChestCard> card = game.getCardManager().drawCommunityChestCard();
             if (card != nullptr) {
+                game.getLogManager().addLog(
+                    game.getCurrentTurn(),
+                    player.getUsername(),
+                    "DANA_UMUM",
+                    "Mengambil kartu " + card->getName() + ": " + card->getDescription()
+                );
                 card->apply(game, player);
             }
             break;
@@ -393,7 +421,12 @@ void TileController::handleStreetPurchase(StreetTile& tile) {
             acquireProperty(player, tile, price);
             uiManager.printMessage(tile.getName() + " kini menjadi milikmu!");
             uiManager.printMessage("Uang tersisa: M" + to_string(player.getMoney()));
-            game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "BELI", tile.getCode());
+            game.getLogManager().addLog(
+                game.getCurrentTurn(),
+                player.getUsername(),
+                "BELI",
+                "Membeli " + tile.getName() + " (" + tile.getCode() + ") seharga M" + to_string(price)
+            );
             return;
         }
 
@@ -445,7 +478,13 @@ void TileController::handleStreetPurchase(StreetTile& tile) {
     );
     player -= rent;
     *owner += rent;
-    game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "SEWA", tile.getCode());
+    game.getLogManager().addLog(
+        game.getCurrentTurn(),
+        player.getUsername(),
+        "SEWA",
+        "Membayar sewa M" + to_string(rent) + " untuk " + tile.getName() +
+        " (" + tile.getCode() + ") kepada " + owner->getUsername()
+    );
 }
 
 void TileController::handleAuction(OwnableTile& tile, Player* triggerPlayer) {
@@ -509,6 +548,12 @@ void TileController::handleAuction(OwnableTile& tile, Player* triggerPlayer) {
                 passesAfterBid = 0;
                 totalPassesWithoutBid = 0;
                 uiManager.printMessage("Penawaran tertinggi: M" + to_string(currentBid) + " (" + currentPlayer->getUsername() + ")");
+                game.getLogManager().addLog(
+                    game.getCurrentTurn(),
+                    currentPlayer->getUsername(),
+                    "BID",
+                    "Menawar M" + to_string(currentBid) + " untuk " + tile.getName() + " (" + tile.getCode() + ")"
+                );
             }
         } else {
             if (highestBidder == nullptr && totalPassesWithoutBid >= static_cast<int>(participants.size()) - 1) {
@@ -542,7 +587,7 @@ void TileController::handleAuction(OwnableTile& tile, Player* triggerPlayer) {
         game.getCurrentTurn(),
         highestBidder->getUsername(),
         "LELANG",
-        "Menang " + tile.getCode() + " seharga M" + to_string(currentBid)
+        "Menang " + tile.getName() + " (" + tile.getCode() + ") seharga M" + to_string(currentBid)
     );
 }
 
@@ -597,7 +642,12 @@ void TileController::handleIncomeTax(IncomeTaxTile& tile) {
     }
 
     player -= taxAmount;
-    game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "PAJAK", tile.getCode());
+    game.getLogManager().addLog(
+        game.getCurrentTurn(),
+        player.getUsername(),
+        "PAJAK",
+        "Membayar pajak M" + to_string(taxAmount) + " di " + tile.getName() + " (" + tile.getCode() + ")"
+    );
 }
 
 void TileController::handleLuxuryTax(LuxuryTaxTile& tile) {
@@ -620,7 +670,12 @@ void TileController::handleLuxuryTax(LuxuryTaxTile& tile) {
     }
 
     player -= taxAmount;
-    game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "PAJAK", tile.getCode());
+    game.getLogManager().addLog(
+        game.getCurrentTurn(),
+        player.getUsername(),
+        "PAJAK",
+        "Membayar pajak M" + to_string(taxAmount) + " di " + tile.getName() + " (" + tile.getCode() + ")"
+    );
 }
 
 void TileController::handleFestival(FestivalTile& tile) {
@@ -659,9 +714,11 @@ void TileController::handleFestival(FestivalTile& tile) {
 
     StreetTile* selected = streets[static_cast<size_t>(choice - 1)];
     const int oldRent = rentPreview(*selected);
+    const int oldMultiplier = selected->getFestivalMultiplier();
     const bool alreadyMaxed = selected->getFestivalMultiplier() >= 8;
     game.getFestivalManager().activateFestival(*selected);
     const int newRent = rentPreview(*selected);
+    const int newMultiplier = selected->getFestivalMultiplier();
 
     if (alreadyMaxed) {
         uiManager.printFestivalMaxed(selected->getName(), selected->getCode(), selected->getFestivalDuration());
@@ -675,7 +732,18 @@ void TileController::handleFestival(FestivalTile& tile) {
         );
     }
 
-    game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "FESTIVAL", selected->getCode());
+    string festivalAction = "Aktivasi";
+    if (oldMultiplier > 1) festivalAction = "Penguatan";
+    if (alreadyMaxed) festivalAction = "Perpanjangan";
+    game.getLogManager().addLog(
+        game.getCurrentTurn(),
+        player.getUsername(),
+        "FESTIVAL",
+        festivalAction + " festival di " + selected->getName() + " (" + selected->getCode() +
+        "), x" + to_string(oldMultiplier) + " -> x" + to_string(newMultiplier) +
+        ", sewa M" + to_string(oldRent) + " -> M" + to_string(newRent) +
+        ", durasi " + to_string(selected->getFestivalDuration()) + " giliran"
+    );
 }
 
 void TileController::handleForceDrop(Player& player) {
@@ -786,11 +854,23 @@ void TileController::handleBankruptcy(Player& player) {
                 const int sellValue = selected->getSelltoBankValue();
                 player += sellValue;
                 uiManager.printMessage(selected->getName() + " terjual ke Bank. Kamu menerima M" + to_string(sellValue) + ".");
+                game.getLogManager().addLog(
+                    game.getCurrentTurn(),
+                    player.getUsername(),
+                    "JUAL",
+                    "Menjual " + selected->getName() + " (" + selected->getCode() + ") ke Bank seharga M" + to_string(sellValue)
+                );
                 returnPropertyToBank(*selected);
             } else {
                 const int mortgageValue = selected->getMortgageValue();
                 game.getPropertyManager().mortgageProperty(player, *selected);
                 uiManager.printMessage(selected->getName() + " digadaikan. Kamu menerima M" + to_string(mortgageValue) + ".");
+                game.getLogManager().addLog(
+                    game.getCurrentTurn(),
+                    player.getUsername(),
+                    "GADAI",
+                    "Menggadaikan " + selected->getName() + " (" + selected->getCode() + ") senilai M" + to_string(mortgageValue)
+                );
             }
             uiManager.printMessage("Uang kamu sekarang: M" + to_string(player.getMoney()));
         }
@@ -820,6 +900,12 @@ void TileController::handleBankruptcy(Player& player) {
                 OwnershipStatus status = OwnershipStatus::OWNED;
                 if (property->isMortgaged()) status = OwnershipStatus::MORTGAGED;
                 property->setOwnershipStatus(status);
+                game.getLogManager().addLog(
+                    game.getCurrentTurn(),
+                    player.getUsername(),
+                    "ASET",
+                    property->getName() + " (" + property->getCode() + ") dialihkan ke " + pendingCreditor->getUsername()
+                );
             }
         }
         uiManager.printMessage("Aset dialihkan ke " + pendingCreditor->getUsername() + ".");
@@ -829,6 +915,12 @@ void TileController::handleBankruptcy(Player& player) {
         for (OwnableTile* property : properties) {
             if (property != nullptr) {
                 returnPropertyToBank(*property);
+                game.getLogManager().addLog(
+                    game.getCurrentTurn(),
+                    player.getUsername(),
+                    "ASET",
+                    property->getName() + " (" + property->getCode() + ") dikembalikan ke Bank"
+                );
                 if (activePlayerCount(game) > 0) {
                     handleAuction(*property, &player);
                 }

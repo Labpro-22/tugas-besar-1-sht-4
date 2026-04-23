@@ -130,6 +130,12 @@ void Game::loadGame(const string& filename) {
     }
 
     gameContext.setIsRunning(true);
+    logManager.addLog(
+        gameContext.getCurrentTurn(),
+        getCurrentPlayer().getUsername(),
+        "LOAD",
+        "Permainan dimuat dari " + filename
+    );
 }
 
 Player& Game::getCurrentPlayer() {

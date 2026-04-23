@@ -754,9 +754,28 @@ void CommandController::handleMortgage() {
             return;
         }
 
+        vector<shared_ptr<StreetTile>> groupStreets = game.getBoard().getStreetTileByColorGroup(street->getColorGroup());
+        vector<string> soldBuildingLogs;
+        for (const shared_ptr<StreetTile>& groupStreet : groupStreets) {
+            if (groupStreet != nullptr && groupStreet->getOwner() == &player && groupStreet->getBuildingLevel() > 0) {
+                soldBuildingLogs.push_back(
+                    groupStreet->getName() + " (" + groupStreet->getCode() + ") seharga " +
+                    formatMoney(groupStreet->getBuildingValue() / 2)
+                );
+            }
+        }
+
         const int buildingValue = sellColorGroupBuildings(game, player, *street);
         uiManager.printMessage("Bangunan color group terjual. Kamu menerima " + formatMoney(buildingValue) + ".");
         uiManager.printMessage("Uang kamu sekarang: " + formatMoney(player.getMoney()));
+        for (const string& detail : soldBuildingLogs) {
+            game.getLogManager().addLog(
+                game.getCurrentTurn(),
+                player.getUsername(),
+                "JUAL_BGN",
+                "Menjual bangunan di " + detail
+            );
+        }
         uiManager.printMessage("Lanjut menggadaikan " + property->getName() + "? (y/n): ");
         if (!uiManager.readYesNo()) {
             uiManager.printMessage("Gadai dibatalkan.");
@@ -770,7 +789,12 @@ void CommandController::handleMortgage() {
     uiManager.printMessage("Kamu menerima " + formatMoney(mortgageValue) + " dari Bank.");
     uiManager.printMessage("Uang kamu sekarang: " + formatMoney(player.getMoney()));
     uiManager.printMessage("Catatan: Sewa tidak dapat dipungut dari properti yang digadaikan.");
-    game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "GADAI", property->getCode());
+    game.getLogManager().addLog(
+        game.getCurrentTurn(),
+        player.getUsername(),
+        "GADAI",
+        "Menggadaikan " + property->getName() + " (" + property->getCode() + ") senilai " + formatMoney(mortgageValue)
+    );
 }
 
 void CommandController::handleRedeem() {
@@ -815,7 +839,12 @@ void CommandController::handleRedeem() {
     uiManager.printMessage(property->getName() + " berhasil ditebus!");
     uiManager.printMessage("Kamu membayar " + formatMoney(redeemCost) + " ke Bank.");
     uiManager.printMessage("Uang kamu sekarang: " + formatMoney(player.getMoney()));
-    game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "TEBUS", property->getCode());
+    game.getLogManager().addLog(
+        game.getCurrentTurn(),
+        player.getUsername(),
+        "TEBUS",
+        "Menebus " + property->getName() + " (" + property->getCode() + ") seharga " + formatMoney(redeemCost)
+    );
 }
 
 void CommandController::handleBuild() {
@@ -891,7 +920,14 @@ void CommandController::handleBuild() {
         );
     }
     uiManager.printMessage("Uang tersisa: " + formatMoney(player.getMoney()));
-    game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "BANGUN", street->getCode());
+    string buildingDetail = "Membangun 1 rumah";
+    if (oldLevel >= 4) buildingDetail = "Membangun hotel";
+    game.getLogManager().addLog(
+        game.getCurrentTurn(),
+        player.getUsername(),
+        "BANGUN",
+        buildingDetail + " di " + street->getName() + " (" + street->getCode() + ") seharga " + formatMoney(buildCost)
+    );
 }
 
 void CommandController::handleSave(const string& filename) {

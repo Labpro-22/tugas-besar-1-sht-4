@@ -15,7 +15,7 @@ public:
     ~SaveLoadManager();
     SaveLoadManager& operator=(const SaveLoadManager& other);
 
-    void saveGame(const Game& game, const string& filename);
+    void saveGame(Game& game, const string& filename);
     void loadGame(Game& game, const string& filename);
     void savePlayers(const Game& game, ostream& out);
     void loadPlayers(Game& game, istream& in);

@@ -163,7 +163,7 @@ static shared_ptr<HandCard> makeHandCard(const string& type, int value, int dura
     return nullptr;
 }
 
-void SaveLoadManager::saveGame(const Game& game, const string& filename) {
+void SaveLoadManager::saveGame(Game& game, const string& filename) {
     if (!hasTxtExtension(filename)) {
         throw FileException("File save harus berekstensi .txt");
     }
@@ -193,6 +193,13 @@ void SaveLoadManager::saveGame(const Game& game, const string& filename) {
     ofstream out(filename);
     if (!out.is_open())
         throw FileException("Gagal membuka file untuk disimpan: " + filename);
+
+    game.getLogManager().addLog(
+        game.getCurrentTurn(),
+        game.getCurrentPlayer().getUsername(),
+        "SAVE",
+        "Permainan disimpan ke " + filename
+    );
 
     const GameContext& ctx = game.getGameContext();
     out << ctx.getCurrentTurn() << " " << ctx.getMaxTurn() << "\n";
