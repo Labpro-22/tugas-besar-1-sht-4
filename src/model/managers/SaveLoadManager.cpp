@@ -186,7 +186,7 @@ void SaveLoadManager::saveGame(Game& game, const string& filename) {
     }
 
     const TurnManager& tm = game.getTurnManager();
-    if (tm.isRolledThisTurn()) {
+    if (tm.hasActionTakenThisTurn()) {
         throw InvalidActionException("Save hanya dapat dilakukan di awal giliran sebelum ada aksi.");
     }
 
@@ -449,6 +449,7 @@ void SaveLoadManager::loadTurnState(Game& game, istream& in) {
 
     tm.setCurrentPlayerIndex(activeIdx);
     tm.setRolledThisTurn(false);
+    tm.setActionTakenThisTurn(false);
     tm.setConsecutiveDoubles(0);
     tm.setTurnCount(game.getGameContext().getCurrentTurn());
 }

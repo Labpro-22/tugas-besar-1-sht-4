@@ -417,7 +417,7 @@ void UIManager::printHelp() const {
     cout << "GUNAKAN_KEMAMPUAN            : Menggunakan satu kartu kemampuan dari tangan.\n";
     cout << "CETAK_LOG                    : Menampilkan seluruh log transaksi.\n";
     cout << "CETAK_LOG <N>                : Menampilkan N log transaksi terakhir.\n";
-    cout << "SIMPAN <nama_file>           : Menyimpan permainan sebelum melempar dadu.\n";
+    cout << "SIMPAN <nama_file>           : Menyimpan permainan hanya di awal giliran sebelum ada aksi.\n";
 }
 
 string UIManager::readPropertyCode() const {
