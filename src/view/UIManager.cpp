@@ -218,10 +218,11 @@ void UIManager::printTileRow(
 
 vector<string> UIManager::boardCenterLines(int currentTurn, int maxTurn, const string& currentPlayerLabel) const {
     vector<string> lines(27, "");
+    const string maxTurnText = maxTurn > 0 ? to_string(maxTurn) : "TANPA BATAS";
     lines[2] = "==================================";
     lines[3] = "||          NIMONSPOLI          ||";
     lines[4] = "==================================";
-    lines[6] = "TURN " + to_string(currentTurn) + " / " + to_string(maxTurn);
+    lines[6] = "TURN " + to_string(currentTurn) + " / " + maxTurnText;
     lines[9] = "----------------------------------";
     lines[10] = "LEGENDA KEPEMILIKAN & STATUS";
     lines[11] = "P1-P4 : Properti milik Pemain 1-4";
@@ -838,7 +839,7 @@ void UIManager::printFestivalState(
     count = min(count, propertyStatuses.size());
 
     if (count == 0) {
-        cout << playerName << " belum memiliki street yang dapat diberi efek festival.\n";
+        cout << playerName << " belum memiliki properti yang dapat diberi efek festival.\n";
         return;
     }
 
@@ -1171,12 +1172,11 @@ void UIManager::printJailOptions(
     cout << "Gagal double : " << failedRolls << " kali\n\n";
     cout << "1. Bayar denda\n";
     cout << "2. Coba lempar double\n";
-    cout << "3. Gunakan kartu bebas penjara (jika ada)\n";
     cout << "0. Batal\n";
 }
 
 int UIManager::readJailChoice() const {
-    return readIntInRange("Pilihan (0-3): ", 0, 3, true);
+    return readIntInRange("Pilihan (0-2): ", 0, 2, true);
 }
 
 string UIManager::readFilename() const {

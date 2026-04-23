@@ -18,6 +18,7 @@ private:
     unique_ptr<TileController> tileController;
     bool rolledThisTurn;
     bool diceRolledThisTurn;
+    bool resumeLoadedTurnPending;
 
     string toUpperCopy(string value) const;
     string firstToken(const string& input) const;
@@ -33,7 +34,8 @@ public:
     void runGameLoop();
     void runTurn();
 
-    void handleStartTurn();
+    void resumeLoadedTurn();
+    void handleStartTurn(bool resumeExistingTurn = false);
     void handleEndTurn();
 
     bool canSaveNow() const;

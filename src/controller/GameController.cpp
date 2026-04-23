@@ -8,6 +8,7 @@
 #include "model/managers/WinConditionManager.hpp"
 #include "model/tiles/OwnableTile.hpp"
 #include "model/cards/HandCard.hpp"
+#include "model/tiles/Tile.hpp"
 #include "view/UIManager.hpp"
 
 #include <algorithm>
@@ -54,7 +55,8 @@ GameController::GameController(Game& game, UIManager& uiManager)
       commandController(make_unique<CommandController>(game, uiManager)),
       tileController(make_unique<TileController>(game, uiManager)),
       rolledThisTurn(false),
-      diceRolledThisTurn(false) {}
+      diceRolledThisTurn(false),
+      resumeLoadedTurnPending(false) {}
 
 GameController::GameController(const GameController& other)
     : game(other.game),
@@ -62,7 +64,8 @@ GameController::GameController(const GameController& other)
       commandController(make_unique<CommandController>(game, uiManager)),
       tileController(make_unique<TileController>(game, uiManager)),
       rolledThisTurn(other.rolledThisTurn),
-      diceRolledThisTurn(other.diceRolledThisTurn) {}
+      diceRolledThisTurn(other.diceRolledThisTurn),
+      resumeLoadedTurnPending(other.resumeLoadedTurnPending) {}
 
 GameController::~GameController() = default;
 
@@ -72,6 +75,7 @@ GameController& GameController::operator=(const GameController& other) {
         tileController = make_unique<TileController>(game, uiManager);
         rolledThisTurn = other.rolledThisTurn;
         diceRolledThisTurn = other.diceRolledThisTurn;
+        resumeLoadedTurnPending = other.resumeLoadedTurnPending;
     }
     return *this;
 }
@@ -85,7 +89,7 @@ void GameController::runGameLoop() {
     }
 
     while (game.isGameRunning()) {
-        if (activePlayerCount(game) <= 1 || game.getCurrentTurn() > game.getMaxTurn()) {
+        if (activePlayerCount(game) <= 1 || game.hasReachedMaxTurn()) {
             break;
         }
 
@@ -93,7 +97,7 @@ void GameController::runGameLoop() {
     }
 
     const bool endedByBankruptcy = activePlayerCount(game) <= 1;
-    const bool endedByMaxTurn = game.getCurrentTurn() > game.getMaxTurn();
+    const bool endedByMaxTurn = game.hasReachedMaxTurn();
     if (!endedByBankruptcy && !endedByMaxTurn) {
         return;
     }
@@ -121,12 +125,14 @@ void GameController::runGameLoop() {
         winnerMoney,
         winnerPropertyCounts,
         winnerCardCounts,
-        game.getCurrentTurn() > game.getMaxTurn()
+        endedByMaxTurn
     );
 }
 
 void GameController::runTurn() {
-    handleStartTurn();
+    const bool resumeExistingTurn = resumeLoadedTurnPending;
+    resumeLoadedTurnPending = false;
+    handleStartTurn(resumeExistingTurn);
 
     Player& player = game.getCurrentPlayer();
     if (player.isBankrupt()) {
@@ -170,33 +176,49 @@ void GameController::runTurn() {
     handleEndTurn();
 }
 
-void GameController::handleStartTurn() {
+void GameController::resumeLoadedTurn() {
+    resumeLoadedTurnPending = true;
+}
+
+void GameController::handleStartTurn(bool resumeExistingTurn) {
     rolledThisTurn = false;
     diceRolledThisTurn = false;
-    game.getTurnManager().setRolledThisTurn(false);
-    game.getTurnManager().setConsecutiveDoubles(0);
+    if (!resumeExistingTurn) {
+        game.getTurnManager().startTurn(game.getGameContext());
+    } else {
+        game.getTurnManager().setRolledThisTurn(false);
+    }
 
     Player& player = game.getCurrentPlayer();
     if (player.isBankrupt()) {
         return;
     }
-    player.setUsedHandCardThisTurn(false);
 
-    vector<OwnableTile*> ownedProperties = game.getPropertyManager().getOwnedProperties(game.getBoard(), player);
-    game.getFestivalManager().decrementFestivalDurations(ownedProperties);
+    if (!resumeExistingTurn) {
+        player.setUsedHandCardThisTurn(false);
+    }
 
     uiManager.printMessage("");
     uiManager.printMessage("=================================");
+    const string maxTurnText = game.hasTurnLimit() ? to_string(game.getMaxTurn()) : "TANPA BATAS";
     uiManager.printMessage(
         "Giliran " + player.getUsername() +
         " | Turn " + to_string(game.getCurrentTurn()) +
-        "/" + to_string(game.getMaxTurn())
+        "/" + maxTurnText
     );
     uiManager.printMessage("=================================");
 
+    if (resumeExistingTurn) {
+        return;
+    }
+
     shared_ptr<HandCard> drawnCard = game.getCardManager().giveStartTurnCard(player);
     if (drawnCard) {
-        uiManager.printCardDrawn("Kemampuan Spesial (Manual)", drawnCard->getName(), drawnCard->getDescription());
+        uiManager.printCardDrawn(
+            "Kemampuan Spesial (Manual)",
+            drawnCard->getName(),
+            drawnCard->getDescription()
+        );
     }
 
     if (game.getCardManager().needsForceDrop(player)) {
@@ -204,18 +226,31 @@ void GameController::handleStartTurn() {
     }
 
     if (player.isJailed()) {
-        tileController->handleJailTurn(player);
-        if (player.isJailed()) {
+        const bool jailRollConsumedTurn = tileController->handleJailTurn(player);
+        if (jailRollConsumedTurn || player.isJailed()) {
             rolledThisTurn = true;
         }
     }
 }
 
+
 void GameController::handleEndTurn() {
     Player& player = game.getCurrentPlayer();
     player.setShieldActive(false);
     player.decrementDiscountDuration();
-    game.setCurrentTurn(game.getCurrentTurn() + 1);
+    const int previousTurn = game.getCurrentTurn();
+    game.getTurnManager().endTurn(game.getGameContext());
+    if (game.getCurrentTurn() > previousTurn) {
+        vector<OwnableTile*> properties;
+        const vector<shared_ptr<Tile>>& tiles = game.getBoard().getTiles();
+        for (const shared_ptr<Tile>& tile : tiles) {
+            shared_ptr<OwnableTile> property = dynamic_pointer_cast<OwnableTile>(tile);
+            if (property != nullptr) {
+                properties.push_back(property.get());
+            }
+        }
+        game.getFestivalManager().decrementFestivalDurations(properties);
+    }
 }
 
 bool GameController::canSaveNow() const {

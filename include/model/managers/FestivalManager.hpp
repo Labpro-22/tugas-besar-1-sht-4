@@ -5,7 +5,6 @@
 using namespace std;
 
 class OwnableTile;
-class StreetTile;
 
 class FestivalManager {
 public:
@@ -14,8 +13,8 @@ public:
     ~FestivalManager();
     FestivalManager& operator=(const FestivalManager& other);
 
-    void activateFestival(StreetTile& tile);
-    void strengthenFestival(StreetTile& tile);
+    void activateFestival(OwnableTile& tile);
+    void strengthenFestival(OwnableTile& tile);
     void decrementFestivalDurations(const vector<OwnableTile*>& ownedProperties);
-    void clearExpiredFestival(StreetTile& tile);
+    void clearExpiredFestival(OwnableTile& tile);
 };

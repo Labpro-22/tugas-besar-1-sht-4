@@ -30,8 +30,8 @@ private:
     string normalizeColorKey(string value) const;
     string colorDisplayName(const string& colorGroup) const;
     string buildingText(const StreetTile& tile) const;
-    string festivalStatus(const StreetTile& tile) const;
-    int rentPreview(const StreetTile& tile) const;
+    string festivalStatus(const OwnableTile& tile) const;
+    int rentPreview(const OwnableTile& tile) const;
     void buildDeedData(const OwnableTile& tile, string& title, int& purchasePrice, int& mortgageValue, vector<string>& moneyRowLabels, vector<int>& moneyRowValues, vector<string>& detailRowLabels, vector<string>& detailRowValues, string& ownershipStatus, string& ownerName) const;
     void returnPropertyToBank(OwnableTile& property) const;
     vector<OwnableTile*> ownedProperties(Game& game, Player& player) const;
@@ -54,6 +54,6 @@ public:
     void handleLuxuryTax(LuxuryTaxTile& tile);
     void handleFestival(FestivalTile& tile);
     void handleForceDrop(Player& player);
-    void handleJailTurn(Player& player);
+    bool handleJailTurn(Player& player);
     void handleBankruptcy(Player& player);
 };

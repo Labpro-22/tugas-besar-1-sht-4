@@ -88,9 +88,17 @@ void PropertyManager::mortgageProperty(Player& player, OwnableTile& tile) {
     player += tile.getMortgageValue();
 }
 
+int PropertyManager::getRedeemCost(const OwnableTile& tile) const {
+    if (dynamic_cast<const RailroadTile*>(&tile) != nullptr ||
+        dynamic_cast<const UtilityTile*>(&tile) != nullptr) {
+        return tile.getMortgageValue() * 2;
+    }
+    return tile.getPurchasePrice();
+}
+
 void PropertyManager::redeemProperty(Player& player, OwnableTile& tile) {
     if (!tile.isMortgaged()) return;
-    int redeemCost = tile.getPurchasePrice();
+    int redeemCost = getRedeemCost(tile);
     if (player.getMoney() < redeemCost) return;
     player -= redeemCost;
     tile.redeem();
@@ -223,9 +231,10 @@ int PropertyManager::calculateTotalWealth(const Board& board, const Player& play
 vector<OwnableTile*> PropertyManager::getMortgageableProperties(const Game& game, const Player& player) const {
     vector<OwnableTile*> mortgageableProperties;
     for (OwnableTile* property : getOwnedProperties(game.getBoard(), player)) {
-        if (property != nullptr && canMortgage(player, *property)) {
-            mortgageableProperties.push_back(property);
+        if (property == nullptr || !canMortgage(player, *property)) {
+            continue;
         }
+        mortgageableProperties.push_back(property);
     }
     return mortgageableProperties;
 }

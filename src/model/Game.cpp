@@ -103,9 +103,7 @@ void Game::startNewGame() {
     dice = Dice();
 
     configManager.loadAllConfigs();
-    if (configManager.getMaxTurn() > 0) {
-        gameContext.setMaxTurn(configManager.getMaxTurn());
-    }
+    gameContext.setMaxTurn(configManager.getMaxTurn());
     gameContext.getBoard().initializeBoard(configManager);
     cardManager.initializeDecks();
 
@@ -130,6 +128,12 @@ void Game::loadGame(const string& filename) {
     }
 
     gameContext.setIsRunning(true);
+    logManager.addLog(
+        gameContext.getCurrentTurn(),
+        getCurrentPlayer().getUsername(),
+        "LOAD",
+        "Permainan dimuat dari " + filename
+    );
 }
 
 Player& Game::getCurrentPlayer() {
@@ -138,12 +142,22 @@ Player& Game::getCurrentPlayer() {
         throw InvalidActionException("Tidak ada pemain");
     }
 
-    if (gameContext.getCurrentTurn() <= 0) {
-        return players.at(0);
+    if (turnManager.getTurnOrder().empty()) {
+        turnManager.initializeTurnOrder(static_cast<int>(players.size()));
     }
 
-    const int currentIndex = (gameContext.getCurrentTurn() - 1) % static_cast<int>(players.size());
-    return players.at(currentIndex);
+    const vector<int>& order = turnManager.getTurnOrder();
+    int orderIndex = turnManager.getCurrentPlayerIndex();
+    if (orderIndex < 0 || orderIndex >= static_cast<int>(order.size())) {
+        orderIndex = 0;
+        turnManager.setCurrentPlayerIndex(orderIndex);
+    }
+
+    int playerIndex = order.at(orderIndex);
+    if (playerIndex < 0 || playerIndex >= static_cast<int>(players.size())) {
+        playerIndex = 0;
+    }
+    return players.at(playerIndex);
 }
 
 const Player& Game::getCurrentPlayer() const {
@@ -152,12 +166,21 @@ const Player& Game::getCurrentPlayer() const {
         throw InvalidActionException("Tidak ada pemain");
     }
 
-    if (gameContext.getCurrentTurn() <= 0) {
+    const vector<int>& order = turnManager.getTurnOrder();
+    if (order.empty()) {
         return players.at(0);
     }
 
-    const int currentIndex = (gameContext.getCurrentTurn() - 1) % static_cast<int>(players.size());
-    return players.at(currentIndex);
+    const int orderIndex = turnManager.getCurrentPlayerIndex();
+    if (orderIndex < 0 || orderIndex >= static_cast<int>(order.size())) {
+        return players.at(0);
+    }
+
+    const int playerIndex = order.at(orderIndex);
+    if (playerIndex < 0 || playerIndex >= static_cast<int>(players.size())) {
+        return players.at(0);
+    }
+    return players.at(playerIndex);
 }
 
 Board& Game::getBoard() {
@@ -182,6 +205,14 @@ int Game::getCurrentTurn() const {
 
 int Game::getMaxTurn() const {
     return gameContext.getMaxTurn();
+}
+
+bool Game::hasTurnLimit() const {
+    return gameContext.getMaxTurn() > 0;
+}
+
+bool Game::hasReachedMaxTurn() const {
+    return hasTurnLimit() && gameContext.getCurrentTurn() > gameContext.getMaxTurn();
 }
 
 bool Game::isGameRunning() const {
@@ -317,9 +348,9 @@ const vector<Player>& Game::getPlayers() const {
 }
 
 bool Game::isGameOver() {
-    return getBankruptcyManager().isBankruptcyActive() || gameContext.getCurrentTurn() >= gameContext.getMaxTurn();
+    return getBankruptcyManager().isBankruptcyActive() || hasReachedMaxTurn();
 }
 
 bool Game::isGameOver() const {
-    return getBankruptcyManager().isBankruptcyActive() || gameContext.getCurrentTurn() >= gameContext.getMaxTurn();
+    return getBankruptcyManager().isBankruptcyActive() || hasReachedMaxTurn();
 }

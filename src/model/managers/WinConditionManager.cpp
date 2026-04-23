@@ -27,7 +27,7 @@ bool WinConditionManager::isGameOver(const Game& game) const {
 }
 
 bool WinConditionManager::reachedMaxTurn(const Game& game) const {
-    return game.getCurrentTurn() >= game.getMaxTurn();
+    return game.hasReachedMaxTurn();
 }
 
 bool WinConditionManager::onlyOnePlayerLeft(const Game& game) const {

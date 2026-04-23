@@ -37,7 +37,7 @@ RailroadTile& RailroadTile::operator=(const RailroadTile& other) {
 int RailroadTile::calculateRent(const RentContext& rentContext) const {
     if (this->getOwner() == nullptr) return 0;
     if (this->getOwnershipStatus() == OwnershipStatus::MORTGAGED) return 0;
-    return rentContext.getRailroadRent();
+    return rentContext.getRailroadRent() * getFestivalMultiplier();
 }
 
 Tile::TileType RailroadTile::onLand() const {
@@ -58,5 +58,5 @@ int RailroadTile::getBuildingValue() const {
 }
 
 int RailroadTile::getSelltoBankValue() const {
-    return purchasePrice;
+    return mortgageValue;
 }
