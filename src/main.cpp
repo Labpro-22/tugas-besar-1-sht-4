@@ -1,11 +1,11 @@
 #include <iostream>
 #include <exception>
 
-#include "view/Application.hpp"
+#include "view/RaylibGuiApp.hpp"
 
 int main() {
     try {
-        Application app;
+        RaylibGuiApp app;
         
         app.run();
     }

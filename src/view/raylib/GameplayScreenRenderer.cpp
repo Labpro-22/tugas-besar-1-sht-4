@@ -216,14 +216,14 @@ void GameplayScreenRenderer::drawBoardPanel(
     DrawTextEx(font, hint.c_str(), {center.x + (center.width - hintSize.x) * 0.5f, center.y + center.height - 42.0f}, 16.0f, 1.0f, toolkit.theme().getTeal());
 
     for (int index = 0; index < static_cast<int>(state.getGame().getPlayers().size()); index++) {
-        const PlayerInfo& player = state.getGame().getPlayers().at(index);
+        const PlayerInfo& player = state.getGame().getPlayers().at(index);  
         const Rectangle tileRect = session.boardTileRect(square, player.getPosition());
-        const float chipOffsetX = 18.0f + (index % 2) * 18.0f;
-        const float chipOffsetY = 18.0f + (index / 2) * 18.0f;
+        const float chipOffsetX = 40.0f + (index % 2) * 40.0f;
+        const float chipOffsetY = 40.0f + (index / 2) * 40.0f;
         const float pulse = 1.0f + (index == state.getGame().getCurrentPlayer() ? std::sin(state.getTime() * 4.0f) * 0.08f : 0.0f);
         const Vector2 chipCenter = {tileRect.x + chipOffsetX, tileRect.y + chipOffsetY};
-        DrawCircleV(chipCenter, 8.0f * pulse, player.getAccent());
-        DrawCircleLines(static_cast<int>(chipCenter.x), static_cast<int>(chipCenter.y), 8.0f * pulse, toolkit.withAlpha(toolkit.theme().getPaperSoft(), 0.9f));
+        DrawCircleV(chipCenter, 16.0f * pulse, player.getAccent());
+        DrawCircleLines(static_cast<int>(chipCenter.x), static_cast<int>(chipCenter.y), 16.0f * pulse, toolkit.withAlpha(toolkit.theme().getPaperSoft(), 0.9f));
     }
 }
 

@@ -401,7 +401,7 @@ Rectangle UiToolkit::drawModalShell(float animation, float widthRatio, float hei
 void UiToolkit::drawCloseHint(Rectangle modal) const {
     DrawTextEx(
         font(),
-        "Esc atau tombol tutup untuk kembali.",
+        "Esc",
         {modal.x + modal.width - 210.0f, modal.y + 18.0f},
         16.0f,
         1.0f,

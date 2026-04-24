@@ -41,7 +41,7 @@ void MenuScreenRenderer::drawMainMenu(GUIGameController& session, const UiToolki
 
     const Font font = toolkit.font();
     DrawTextEx(font, "NIMONSPOLI", {hero.x + 30.0f, hero.y + 34.0f}, 38.0f, 1.0f, toolkit.theme().getInk());
-    DrawTextEx(font, "Bangun monopoli dan menangkan permainan.", {hero.x + 30.0f, hero.y + 78.0f}, 38.0f, 1.0f, toolkit.theme().getTeal());
+    DrawTextEx(font, "Monopoli Tapi Versi Minion.", {hero.x + 30.0f, hero.y + 78.0f}, 38.0f, 1.0f, toolkit.theme().getTeal());
     toolkit.drawWrappedText(
         "Beli properti, bangun aset, kelola kartu, hadapi pajak, ikuti lelang, dan pertahankan saldo sampai akhir permainan.",
         {hero.x + 32.0f, hero.y + 148.0f, hero.width - 64.0f, 120.0f},

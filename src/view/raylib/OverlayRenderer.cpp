@@ -514,7 +514,7 @@ void OverlayRenderer::drawSetDice(GUIGameController& session, const UiToolkit& t
         : (state.getGame().isRolledThisTurn() ? "Dadu sudah dilempar pada turn ini." : "Mulai turn dulu sebelum mengatur dadu.");
     toolkit.drawWrappedText(status, {modal.x + 28.0f, modal.y + 334.0f, modal.width - 56.0f, 44.0f}, 18.0f, canApply ? toolkit.theme().getInkMuted() : toolkit.theme().getCoral());
 
-    if (toolkit.drawButton("Gunakan Dadu", {modal.x + 28.0f, modal.y + modal.height - 66.0f, 180.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), canApply, 20.0f)) {
+    if (toolkit.drawButton("Roll Dadu", {modal.x + 28.0f, modal.y + modal.height - 66.0f, 180.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), canApply, 20.0f)) {
         session.applyManualDice();
     }
     if (toolkit.drawButton("Tutup", {modal.x + modal.width - 120.0f, modal.y + modal.height - 66.0f, 92.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), true, 20.0f)) {
