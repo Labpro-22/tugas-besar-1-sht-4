@@ -2,6 +2,7 @@
 
 #include "controller/GUIController/GUICardController.hpp"
 #include "controller/GUIController/GUICommandController.hpp"
+#include "controller/GUIController/GUIControllerContext.hpp"
 #include "controller/GUIController/GUITileController.hpp"
 #include "model/Game.hpp"
 #include "view/raylib/GuiTypes.hpp"
@@ -119,19 +120,16 @@ public:
     std::vector<int> currentPlayerRedeemOptions() const;
 
 private:
-    friend class GUICardController;
-    friend class GUICommandController;
-    friend class GUITileController;
-
     view::raylibgui::AppState appState_;
-    GUICardController cardController_;
-    GUICommandController commandController_;
-    GUITileController tileController_;
     Game backendGame_;
     bool guiTurnStarted_ = false;
     bool diceRolledThisTurn_ = false;
     std::shared_ptr<ChanceCard> pendingChanceCard_;
     std::shared_ptr<CommunityChestCard> pendingCommunityChestCard_;
+    GUIControllerContext controllerContext_;
+    GUICardController cardController_;
+    GUICommandController commandController_;
+    GUITileController tileController_;
 
     void addToast(const std::string& text, Color accent, float duration = 3.2f);
     void updateToasts(float deltaTime);
@@ -152,13 +150,6 @@ private:
     view::raylibgui::PlayerInfo makePlayerInfoFromBackend(const Player& player, int playerIndex) const;
     view::raylibgui::CardInfo makeCardInfoFromBackend(const Card& card) const;
     view::raylibgui::LogItem makeLogItemFromBackend(const LogManager::LogEntry& entry) const;
-
-    int moveBackendPlayer(Player& player, int steps);
-    void resolveBackendLanding(int backendTileIndex, bool fromMovement = false);
-    void closeCardDrawOverlay(bool discardPendingCard);
-    void clearPendingDrawnCard(bool discardPendingCard);
-    void discardAllCards(Player& player);
-    void configureSelectedHandCard(Player& player, int cardIndex);
 
     std::vector<view::raylibgui::SaveSlot> createInitialSaveSlots() const;
 };

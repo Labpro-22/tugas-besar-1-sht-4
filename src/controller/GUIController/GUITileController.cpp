@@ -1,6 +1,6 @@
 #include "controller/GUIController/GUITileController.hpp"
 
-#include "controller/GUIController/GUIGameController.hpp"
+#include "model/Game.hpp"
 #include "model/RentContext.hpp"
 #include "model/tiles/FestivalTile.hpp"
 #include "model/tiles/GoTile.hpp"
@@ -70,8 +70,14 @@ Color kindAccent(TileKind kind, const std::string& group) {
 }
 }
 
-GUITileController::GUITileController(GUIGameController& controller)
-    : controller_(controller) {}
+GUITileController::GUITileController(GUIControllerContext& controller)
+    : controller_(controller) {
+    controller_.openJailCallback = [this]() { openJail(); };
+    controller_.moveBackendPlayerCallback = [this](Player& player, int steps) { return moveBackendPlayer(player, steps); };
+    controller_.resolveBackendLandingCallback = [this](int backendTileIndex, bool fromMovement) {
+        resolveBackendLanding(backendTileIndex, fromMovement);
+    };
+}
 
 int GUITileController::getMortgageValue(const TileInfo& tile) const {
     const OwnableTile* ownable = controller_.ownableFromUi(tile.getIndex());
@@ -171,12 +177,12 @@ void GUITileController::setSelectedTile(int tileIndex) {
 
 void GUITileController::openTileDetail(int tileIndex) {
     controller_.appState_.getOverlay().setTileIndex(tileIndex);
-    controller_.commandController_.openOverlay(OverlayType::TileDetail);
+    controller_.openOverlay(OverlayType::TileDetail);
 }
 
 void GUITileController::openPurchase(int tileIndex) {
     controller_.appState_.getOverlay().setTileIndex(tileIndex);
-    controller_.commandController_.openOverlay(OverlayType::Purchase);
+    controller_.openOverlay(OverlayType::Purchase);
 }
 
 void GUITileController::openAuctionForTile(int tileIndex) {
@@ -201,7 +207,7 @@ void GUITileController::openAuctionForTile(int tileIndex) {
         -1,
         std::vector<bool>(controller_.appState_.getGame().getPlayers().size(), false),
     });
-    controller_.commandController_.openOverlay(OverlayType::Auction);
+    controller_.openOverlay(OverlayType::Auction);
 }
 
 void GUITileController::openIncomeTax() {
@@ -211,7 +217,7 @@ void GUITileController::openIncomeTax() {
             break;
         }
     }
-    controller_.commandController_.openOverlay(OverlayType::IncomeTax);
+    controller_.openOverlay(OverlayType::IncomeTax);
 }
 
 void GUITileController::openLuxuryTax() {
@@ -221,7 +227,7 @@ void GUITileController::openLuxuryTax() {
             break;
         }
     }
-    controller_.commandController_.openOverlay(OverlayType::LuxuryTax);
+    controller_.openOverlay(OverlayType::LuxuryTax);
 }
 
 void GUITileController::openFestival() {
@@ -232,33 +238,33 @@ void GUITileController::openFestival() {
         }
     }
     controller_.appState_.getOverlay().setSelectedIndex(0);
-    controller_.commandController_.openOverlay(OverlayType::Festival);
+    controller_.openOverlay(OverlayType::Festival);
 }
 
 void GUITileController::openJail() {
     controller_.appState_.getOverlay().setTileIndex(findJailIndex());
-    controller_.commandController_.openOverlay(OverlayType::Jail);
+    controller_.openOverlay(OverlayType::Jail);
 }
 
 void GUITileController::openBuild() {
     controller_.appState_.getOverlay().setSelectedIndex(0);
-    controller_.commandController_.openOverlay(OverlayType::Build);
+    controller_.openOverlay(OverlayType::Build);
 }
 
 void GUITileController::openMortgage() {
     controller_.appState_.getOverlay().setSelectedIndex(0);
-    controller_.commandController_.openOverlay(OverlayType::Mortgage);
+    controller_.openOverlay(OverlayType::Mortgage);
 }
 
 void GUITileController::openRedeem() {
     controller_.appState_.getOverlay().setSelectedIndex(0);
-    controller_.commandController_.openOverlay(OverlayType::Redeem);
+    controller_.openOverlay(OverlayType::Redeem);
 }
 
 void GUITileController::openLiquidation() {
     controller_.appState_.getOverlay().setSelectedIndex(0);
     controller_.appState_.getOverlay().setSelectedPlayer(controller_.appState_.getGame().getCurrentPlayer());
-    controller_.commandController_.openOverlay(OverlayType::Liquidation);
+    controller_.openOverlay(OverlayType::Liquidation);
 }
 
 void GUITileController::triggerTileEvent(int tileIndex, bool fromMovement) {
@@ -305,7 +311,7 @@ void GUITileController::buySelectedProperty() {
         ownable->setOwnershipStatus(OwnershipStatus::OWNED);
         controller_.addLog(player.getUsername(), "BELI", "Membeli " + ownable->getName() + " seharga M" + std::to_string(price) + ".");
         controller_.addToast("Properti dibeli.", kindAccent(controller_.toGuiTileKind(*ownable), ""));
-        controller_.commandController_.closeOverlay();
+        controller_.closeOverlay();
         controller_.syncViewFromBackend();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
@@ -315,7 +321,7 @@ void GUITileController::buySelectedProperty() {
 
 void GUITileController::skipSelectedPurchase() {
     const int tileIndex = controller_.appState_.getOverlay().getTileIndex();
-    controller_.commandController_.closeOverlay();
+    controller_.closeOverlay();
     openAuctionForTile(tileIndex);
 }
 
@@ -407,7 +413,7 @@ void GUITileController::finalizeAuction() {
         controller_.addToast("Tidak ada pemenang lelang.", RED);
     }
 
-    controller_.commandController_.closeOverlay();
+    controller_.closeOverlay();
     controller_.syncViewFromBackend();
 }
 
@@ -438,7 +444,7 @@ void GUITileController::payIncomeTax(bool useFlatTax) {
             controller_.backendGame_.getTaxManager().processTaxPayment(player, tax);
         }
         controller_.addLog(player.getUsername(), "PAJAK", "Membayar PPh M" + std::to_string(tax) + ".");
-        controller_.commandController_.closeOverlay();
+        controller_.closeOverlay();
         controller_.syncViewFromBackend();
         controller_.maybeOpenLiquidation();
     } catch (const std::exception& exception) {
@@ -466,7 +472,7 @@ void GUITileController::payLuxuryTax() {
             controller_.backendGame_.getTaxManager().processTaxPayment(player, tax);
         }
         controller_.addLog(player.getUsername(), "PAJAK", "Membayar PBM M" + std::to_string(tax) + ".");
-        controller_.commandController_.closeOverlay();
+        controller_.closeOverlay();
         controller_.syncViewFromBackend();
         controller_.maybeOpenLiquidation();
     } catch (const std::exception& exception) {
@@ -494,7 +500,7 @@ void GUITileController::activateFestivalOnSelectedTile() {
         controller_.backendGame_.getFestivalManager().activateFestival(*street);
         controller_.addLog(controller_.backendGame_.getCurrentPlayer().getUsername(), "FESTIVAL", "Mengaktifkan festival di " + street->getName() + ".");
         controller_.addToast("Festival aktif di " + street->getName() + ".", groupAccent(street->getColorGroup()));
-        controller_.commandController_.closeOverlay();
+        controller_.closeOverlay();
         controller_.syncViewFromBackend();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
@@ -517,7 +523,7 @@ void GUITileController::payJailFine() {
         controller_.backendGame_.getJailManager().releaseFromJail(player);
         controller_.addLog(player.getUsername(), "JAIL", "Membayar denda jail M" + std::to_string(fine) + ".");
         controller_.addToast("Denda jail dibayar.", SKYBLUE);
-        controller_.commandController_.closeOverlay();
+        controller_.closeOverlay();
         controller_.syncViewFromBackend();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
@@ -549,7 +555,7 @@ void GUITileController::buildOnSelectedTile() {
         }
         controller_.addLog(player.getUsername(), "BANGUN", "Membangun di " + street->getName() + ".");
         controller_.addToast("Bangunan ditambahkan.", groupAccent(street->getColorGroup()));
-        controller_.commandController_.closeOverlay();
+        controller_.closeOverlay();
         controller_.syncViewFromBackend();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
@@ -576,7 +582,7 @@ void GUITileController::mortgageSelectedTile() {
         controller_.backendGame_.getPropertyManager().mortgageProperty(player, *property);
         controller_.addLog(player.getUsername(), "GADAI", "Menggadaikan " + property->getName() + ".");
         controller_.addToast("Aset digadai.", kindAccent(controller_.toGuiTileKind(*property), ""));
-        controller_.commandController_.closeOverlay();
+        controller_.closeOverlay();
         controller_.syncViewFromBackend();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
@@ -607,7 +613,7 @@ void GUITileController::redeemSelectedTile() {
         controller_.backendGame_.getPropertyManager().redeemProperty(player, *property);
         controller_.addLog(player.getUsername(), "TEBUS", "Menebus " + property->getName() + ".");
         controller_.addToast("Aset berhasil ditebus.", kindAccent(controller_.toGuiTileKind(*property), ""));
-        controller_.commandController_.closeOverlay();
+        controller_.closeOverlay();
         controller_.syncViewFromBackend();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
@@ -636,7 +642,7 @@ void GUITileController::liquidateSelectedTile() {
         controller_.addToast("Aset dijual seharga M" + std::to_string(saleValue) + ".", kindAccent(controller_.toGuiTileKind(*property), ""));
         controller_.syncViewFromBackend();
         if (!controller_.backendGame_.getBankruptcyManager().isBankruptcyActive()) {
-            controller_.commandController_.closeOverlay();
+            controller_.closeOverlay();
         }
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
@@ -659,17 +665,17 @@ void GUITileController::declareBankrupt() {
             property->setOwnershipStatus(OwnershipStatus::BANK);
             property->setFestivalState(1, 0);
         }
-        controller_.cardController_.discardAllCards(player);
+        controller_.discardAllCards(player);
         controller_.backendGame_.getJailManager().releaseFromJail(player);
         controller_.backendGame_.getBankruptcyManager().declareBankrupt(player, nullptr);
         controller_.addLog(player.getUsername(), "BANGKRUT", "Pemain keluar dari permainan.");
         controller_.addToast(player.getUsername() + " bangkrut.", RED);
-        controller_.commandController_.closeOverlay();
+        controller_.closeOverlay();
         controller_.syncViewFromBackend();
         if (controller_.backendGame_.isGameOver()) {
-            controller_.commandController_.openGameOver();
+            controller_.openGameOver();
         } else {
-            controller_.commandController_.endTurn();
+            controller_.endTurn();
         }
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
@@ -869,11 +875,11 @@ void GUITileController::resolveBackendLanding(int backendTileIndex, bool fromMov
             }
             case Tile::TileType::Chance:
                 controller_.syncViewFromBackend();
-                controller_.cardController_.openRandomCardDraw(kChanceDeckKey);
+                controller_.openRandomCardDraw(kChanceDeckKey);
                 return;
             case Tile::TileType::CommunityChest:
                 controller_.syncViewFromBackend();
-                controller_.cardController_.openRandomCardDraw(kCommunityDeckKey);
+                controller_.openRandomCardDraw(kCommunityDeckKey);
                 return;
             case Tile::TileType::IncomeTax:
                 overlayToOpen = OverlayType::IncomeTax;

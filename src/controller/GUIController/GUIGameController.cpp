@@ -130,9 +130,30 @@ std::string withTxtExtension(std::string filename) {
 }
 
 GUIGameController::GUIGameController()
-    : cardController_(*this),
-      commandController_(*this),
-      tileController_(*this) {
+    : controllerContext_(
+          appState_,
+          backendGame_,
+          guiTurnStarted_,
+          diceRolledThisTurn_,
+          pendingChanceCard_,
+          pendingCommunityChestCard_,
+          [this](const std::string& text, Color accent, float duration) { addToast(text, accent, duration); },
+          [this](float deltaTime) { updateToasts(deltaTime); },
+          [this](const std::string& actor, const std::string& action, const std::string& detail) { addLog(actor, action, detail); },
+          [this]() { maybeOpenLiquidation(); },
+          [this]() { syncViewFromBackend(); },
+          [this](int backendIndex) { return uiTileIndexFromBackend(backendIndex); },
+          [this](int uiIndex) { return backendTileIndexFromUi(uiIndex); },
+          [this](int backendIndex) { return normalizedBackendTileIndex(backendIndex); },
+          [this]() { return currentBackendPlayerIndex(); },
+          [this](int uiIndex) { return ownableFromUi(uiIndex); },
+          [this](int uiIndex) { return streetFromUi(uiIndex); },
+          [this](const Tile& tile) { return toGuiTileKind(tile); },
+          [this](const Card& card) { return makeCardInfoFromBackend(card); }
+      ),
+      cardController_(controllerContext_),
+      commandController_(controllerContext_),
+      tileController_(controllerContext_) {
     appState_.setRng(std::mt19937(static_cast<unsigned int>(std::time(nullptr))));
     appState_.setSaveSlots(createInitialSaveSlots());
 }
@@ -686,18 +707,6 @@ CardInfo GUIGameController::makeCardInfoFromBackend(const Card& card) const {
 LogItem GUIGameController::makeLogItemFromBackend(const LogManager::LogEntry& entry) const {
     return {entry.getTurnNumber(), entry.getUsername(), entry.getActionType(), entry.getDetail()};
 }
-
-int GUIGameController::moveBackendPlayer(Player& player, int steps) { return tileController_.moveBackendPlayer(player, steps); }
-
-void GUIGameController::resolveBackendLanding(int backendTileIndex, bool fromMovement) { tileController_.resolveBackendLanding(backendTileIndex, fromMovement); }
-
-void GUIGameController::closeCardDrawOverlay(bool discardPendingCard) { cardController_.closeCardDrawOverlay(discardPendingCard); }
-
-void GUIGameController::clearPendingDrawnCard(bool discardPendingCard) { cardController_.clearPendingDrawnCard(discardPendingCard); }
-
-void GUIGameController::discardAllCards(Player& player) { cardController_.discardAllCards(player); }
-
-void GUIGameController::configureSelectedHandCard(Player& player, int cardIndex) { cardController_.configureSelectedHandCard(player, cardIndex); }
 
 std::vector<SaveSlot> GUIGameController::createInitialSaveSlots() const {
     return {

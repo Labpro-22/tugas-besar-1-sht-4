@@ -1,15 +1,14 @@
 #pragma once
 
-#include "view/raylib/GuiTypes.hpp"
+#include "controller/GUIController/GUIControllerContext.hpp"
 
 #include <vector>
 
-class GUIGameController;
 class Player;
 
 class GUICardController {
 public:
-    explicit GUICardController(GUIGameController& controller);
+    explicit GUICardController(GUIControllerContext& context);
 
     void openCards();
     void openRandomCardDraw(int deckKey);
@@ -27,11 +26,7 @@ public:
     std::vector<view::raylibgui::CardInfo> communityDeck() const;
 
 private:
-    friend class GUIGameController;
-    friend class GUICommandController;
-    friend class GUITileController;
-
-    GUIGameController& controller_;
+    GUIControllerContext& controller_;
 
     void closeCardDrawOverlay(bool discardPendingCard);
     void clearPendingDrawnCard(bool discardPendingCard);

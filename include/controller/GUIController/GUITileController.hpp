@@ -1,15 +1,14 @@
 #pragma once
 
-#include "view/raylib/GuiTypes.hpp"
+#include "controller/GUIController/GUIControllerContext.hpp"
 
 #include <vector>
 
-class GUIGameController;
 class Player;
 
 class GUITileController {
 public:
-    explicit GUITileController(GUIGameController& controller);
+    explicit GUITileController(GUIControllerContext& context);
 
     int getMortgageValue(const view::raylibgui::TileInfo& tile) const;
     int getRedeemCost(const view::raylibgui::TileInfo& tile) const;
@@ -65,11 +64,7 @@ public:
     std::vector<int> currentPlayerRedeemOptions() const;
 
 private:
-    friend class GUIGameController;
-    friend class GUICommandController;
-    friend class GUICardController;
-
-    GUIGameController& controller_;
+    GUIControllerContext& controller_;
 
     int moveBackendPlayer(Player& player, int steps);
     void resolveBackendLanding(int backendTileIndex, bool fromMovement = false);

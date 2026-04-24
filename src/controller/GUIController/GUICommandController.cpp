@@ -1,7 +1,7 @@
 #include "controller/GUIController/GUICommandController.hpp"
 
-#include "controller/GUIController/GUIGameController.hpp"
 #include "model/Dice.hpp"
+#include "model/Game.hpp"
 #include "model/cards/HandCard.hpp"
 #include "model/tiles/OwnableTile.hpp"
 #include "model/tiles/Tile.hpp"
@@ -45,10 +45,25 @@ std::string withTxtExtension(std::string filename) {
     }
     return hasTxtExtension(filename) ? filename : filename + ".txt";
 }
+
+int backendJailIndex(Game& game) {
+    for (const std::shared_ptr<Tile>& tile : game.getBoard().getTiles()) {
+        if (tile != nullptr && tile->onLand() == Tile::TileType::Jail) {
+            return tile->getIndex();
+        }
+    }
+    return 1;
+}
 }
 
-GUICommandController::GUICommandController(GUIGameController& controller)
-    : controller_(controller) {}
+GUICommandController::GUICommandController(GUIControllerContext& controller)
+    : controller_(controller) {
+    controller_.openOverlayCallback = [this](OverlayType type) { openOverlay(type); };
+    controller_.closeOverlayCallback = [this]() { closeOverlay(); };
+    controller_.openForceDropCallback = [this]() { openForceDrop(); };
+    controller_.openGameOverCallback = [this]() { openGameOver(); };
+    controller_.endTurnCallback = [this]() { endTurn(); };
+}
 
 void GUICommandController::tick(float deltaTime) {
     controller_.appState_.setTime(controller_.appState_.getTime() + deltaTime);
@@ -81,7 +96,7 @@ void GUICommandController::handleGlobalShortcuts() {
     } else if (IsKeyPressed(KEY_P)) {
         openPortfolio();
     } else if (IsKeyPressed(KEY_C)) {
-        controller_.cardController_.openCards();
+        controller_.openCards();
     } else if (IsKeyPressed(KEY_L)) {
         openLogs();
     } else if (IsKeyPressed(KEY_H)) {
@@ -96,7 +111,7 @@ void GUICommandController::openOverlay(OverlayType type) {
 }
 
 void GUICommandController::closeOverlay() {
-    controller_.cardController_.closeCardDrawOverlay(true);
+    controller_.closeCardDrawOverlay(true);
     controller_.appState_.setOverlay(OverlayState{});
     controller_.appState_.getActiveField().clear();
 }
@@ -171,7 +186,7 @@ void GUICommandController::startTurn() {
         if (controller_.backendGame_.getCardManager().needsForceDrop(player)) {
             openForceDrop();
         } else if (player.isJailed()) {
-            controller_.tileController_.openJail();
+            controller_.openJail();
         }
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
@@ -197,7 +212,7 @@ void GUICommandController::rollDice() {
     try {
         Player& player = controller_.backendGame_.getCurrentPlayer();
         if (player.isJailed()) {
-            controller_.tileController_.openJail();
+            controller_.openJail();
             controller_.addToast("Pemain masih di jail.", RED);
             return;
         }
@@ -208,15 +223,15 @@ void GUICommandController::rollDice() {
 
         if (controller_.backendGame_.getTurnManager().getConsecutiveDoubles() >= 3) {
             controller_.backendGame_.getJailManager().sendToJail(player);
-            player.moveTo(controller_.backendTileIndexFromUi(controller_.tileController_.findJailIndex()));
+            player.moveTo(backendJailIndex(controller_.backendGame_));
             controller_.addLog(player.getUsername(), "JAIL", "Masuk penjara karena double tiga kali berturut-turut.");
             controller_.syncViewFromBackend();
-            controller_.tileController_.openJail();
+            controller_.openJail();
             return;
         }
 
         const int total = controller_.backendGame_.getDice().getTotal();
-        const int destination = controller_.tileController_.moveBackendPlayer(player, total);
+        const int destination = controller_.moveBackendPlayer(player, total);
         controller_.addLog(
             player.getUsername(),
             "DADU",
@@ -228,7 +243,7 @@ void GUICommandController::rollDice() {
                 std::to_string(controller_.backendGame_.getDice().getDie2()),
             playerAccent(controller_.currentBackendPlayerIndex())
         );
-        controller_.tileController_.resolveBackendLanding(destination, false);
+        controller_.resolveBackendLanding(destination, false);
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
         controller_.syncViewFromBackend();
@@ -253,7 +268,7 @@ void GUICommandController::applyManualDice() {
     try {
         Player& player = controller_.backendGame_.getCurrentPlayer();
         if (player.isJailed()) {
-            controller_.tileController_.openJail();
+            controller_.openJail();
             controller_.addToast("Pemain masih di jail.", RED);
             return;
         }
@@ -267,21 +282,21 @@ void GUICommandController::applyManualDice() {
 
         if (controller_.backendGame_.getTurnManager().getConsecutiveDoubles() >= 3) {
             controller_.backendGame_.getJailManager().sendToJail(player);
-            player.moveTo(controller_.backendTileIndexFromUi(controller_.tileController_.findJailIndex()));
+            player.moveTo(backendJailIndex(controller_.backendGame_));
             controller_.addLog(player.getUsername(), "JAIL", "Masuk penjara karena double tiga kali berturut-turut.");
             controller_.syncViewFromBackend();
-            controller_.tileController_.openJail();
+            controller_.openJail();
             return;
         }
 
-        const int destination = controller_.tileController_.moveBackendPlayer(player, dieOne + dieTwo);
+        const int destination = controller_.moveBackendPlayer(player, dieOne + dieTwo);
         controller_.addLog(
             player.getUsername(),
             "ATUR_DADU",
             "Dadu manual " + std::to_string(dieOne) + "+" + std::to_string(dieTwo)
         );
         controller_.addToast("Dadu manual diterapkan.", playerAccent(controller_.currentBackendPlayerIndex()));
-        controller_.tileController_.resolveBackendLanding(destination, false);
+        controller_.resolveBackendLanding(destination, false);
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
         controller_.syncViewFromBackend();

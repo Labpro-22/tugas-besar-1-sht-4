@@ -1,6 +1,6 @@
 #include "controller/GUIController/GUICardController.hpp"
 
-#include "controller/GUIController/GUIGameController.hpp"
+#include "model/Game.hpp"
 #include "model/cards/ChanceCard.hpp"
 #include "model/cards/CommunityChestCard.hpp"
 #include "model/cards/DemolitionCard.hpp"
@@ -19,12 +19,17 @@
 
 using namespace view::raylibgui;
 
-GUICardController::GUICardController(GUIGameController& controller)
-    : controller_(controller) {}
+GUICardController::GUICardController(GUIControllerContext& controller)
+    : controller_(controller) {
+    controller_.openCardsCallback = [this]() { openCards(); };
+    controller_.openRandomCardDrawCallback = [this](int deckKey) { openRandomCardDraw(deckKey); };
+    controller_.closeCardDrawOverlayCallback = [this](bool discardPendingCard) { closeCardDrawOverlay(discardPendingCard); };
+    controller_.discardAllCardsCallback = [this](Player& player) { discardAllCards(player); };
+}
 
 void GUICardController::openCards() {
     controller_.appState_.getOverlay().setSelectedIndex(0);
-    controller_.commandController_.openOverlay(OverlayType::Cards);
+    controller_.openOverlay(OverlayType::Cards);
 }
 
 void GUICardController::openRandomCardDraw(int deckKey) {
@@ -46,7 +51,7 @@ void GUICardController::openRandomCardDraw(int deckKey) {
             controller_.appState_.getOverlay().setCard(controller_.makeCardInfoFromBackend(*controller_.pendingChanceCard_));
         }
         controller_.appState_.getOverlay().setDeckKey(deckKey);
-        controller_.commandController_.openOverlay(OverlayType::CardDraw);
+        controller_.openOverlay(OverlayType::CardDraw);
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
         clearPendingDrawnCard(true);
@@ -74,9 +79,9 @@ void GUICardController::useSelectedHandCard() {
         const int normalizedPosition = controller_.normalizedBackendTileIndex(player.getPosition());
         player.moveTo(normalizedPosition);
         controller_.addToast("Kartu digunakan.", SKYBLUE);
-        controller_.commandController_.closeOverlay();
+        controller_.closeOverlay();
         if (normalizedPosition != controller_.normalizedBackendTileIndex(previousPosition)) {
-            controller_.tileController_.resolveBackendLanding(normalizedPosition, true);
+            controller_.resolveBackendLanding(normalizedPosition, true);
         } else {
             controller_.syncViewFromBackend();
         }
@@ -105,15 +110,15 @@ void GUICardController::applyDrawnCard() {
             controller_.backendGame_.getCardManager().discardCommunityChestCard(controller_.pendingCommunityChestCard_);
             controller_.pendingCommunityChestCard_.reset();
         } else {
-            controller_.commandController_.closeOverlay();
+            controller_.closeOverlay();
             return;
         }
 
         const int normalizedPosition = controller_.normalizedBackendTileIndex(player.getPosition());
         player.moveTo(normalizedPosition);
-        controller_.commandController_.closeOverlay();
+        controller_.closeOverlay();
         if (normalizedPosition != controller_.normalizedBackendTileIndex(previousPosition)) {
-            controller_.tileController_.resolveBackendLanding(normalizedPosition, true);
+            controller_.resolveBackendLanding(normalizedPosition, true);
         } else {
             controller_.syncViewFromBackend();
             controller_.maybeOpenLiquidation();
@@ -131,7 +136,7 @@ void GUICardController::dropSelectedHandCard() {
         Player& player = controller_.backendGame_.getCurrentPlayer();
         const int cardCount = player.countCards();
         if (cardCount <= 0) {
-            controller_.commandController_.closeOverlay();
+            controller_.closeOverlay();
             return;
         }
 
@@ -145,7 +150,7 @@ void GUICardController::dropSelectedHandCard() {
         controller_.addToast("Kartu dibuang.", SKYBLUE);
         controller_.syncViewFromBackend();
         if (!controller_.backendGame_.getCardManager().needsForceDrop(player)) {
-            controller_.commandController_.closeOverlay();
+            controller_.closeOverlay();
         }
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
@@ -174,7 +179,7 @@ void GUICardController::useJailCard() {
         controller_.backendGame_.getJailManager().releaseFromJail(player);
         controller_.addLog(player.getUsername(), "JAIL", "Menggunakan ShieldCard untuk keluar dari jail.");
         controller_.addToast("Keluar dari jail dengan kartu.", SKYBLUE);
-        controller_.commandController_.closeOverlay();
+        controller_.closeOverlay();
         controller_.syncViewFromBackend();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
@@ -191,7 +196,7 @@ bool GUICardController::currentPlayerNeedsForceDrop() const {
 
 void GUICardController::maybeOpenForceDrop() {
     if (currentPlayerNeedsForceDrop()) {
-        controller_.commandController_.openForceDrop();
+        controller_.openForceDrop();
     }
 }
 

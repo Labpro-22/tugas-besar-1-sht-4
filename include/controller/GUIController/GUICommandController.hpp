@@ -1,12 +1,10 @@
 #pragma once
 
-#include "view/raylib/GuiTypes.hpp"
-
-class GUIGameController;
+#include "controller/GUIController/GUIControllerContext.hpp"
 
 class GUICommandController {
 public:
-    explicit GUICommandController(GUIGameController& controller);
+    explicit GUICommandController(GUIControllerContext& context);
 
     void tick(float deltaTime);
     void handleGlobalShortcuts();
@@ -32,5 +30,5 @@ public:
     void saveSession();
 
 private:
-    GUIGameController& controller_;
+    GUIControllerContext& controller_;
 };
