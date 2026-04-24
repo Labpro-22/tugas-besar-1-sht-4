@@ -525,6 +525,23 @@ void TileController::handleAuction(OwnableTile& tile, Player* triggerPlayer) {
 
     while (true) {
         Player* currentPlayer = participants[static_cast<size_t>(currentIndex)];
+        if (currentPlayer == nullptr || currentPlayer->isBankrupt()) {
+            if (highestBidder == currentPlayer) {
+                highestBidder = nullptr;
+                currentBid = 0;
+                passesAfterBid = 0;
+                totalPassesWithoutBid = 0;
+            }
+            participants.erase(participants.begin() + currentIndex);
+            if (participants.empty()) {
+                return;
+            }
+            if (currentIndex >= static_cast<int>(participants.size())) {
+                currentIndex = 0;
+            }
+            continue;
+        }
+
         string highestBidderName = "";
         if (highestBidder != nullptr) highestBidderName = highestBidder->getUsername();
 
@@ -956,6 +973,8 @@ void TileController::handleBankruptcy(Player& player) {
     }
 
     uiManager.printMessage(player.getUsername() + " dinyatakan BANGKRUT!");
+    player.setBankrupt(true);
+    game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "BANGKRUT", "Keluar dari permainan");
 
     vector<OwnableTile*> properties = ownedProperties(game, player);
     if (!pendingDebtToBank && pendingCreditor != nullptr) {
@@ -995,7 +1014,4 @@ void TileController::handleBankruptcy(Player& player) {
         }
         uiManager.printMessage("Seluruh properti dikembalikan ke Bank.");
     }
-
-    player.setBankrupt(true);
-    game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "BANGKRUT", "Keluar dari permainan");
 }
