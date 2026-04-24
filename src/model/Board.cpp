@@ -55,158 +55,123 @@ void Board::initializeBoard(const ConfigManager& configManager) {
 
     auto addTile = [&](const shared_ptr<Tile>& tile) {
         tiles.push_back(tile);
-
         if (tileIndexByCode.find(tile->getCode()) == tileIndexByCode.end()) {
             tileIndexByCode[tile->getCode()] = tile->getIndex();
         }
     };
 
-    auto addPropertyById = [&](int id) {
-        const ConfigManager::PropertyConfig& cfg = configManager.getPropertyConfigById(id);
+    auto addPropertyByCode = [&](const string& code, int tileIndex) {
+        const ConfigManager::PropertyConfig& cfg = configManager.getPropertyConfig(code);
         const string propertyType = this->normalizeConfigKey(cfg.getPropertyType());
 
         if (propertyType == "RAILROAD") {
             addTile(make_shared<RailroadTile>(
-                id,
-                cfg.getCode(),
-                cfg.getName(),
-                nullptr,
-                OwnershipStatus::BANK,
-                cfg.getPurchasePrice(),
-                cfg.getMortgageValue()
+                tileIndex, cfg.getCode(), cfg.getName(),
+                nullptr, OwnershipStatus::BANK,
+                cfg.getPurchasePrice(), cfg.getMortgageValue()
             ));
             return;
         }
-
         if (propertyType == "UTILITY") {
             addTile(make_shared<UtilityTile>(
-                id,
-                cfg.getCode(),
-                cfg.getName(),
-                nullptr,
-                OwnershipStatus::BANK,
-                cfg.getPurchasePrice(),
-                cfg.getMortgageValue()
+                tileIndex, cfg.getCode(), cfg.getName(),
+                nullptr, OwnershipStatus::BANK,
+                cfg.getPurchasePrice(), cfg.getMortgageValue()
             ));
             return;
         }
-
         if (propertyType != "STREET") {
             throw FileException(
-                "Jenis properti tidak dikenal pada ID " +
-                to_string(id) + ": " + cfg.getPropertyType()
+                "Jenis properti tidak dikenal untuk kode " + code + ": " + cfg.getPropertyType()
             );
         }
-
         addTile(make_shared<StreetTile>(
-            id,
-            cfg.getCode(),
-            cfg.getName(),
-            nullptr,
-            OwnershipStatus::BANK,
-            cfg.getPurchasePrice(),
-            cfg.getMortgageValue(),
-            cfg.getColorGroup(),
-            cfg.getHouseBuildCost(),
-            cfg.getHotelBuildCost(),
-            cfg.getRentLevels(),
-            0,
-            1,
-            0
+            tileIndex, cfg.getCode(), cfg.getName(),
+            nullptr, OwnershipStatus::BANK,
+            cfg.getPurchasePrice(), cfg.getMortgageValue(),
+            cfg.getColorGroup(), cfg.getHouseBuildCost(), cfg.getHotelBuildCost(),
+            cfg.getRentLevels(), 0, 1, 0
         ));
     };
 
-    auto addActionById = [&](int id) {
-        const ConfigManager::ActionTileConfig& cfg = configManager.getActionTileConfigById(id);
+    auto addActionByCode = [&](const string& code, int tileIndex) {
+        const ConfigManager::ActionTileConfig& cfg = configManager.getActionTileConfigByCode(code);
         const string type = this->normalizeConfigKey(cfg.getTileType());
-        const string code = this->normalizeConfigKey(cfg.getCode());
+        const string normalizedCode = this->normalizeConfigKey(cfg.getCode());
 
         if (type == "FESTIVAL" || type == "PETAKFESTIVAL") {
-            addTile(make_shared<FestivalTile>(id, cfg.getCode(), cfg.getName()));
+            addTile(make_shared<FestivalTile>(tileIndex, cfg.getCode(), cfg.getName()));
             return;
         }
-
         if (type == "KARTU" || type == "CARD" || type == "PETAKKARTU") {
-            if (code == "DNU") {
+            if (normalizedCode == "DNU") {
                 addTile(make_shared<CommunityChestTile>(
-                    id,
-                    cfg.getCode(),
-                    cfg.getName(),
-                    "COMMUNITY_CHEST"
+                    tileIndex, cfg.getCode(), cfg.getName(), "COMMUNITY_CHEST"
                 ));
                 return;
             }
-            if (code == "KSP") {
-                addTile(make_shared<ChanceTile>(id, cfg.getCode(), cfg.getName(), "CHANCE"));
+            if (normalizedCode == "KSP") {
+                addTile(make_shared<ChanceTile>(tileIndex, cfg.getCode(), cfg.getName(), "CHANCE"));
                 return;
             }
         }
-
         if (type == "PAJAK" || type == "TAX" || type == "PETAKPAJAK") {
-            if (code == "PPH") {
+            if (normalizedCode == "PPH") {
                 addTile(make_shared<IncomeTaxTile>(
-                    id,
-                    cfg.getCode(),
-                    cfg.getName(),
-                    configManager.getPphFlat(),
-                    configManager.getPphFlat(),
+                    tileIndex, cfg.getCode(), cfg.getName(),
+                    configManager.getPphFlat(), configManager.getPphFlat(),
                     configManager.getPphPercent()
                 ));
                 return;
             }
-            if (code == "PBM") {
+            if (normalizedCode == "PBM") {
                 addTile(make_shared<LuxuryTaxTile>(
-                    id,
-                    cfg.getCode(),
-                    cfg.getName(),
-                    configManager.getPbmFlat()
+                    tileIndex, cfg.getCode(), cfg.getName(), configManager.getPbmFlat()
                 ));
                 return;
             }
         }
-
         if (type == "SPESIAL" || type == "SPECIAL" || type == "PETAKSPESIAL") {
-            if (code == "GO") {
+            if (normalizedCode == "GO") {
                 addTile(make_shared<GoTile>(
-                    id,
-                    cfg.getCode(),
-                    cfg.getName(),
-                    configManager.getGoSalary()
+                    tileIndex, cfg.getCode(), cfg.getName(), configManager.getGoSalary()
                 ));
                 return;
             }
-            if (code == "PEN") {
+            if (normalizedCode == "PEN") {
                 addTile(make_shared<JailTile>(
-                    id,
-                    cfg.getCode(),
-                    cfg.getName(),
-                    configManager.getJailFine()
+                    tileIndex, cfg.getCode(), cfg.getName(), configManager.getJailFine()
                 ));
                 return;
             }
-            if (code == "BBP") {
-                addTile(make_shared<FreeParkingTile>(id, cfg.getCode(), cfg.getName()));
+            if (normalizedCode == "BBP") {
+                addTile(make_shared<FreeParkingTile>(tileIndex, cfg.getCode(), cfg.getName()));
                 return;
             }
-            if (code == "PPJ") {
-                addTile(make_shared<GoToJailTile>(id, cfg.getCode(), cfg.getName()));
+            if (normalizedCode == "PPJ") {
+                addTile(make_shared<GoToJailTile>(tileIndex, cfg.getCode(), cfg.getName()));
                 return;
             }
         }
-
         throw FileException(
-            "Konfigurasi petak aksi tidak dikenal pada ID " +
-            to_string(id) + ": " + cfg.getCode() + " " + cfg.getTileType()
+            "Konfigurasi petak aksi tidak dikenal untuk kode " +
+            code + " (" + cfg.getTileType() + ")"
         );
     };
 
-    for (int id = 1; id <= 40; id++) {
+    int maxTileId = 0;
+    for (const auto& entry : configManager.getPropertyCodeByIdMap()) {
+        maxTileId = max(maxTileId, entry.first);
+    }
+    for (const auto& entry : configManager.getActionTileConfigs()) {
+        maxTileId = max(maxTileId, entry.first);
+    }
+
+    for (int id = 1; id <= maxTileId; id++) {
         if (configManager.hasPropertyId(id)) {
-            addPropertyById(id);
-        } else if (configManager.hasActionTileId(id)) {
-            addActionById(id);
+            addPropertyByCode(configManager.getPropertyCodeById(id), id);
         } else {
-            throw FileException("Konfigurasi petak tidak ditemukan untuk ID " + to_string(id));
+            addActionByCode(configManager.getActionTileConfigById(id).getCode(), id);
         }
     }
 }

@@ -86,6 +86,7 @@ private:
     static constexpr const char* MISC_CONFIG_PATH = "config/misc.txt";
 
     map<int, ActionTileConfig> actionTileConfigs;
+    map<string, ActionTileConfig> actionTileConfigsByCode;
     map<string, PropertyConfig> propertyConfigs;
     map<int, string> propertyCodeById;
     map<int, int> railroadRentTable;
@@ -121,6 +122,7 @@ private:
     bool hasHeaderFields(const vector<string>& row, const vector<string>& requiredFields) const;
     int getValueByAliases(const map<string, int>& values, const vector<string>& aliases, const string& filename) const;
     map<string, int> parseScalarConfig(const string& filename, const vector<string>& expectedFields) const;
+    void validateDefaultBoardLayout() const;
 
 public:
     ConfigManager();
@@ -153,6 +155,8 @@ public:
     const map<int, ActionTileConfig>& getActionTileConfigs() const;
     const ActionTileConfig& getActionTileConfigById(int id) const;
     bool hasActionTileId(int id) const;
+    bool hasActionTileCode(const string& code) const;
+    const ActionTileConfig& getActionTileConfigByCode(const string& code) const;
 
     const map<string, PropertyConfig>& getPropertyConfigs() const;
     const PropertyConfig& getPropertyConfig(const string& code) const;
@@ -161,6 +165,7 @@ public:
     const string& getPropertyCodeById(int id) const;
     const PropertyConfig& getPropertyConfigById(int id) const;
     bool hasPropertyId(int id) const;
+    bool hasPropertyCode(const string& code) const;
 
     const map<int, int>& getRailroadRentTable() const;
     int getRailroadRent(int railroadCount) const;
