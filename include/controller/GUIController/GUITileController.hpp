@@ -5,6 +5,7 @@
 #include <vector>
 
 class GUIGameController;
+class Player;
 
 class GUITileController {
 public:
@@ -15,6 +16,8 @@ public:
     int findJailIndex() const;
     int computeRent(const view::raylibgui::TileInfo& tile) const;
     int computeTileAssetValue(const view::raylibgui::TileInfo& tile) const;
+    int computeNetWorth(int playerIndex) const;
+    int jailFineAmount() const;
     Rectangle boardTileRect(Rectangle square, int index) const;
 
     void setSelectedTile(int tileIndex);
@@ -62,5 +65,12 @@ public:
     std::vector<int> currentPlayerRedeemOptions() const;
 
 private:
+    friend class GUIGameController;
+    friend class GUICommandController;
+    friend class GUICardController;
+
     GUIGameController& controller_;
+
+    int moveBackendPlayer(Player& player, int steps);
+    void resolveBackendLanding(int backendTileIndex, bool fromMovement = false);
 };

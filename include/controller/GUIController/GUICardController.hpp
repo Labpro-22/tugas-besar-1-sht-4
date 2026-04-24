@@ -5,6 +5,7 @@
 #include <vector>
 
 class GUIGameController;
+class Player;
 
 class GUICardController {
 public:
@@ -26,5 +27,14 @@ public:
     std::vector<view::raylibgui::CardInfo> communityDeck() const;
 
 private:
+    friend class GUIGameController;
+    friend class GUICommandController;
+    friend class GUITileController;
+
     GUIGameController& controller_;
+
+    void closeCardDrawOverlay(bool discardPendingCard);
+    void clearPendingDrawnCard(bool discardPendingCard);
+    void discardAllCards(Player& player);
+    void configureSelectedHandCard(Player& player, int cardIndex);
 };
