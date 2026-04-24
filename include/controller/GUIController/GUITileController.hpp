@@ -12,6 +12,7 @@ public:
 
     int getMortgageValue(const view::raylibgui::TileInfo& tile) const;
     int getRedeemCost(const view::raylibgui::TileInfo& tile) const;
+    int getSellToBankValue(const view::raylibgui::TileInfo& tile) const;
     int findJailIndex() const;
     int computeRent(const view::raylibgui::TileInfo& tile) const;
     int computeTileAssetValue(const view::raylibgui::TileInfo& tile) const;
@@ -57,9 +58,11 @@ public:
     void mortgageSelectedTile();
     void redeemSelectedTile();
     void liquidateSelectedTile();
+    void mortgageLiquidationSelectedTile();
     void declareBankrupt();
 
     std::vector<int> currentPlayerStreetOptions() const;
+    std::vector<int> currentPlayerOwnableOptions() const;
     std::vector<int> currentPlayerBuildOptions() const;
     std::vector<int> currentPlayerMortgageOptions() const;
     std::vector<int> currentPlayerRedeemOptions() const;
@@ -69,4 +72,11 @@ private:
 
     int moveBackendPlayer(Player& player, int steps);
     void resolveBackendLanding(int backendTileIndex, bool fromMovement = false);
+    Player* activeLiquidationPlayer() const;
+    int activeLiquidationPlayerIndex() const;
+    bool isCurrentTurnPlayer(const Player& player) const;
+    size_t activePlayerCount() const;
+    bool colorGroupHasBuildings(const StreetTile& tile) const;
+    int sellColorGroupBuildings(Player& player, const StreetTile& tile) const;
+    void returnPropertyToBank(OwnableTile& property) const;
 };

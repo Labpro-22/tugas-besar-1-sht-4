@@ -31,5 +31,5 @@ private:
     void closeCardDrawOverlay(bool discardPendingCard);
     void clearPendingDrawnCard(bool discardPendingCard);
     void discardAllCards(Player& player);
-    void configureSelectedHandCard(Player& player, int cardIndex);
+    bool configureSelectedHandCard(Player& player, int cardIndex);
 };

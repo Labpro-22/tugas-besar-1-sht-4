@@ -294,7 +294,8 @@ public:
         int failedJailRolls = 0,
         int discountPercent = 0,
         std::vector<int> properties = {},
-        std::vector<CardInfo> handCards = {}
+        std::vector<CardInfo> handCards = {},
+        bool computerPlayer = false
     )
         : name_(std::move(name)),
           accent_(accent),
@@ -306,7 +307,8 @@ public:
           failedJailRolls_(failedJailRolls),
           discountPercent_(discountPercent),
           properties_(std::move(properties)),
-          handCards_(std::move(handCards)) {}
+          handCards_(std::move(handCards)),
+          computerPlayer_(computerPlayer) {}
 
     const std::string& getName() const { return name_; }
     void setName(std::string value) { name_ = std::move(value); }
@@ -332,6 +334,8 @@ public:
     std::vector<CardInfo>& getHandCards() { return handCards_; }
     const std::vector<CardInfo>& getHandCards() const { return handCards_; }
     void setHandCards(std::vector<CardInfo> value) { handCards_ = std::move(value); }
+    bool isComputerPlayer() const { return computerPlayer_; }
+    void setComputerPlayer(bool value) { computerPlayer_ = value; }
 
 private:
     std::string name_;
@@ -345,6 +349,7 @@ private:
     int discountPercent_ = 0;
     std::vector<int> properties_;
     std::vector<CardInfo> handCards_;
+    bool computerPlayer_ = false;
 };
 
 class SaveSlot {
@@ -633,6 +638,7 @@ public:
         GameState game = {},
         std::array<std::string, kMaxPlayers> playerNames = {"Aster", "Bima", "Cora", "Danu"},
         int playerCount = 4,
+        int computerPlayerCount = 1,
         int startingCash = 1800,
         int turnLimit = 24,
         std::string activeField = {},
@@ -649,6 +655,7 @@ public:
           game_(std::move(game)),
           playerNames_(std::move(playerNames)),
           playerCount_(playerCount),
+          computerPlayerCount_(computerPlayerCount),
           startingCash_(startingCash),
           turnLimit_(turnLimit),
           activeField_(std::move(activeField)),
@@ -673,6 +680,8 @@ public:
     void setPlayerNames(std::array<std::string, kMaxPlayers> value) { playerNames_ = std::move(value); }
     int getPlayerCount() const { return playerCount_; }
     void setPlayerCount(int value) { playerCount_ = value; }
+    int getComputerPlayerCount() const { return computerPlayerCount_; }
+    void setComputerPlayerCount(int value) { computerPlayerCount_ = value; }
     int getStartingCash() const { return startingCash_; }
     void setStartingCash(int value) { startingCash_ = value; }
     int getTurnLimit() const { return turnLimit_; }
@@ -705,6 +714,7 @@ private:
     GameState game_;
     std::array<std::string, kMaxPlayers> playerNames_ = {"Aster", "Bima", "Cora", "Danu"};
     int playerCount_ = 4;
+    int computerPlayerCount_ = 1;
     int startingCash_ = 1800;
     int turnLimit_ = 24;
     std::string activeField_;

@@ -279,7 +279,8 @@ void SaveLoadManager::savePlayers(const Game& game, ostream& out) {
         out << p.getUsername() << " "
             << p.getMoney() << " "
             << posCode << " "
-            << statusText << "\n";
+            << statusText << " "
+            << (p.isComputerPlayer() ? "COM" : "HUMAN") << "\n";
 
         vector<shared_ptr<HandCard>> cards = p.getHandCards();
         int cardCount = 0;
@@ -342,6 +343,10 @@ void SaveLoadManager::loadPlayers(Game& game, istream& in) {
         int failedJailRolls = jailAttemptsFromStatus(statusStr);
 
         Player p(username, money, position, status, failedJailRolls, false, false, 0, 0);
+        if ((tokens.size() >= 5 && (tokens[4] == "COM" || tokens[4] == "COMPUTER" || tokens[4] == "BOT")) ||
+            username.rfind("ProfessorRayapSunggal", 0) == 0) {
+            p.setComputerPlayer(true);
+        }
 
         int numCards = parseCountLine(in, "PLAYER_CARD_COUNT_" + username);
 

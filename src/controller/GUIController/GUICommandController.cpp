@@ -78,7 +78,18 @@ void GUICommandController::tick(float deltaTime) {
 
 void GUICommandController::handleGlobalShortcuts() {
     if (IsKeyPressed(KEY_ESCAPE) && isOverlayOpen()) {
-        closeOverlay();
+        const OverlayType type = controller_.appState_.getOverlay().getType();
+        const bool mandatory = type == OverlayType::IncomeTax ||
+                               type == OverlayType::LuxuryTax ||
+                               type == OverlayType::Purchase ||
+                               type == OverlayType::Auction ||
+                               type == OverlayType::CardDraw ||
+                               type == OverlayType::ForceDrop ||
+                               type == OverlayType::Liquidation ||
+                               type == OverlayType::Jail;
+        if (!mandatory) {
+            closeOverlay();
+        }
         return;
     }
 
@@ -165,6 +176,8 @@ void GUICommandController::startTurn() {
         if (player.isBankrupt()) {
             controller_.addToast("Pemain ini sudah bangkrut.", RED);
             controller_.syncViewFromBackend();
+            controller_.guiTurnStarted_ = true;
+            endTurn();
             return;
         }
 
@@ -183,7 +196,25 @@ void GUICommandController::startTurn() {
         if (controller_.backendGame_.getCardManager().needsForceDrop(player)) {
             openForceDrop();
         } else if (player.isJailed()) {
-            controller_.openJail();
+            if (player.getFailedJailRolls() >= 3) {
+                const int fine = controller_.backendGame_.getConfigManager().getJailFine();
+                if (player.getMoney() < player.effectiveCost(fine)) {
+                    controller_.backendGame_.getJailManager().releaseFromJail(player);
+                    controller_.backendGame_.getBankruptcyManager().beginBankruptcySession(player, nullptr, fine, true);
+                    controller_.addLog(player.getUsername(), "JAIL", "Dana kurang - likuidasi untuk denda wajib jail.");
+                    controller_.addToast("Dana kurang untuk denda jail - likuidasi aset.", RED);
+                    controller_.syncViewFromBackend();
+                    controller_.maybeOpenLiquidation();
+                } else {
+                    controller_.backendGame_.getJailManager().payJailFine(player, fine);
+                    controller_.backendGame_.getJailManager().releaseFromJail(player);
+                    controller_.addLog(player.getUsername(), "JAIL", "Wajib bayar denda setelah 3 kali gagal double.");
+                    controller_.addToast("Denda jail wajib dibayar M" + std::to_string(fine) + ".", SKYBLUE);
+                    controller_.syncViewFromBackend();
+                }
+            } else {
+                controller_.openJail();
+            }
         }
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
@@ -223,7 +254,7 @@ void GUICommandController::rollDice() {
             player.moveTo(backendJailIndex(controller_.backendGame_));
             controller_.addLog(player.getUsername(), "JAIL", "Masuk penjara karena double tiga kali berturut-turut.");
             controller_.syncViewFromBackend();
-            controller_.openJail();
+            finishTurnAfterDiceIfReady();
             return;
         }
 
@@ -283,7 +314,7 @@ void GUICommandController::applyManualDice() {
             player.moveTo(backendJailIndex(controller_.backendGame_));
             controller_.addLog(player.getUsername(), "JAIL", "Masuk penjara karena double tiga kali berturut-turut.");
             controller_.syncViewFromBackend();
-            controller_.openJail();
+            finishTurnAfterDiceIfReady();
             return;
         }
 
@@ -359,13 +390,30 @@ void GUICommandController::finishTurnAfterDiceIfReady() {
         controller_.maybeOpenLiquidation();
         return;
     }
+
+    Player& player = controller_.backendGame_.getCurrentPlayer();
+    if (controller_.backendGame_.getDice().isDouble() &&
+        controller_.backendGame_.getTurnManager().getConsecutiveDoubles() > 0 &&
+        !player.isBankrupt() &&
+        !player.isJailed() &&
+        controller_.backendGame_.getTurnManager().getConsecutiveDoubles() < 3) {
+        controller_.backendGame_.getTurnManager().setRolledThisTurn(false);
+        controller_.diceRolledThisTurn_ = false;
+        controller_.addLog(player.getUsername(), "DADU", "Dadu double: dapat kesempatan melempar lagi.");
+        controller_.addToast("Dadu double! Lempar lagi.", playerAccent(controller_.currentBackendPlayerIndex()));
+        controller_.syncViewFromBackend();
+        return;
+    }
+
     endTurn();
 }
 
 bool GUICommandController::canSaveNow() const {
     return controller_.backendGame_.isGameRunning() &&
         controller_.guiTurnStarted_ &&
-        !controller_.backendGame_.getTurnManager().isRolledThisTurn();
+        !controller_.backendGame_.getTurnManager().hasActionTakenThisTurn() &&
+        (controller_.appState_.getOverlay().getType() == OverlayType::None ||
+         controller_.appState_.getOverlay().getType() == OverlayType::Save);
 }
 
 void GUICommandController::adjustManualDie(int dieIndex, int delta) {

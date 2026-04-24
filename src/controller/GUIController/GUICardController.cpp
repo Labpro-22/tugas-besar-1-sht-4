@@ -70,11 +70,19 @@ void GUICardController::useSelectedHandCard() {
             controller_.addToast("Kartu kemampuan sudah dipakai pada turn ini.", RED);
             return;
         }
+        if (controller_.backendGame_.getTurnManager().isRolledThisTurn()) {
+            controller_.addToast("Kartu hanya bisa digunakan sebelum lempar dadu.", RED);
+            return;
+        }
 
         const int selected = std::max(0, std::min(controller_.appState_.getOverlay().getSelectedIndex(), static_cast<int>(cards.size()) - 1));
         const int previousPosition = player.getPosition();
-        configureSelectedHandCard(player, selected);
+        if (!configureSelectedHandCard(player, selected)) {
+            controller_.addToast("Target kartu tidak tersedia.", RED);
+            return;
+        }
         controller_.backendGame_.getCardManager().useHandCard(controller_.backendGame_, player, selected);
+        controller_.backendGame_.getTurnManager().registerAction();
 
         const int normalizedPosition = controller_.normalizedBackendTileIndex(player.getPosition());
         player.moveTo(normalizedPosition);
@@ -93,7 +101,42 @@ void GUICardController::useSelectedHandCard() {
 }
 
 void GUICardController::storeDrawnCard() {
-    controller_.addToast("Kartu backend dari petak ini harus langsung diterapkan.", RED);
+    try {
+        Player& player = controller_.backendGame_.getCurrentPlayer();
+        std::shared_ptr<HandCard> handCard;
+        if (controller_.pendingChanceCard_ != nullptr) {
+            handCard = std::dynamic_pointer_cast<HandCard>(controller_.pendingChanceCard_);
+            if (handCard == nullptr) {
+                controller_.addToast("Kartu ini harus langsung diterapkan.", RED);
+                return;
+            }
+            controller_.pendingChanceCard_.reset();
+        } else if (controller_.pendingCommunityChestCard_ != nullptr) {
+            handCard = std::dynamic_pointer_cast<HandCard>(controller_.pendingCommunityChestCard_);
+            if (handCard == nullptr) {
+                controller_.addToast("Kartu ini harus langsung diterapkan.", RED);
+                return;
+            }
+            controller_.pendingCommunityChestCard_.reset();
+        } else {
+            controller_.closeOverlay();
+            return;
+        }
+
+        player.addHandCard(handCard);
+        controller_.addLog(player.getUsername(), "KARTU", "Menyimpan kartu " + handCard->getName() + " ke tangan.");
+        controller_.addToast("Kartu tersimpan di tangan.", SKYBLUE);
+        controller_.closeOverlay();
+        controller_.syncViewFromBackend();
+        if (controller_.backendGame_.getCardManager().needsForceDrop(player)) {
+            controller_.openForceDrop();
+        } else {
+            controller_.finishTurnAfterDiceIfReady();
+        }
+    } catch (const std::exception& exception) {
+        controller_.addToast(exception.what(), RED);
+        controller_.syncViewFromBackend();
+    }
 }
 
 void GUICardController::applyDrawnCard() {
@@ -136,6 +179,11 @@ void GUICardController::applyDrawnCard() {
 void GUICardController::dropSelectedHandCard() {
     try {
         Player& player = controller_.backendGame_.getCurrentPlayer();
+        const bool voluntaryDrop = controller_.appState_.getOverlay().getType() == OverlayType::Cards;
+        if (voluntaryDrop && controller_.backendGame_.getTurnManager().isRolledThisTurn()) {
+            controller_.addToast("Kartu hanya bisa dibuang sebelum lempar dadu.", RED);
+            return;
+        }
         const int cardCount = player.countCards();
         if (cardCount <= 0) {
             controller_.closeOverlay();
@@ -148,6 +196,9 @@ void GUICardController::dropSelectedHandCard() {
             ? cards.at(selected)->getName()
             : "Kartu";
         controller_.backendGame_.getCardManager().dropHandCard(player, selected);
+        if (voluntaryDrop) {
+            controller_.backendGame_.getTurnManager().registerAction();
+        }
         controller_.addLog(player.getUsername(), "DROP_CARD", "Membuang " + cardName + ".");
         controller_.addToast("Kartu dibuang.", SKYBLUE);
         controller_.syncViewFromBackend();
@@ -240,24 +291,33 @@ void GUICardController::discardAllCards(Player& player) {
     }
 }
 
-void GUICardController::configureSelectedHandCard(Player& player, int cardIndex) {
+bool GUICardController::configureSelectedHandCard(Player& player, int cardIndex) {
     std::vector<std::shared_ptr<HandCard>> cards = controller_.backendGame_.getCardManager().getHandCards(player);
     if (cardIndex < 0 || cardIndex >= static_cast<int>(cards.size()) || cards.at(cardIndex) == nullptr) {
-        return;
+        return false;
     }
 
     if (std::shared_ptr<TeleportCard> teleport = std::dynamic_pointer_cast<TeleportCard>(cards.at(cardIndex))) {
         teleport->setTargetTileIndex(controller_.backendTileIndexFromUi(controller_.appState_.getGame().getSelectedTile()));
-        return;
+        return true;
     }
 
     if (std::shared_ptr<LassoCard> lasso = std::dynamic_pointer_cast<LassoCard>(cards.at(cardIndex))) {
+        const int myPosition = player.getPosition();
+        const int boardSize = controller_.backendGame_.getBoard().getBoardSize();
         for (Player& candidate : controller_.backendGame_.getPlayers()) {
-            if (&candidate != &player && !candidate.isBankrupt()) {
+            if (&candidate == &player || candidate.isBankrupt() || candidate.isJailed()) {
+                continue;
+            }
+            const int otherPosition = candidate.getPosition();
+            const bool isAhead = (otherPosition > myPosition) ||
+                                 (otherPosition < myPosition && boardSize > 0 && (myPosition - otherPosition) > boardSize / 2);
+            if (isAhead) {
                 lasso->setTargetPlayer(&candidate);
-                return;
+                return true;
             }
         }
+        return false;
     }
 
     if (std::shared_ptr<DemolitionCard> demolition = std::dynamic_pointer_cast<DemolitionCard>(cards.at(cardIndex))) {
@@ -267,7 +327,7 @@ void GUICardController::configureSelectedHandCard(Player& player, int cardIndex)
             selectedStreet->getOwner() != &player &&
             selectedStreet->getBuildingLevel() > 0) {
             demolition->setTargetStreet(selectedStreet);
-            return;
+            return true;
         }
 
         for (const std::shared_ptr<Tile>& tile : controller_.backendGame_.getBoard().getTiles()) {
@@ -277,8 +337,11 @@ void GUICardController::configureSelectedHandCard(Player& player, int cardIndex)
                 street->getOwner() != &player &&
                 street->getBuildingLevel() > 0) {
                 demolition->setTargetStreet(street);
-                return;
+                return true;
             }
         }
+        return false;
     }
+
+    return true;
 }

@@ -1,5 +1,6 @@
 #include "controller/GUIController/GUIGameController.hpp"
 
+#include "model/ComputerDecisionMaker.hpp"
 #include "model/Dice.hpp"
 #include "model/NimonException.hpp"
 #include "model/cards/BirthdayCard.hpp"
@@ -37,7 +38,9 @@
 #include <fstream>
 #include <memory>
 #include <random>
+#include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace view::raylibgui;
@@ -190,7 +193,17 @@ const GUITileController& GUIGameController::tiles() const {
     return tileController_;
 }
 
-void GUIGameController::tick(float deltaTime) { commandController_.tick(deltaTime); }
+void GUIGameController::tick(float deltaTime) {
+    commandController_.tick(deltaTime);
+
+    if (computerActionCooldown_ > 0.0f) {
+        computerActionCooldown_ = std::max(0.0f, computerActionCooldown_ - deltaTime);
+    }
+
+    if (computerActionCooldown_ <= 0.0f && driveComputerTurn()) {
+        computerActionCooldown_ = 0.45f;
+    }
+}
 
 void GUIGameController::handleGlobalShortcuts() { commandController_.handleGlobalShortcuts(); }
 
@@ -203,6 +216,8 @@ bool GUIGameController::isOverlayOpen() const { return commandController_.isOver
 int GUIGameController::getMortgageValue(const TileInfo& tile) const { return tileController_.getMortgageValue(tile); }
 
 int GUIGameController::getRedeemCost(const TileInfo& tile) const { return tileController_.getRedeemCost(tile); }
+
+int GUIGameController::getSellToBankValue(const TileInfo& tile) const { return tileController_.getSellToBankValue(tile); }
 
 int GUIGameController::findJailIndex() const { return tileController_.findJailIndex(); }
 
@@ -267,13 +282,20 @@ void GUIGameController::startFreshSession() {
         std::vector<Player>& players = backendGame_.getPlayers();
         players.clear();
         const int playerCount = std::max(kMinPlayers, std::min(kMaxPlayers, appState_.getPlayerCount()));
+        const int computerPlayerCount = std::max(0, std::min(appState_.getComputerPlayerCount(), playerCount));
+        const int humanPlayerCount = playerCount - computerPlayerCount;
+        appState_.setComputerPlayerCount(computerPlayerCount);
         const int startingCash = appState_.getStartingCash() > 0
             ? appState_.getStartingCash()
             : backendGame_.getConfigManager().getInitialBalance();
 
-        for (int index = 0; index < playerCount; index++) {
+        for (int index = 0; index < humanPlayerCount; index++) {
+            std::string name = appState_.getPlayerNames().at(index);
+            if (name.empty()) {
+                name = "Pemain" + std::to_string(index + 1);
+            }
             players.push_back(Player(
-                appState_.getPlayerNames().at(index),
+                name,
                 startingCash,
                 1,
                 PlayerStatus::ACTIVE,
@@ -284,6 +306,25 @@ void GUIGameController::startFreshSession() {
                 0
             ));
         }
+        for (int index = 0; index < computerPlayerCount; index++) {
+            const std::string name = index == 0
+                ? "ProfessorRayapSunggal"
+                : "ProfessorRayapSunggal" + std::to_string(index + 1);
+            Player computer(
+                name,
+                startingCash,
+                1,
+                PlayerStatus::ACTIVE,
+                0,
+                false,
+                false,
+                0,
+                0
+            );
+            computer.setComputerPlayer(true);
+            players.push_back(computer);
+        }
+        std::shuffle(players.begin(), players.end(), appState_.getRng());
 
         backendGame_.startNewGame();
         if (appState_.getTurnLimit() > 0) {
@@ -292,6 +333,7 @@ void GUIGameController::startFreshSession() {
 
         guiTurnStarted_ = false;
         diceRolledThisTurn_ = false;
+        computerActionCooldown_ = 0.25f;
         appState_.setScreen(Screen::Gameplay);
         syncViewFromBackend();
         commandController_.startTurn();
@@ -314,6 +356,7 @@ void GUIGameController::loadSessionFromSlot(int slotIndex) {
         backendGame_.loadGame(filename);
         guiTurnStarted_ = true;
         diceRolledThisTurn_ = false;
+        computerActionCooldown_ = 0.25f;
         appState_.setScreen(Screen::Gameplay);
         syncViewFromBackend();
         addToast("Permainan dimuat dari " + filename + ".", SKYBLUE);
@@ -386,7 +429,17 @@ void GUIGameController::dropSelectedHandCard() { cardController_.dropSelectedHan
 
 void GUIGameController::liquidateSelectedTile() { tileController_.liquidateSelectedTile(); }
 
+void GUIGameController::mortgageLiquidationSelectedTile() { tileController_.mortgageLiquidationSelectedTile(); }
+
 void GUIGameController::declareBankrupt() { tileController_.declareBankrupt(); }
+
+bool GUIGameController::isLiquidationRequired() const {
+    if (!backendGame_.isGameRunning() || backendGame_.getPlayers().empty()) {
+        return false;
+    }
+    return backendGame_.getBankruptcyManager().isBankruptcyActive() ||
+           backendGame_.getCurrentPlayer().getMoney() < 0;
+}
 
 void GUIGameController::syncViewFromBackend() {
     const GameState previous = appState_.getGame();
@@ -446,11 +499,348 @@ void GUIGameController::syncViewFromBackend() {
 
 std::vector<int> GUIGameController::currentPlayerStreetOptions() const { return tileController_.currentPlayerStreetOptions(); }
 
+std::vector<int> GUIGameController::currentPlayerOwnableOptions() const { return tileController_.currentPlayerOwnableOptions(); }
+
 std::vector<int> GUIGameController::currentPlayerBuildOptions() const { return tileController_.currentPlayerBuildOptions(); }
 
 std::vector<int> GUIGameController::currentPlayerMortgageOptions() const { return tileController_.currentPlayerMortgageOptions(); }
 
 std::vector<int> GUIGameController::currentPlayerRedeemOptions() const { return tileController_.currentPlayerRedeemOptions(); }
+
+bool GUIGameController::driveComputerTurn() {
+    if (appState_.getScreen() != Screen::Gameplay ||
+        !backendGame_.isGameRunning() ||
+        backendGame_.getPlayers().empty()) {
+        return false;
+    }
+
+    if (appState_.getOverlay().getType() != OverlayType::None) {
+        return handleComputerOverlay();
+    }
+
+    return handleComputerFreeTurn();
+}
+
+bool GUIGameController::handleComputerOverlay() {
+    OverlayState& overlay = appState_.getOverlay();
+    const OverlayType type = overlay.getType();
+    const int currentIndex = currentBackendPlayerIndex();
+    const bool currentComputer = isBackendPlayerComputer(currentIndex);
+
+    switch (type) {
+        case OverlayType::Purchase:
+            if (!currentComputer) {
+                return false;
+            }
+            if (ComputerDecisionMaker::decideToBuy() && canCurrentPlayerAffordSelectedPurchase()) {
+                buySelectedProperty();
+            } else {
+                skipSelectedPurchase();
+            }
+            return true;
+
+        case OverlayType::Auction: {
+            AuctionState& auction = overlay.getAuction();
+            const int bidderIndex = auction.getSelectedBidder();
+            if (!isBackendPlayerComputer(bidderIndex)) {
+                return false;
+            }
+
+            Player& bidder = backendGame_.getPlayers().at(bidderIndex);
+            const int minimumBid = auction.getHighestBidder() < 0 ? 0 : auction.getHighestBid() + 1;
+            const std::string decision = ComputerDecisionMaker::decideAuctionAction(minimumBid, bidder.getMoney(), false);
+            if (decision.rfind("BID ", 0) == 0) {
+                std::istringstream stream(decision);
+                std::string ignored;
+                int bid = 0;
+                stream >> ignored >> bid;
+                if (bid >= minimumBid && bid <= bidder.getMoney()) {
+                    const int raise = std::max(1, bid - auction.getHighestBid());
+                    if (auction.getHighestBid() + raise <= bidder.getMoney()) {
+                        auctionRaiseBid(raise);
+                    } else {
+                        auctionPass();
+                    }
+                } else {
+                    auctionPass();
+                }
+            } else {
+                auctionPass();
+            }
+            return true;
+        }
+
+        case OverlayType::IncomeTax:
+            if (!currentComputer) {
+                return false;
+            }
+            payIncomeTax(ComputerDecisionMaker::decideIncomeTax() == 1);
+            return true;
+
+        case OverlayType::LuxuryTax:
+            if (!currentComputer) {
+                return false;
+            }
+            payLuxuryTax();
+            return true;
+
+        case OverlayType::Festival: {
+            if (!currentComputer) {
+                return false;
+            }
+            const std::vector<int> options = currentPlayerOwnableOptions();
+            const int choice = ComputerDecisionMaker::decideFestival(static_cast<int>(options.size()));
+            if (options.empty() || choice <= 0) {
+                closeOverlay();
+                commandController_.finishTurnAfterDiceIfReady();
+            } else {
+                overlay.setSelectedIndex(std::max(0, std::min(choice - 1, static_cast<int>(options.size()) - 1)));
+                activateFestivalOnSelectedTile();
+            }
+            return true;
+        }
+
+        case OverlayType::Jail:
+            if (!currentComputer) {
+                return false;
+            }
+            if (!backendGame_.getCurrentPlayer().isJailed()) {
+                closeOverlay();
+            } else if (backendGame_.getCurrentPlayer().getFailedJailRolls() >= 3 ||
+                       ComputerDecisionMaker::decideJailChoice() == 1) {
+                payJailFine();
+            } else {
+                attemptJailRoll();
+            }
+            return true;
+
+        case OverlayType::ForceDrop: {
+            if (!currentComputer) {
+                return false;
+            }
+            Player& player = backendGame_.getCurrentPlayer();
+            const int cardCount = player.countCards();
+            if (cardCount <= 3) {
+                closeOverlay();
+            } else {
+                const int choice = ComputerDecisionMaker::decideForceDropChoice(cardCount);
+                overlay.setSelectedIndex(std::max(0, std::min(choice - 1, cardCount - 1)));
+                dropSelectedHandCard();
+            }
+            return true;
+        }
+
+        case OverlayType::Liquidation: {
+            const int debtorIndex = activeLiquidationPlayerIndex();
+            if (!isBackendPlayerComputer(debtorIndex)) {
+                return false;
+            }
+            if (!isLiquidationRequired()) {
+                closeOverlay();
+                return true;
+            }
+
+            Player& debtor = backendGame_.getPlayers().at(debtorIndex);
+            std::vector<OwnableTile*> properties = backendGame_.getPropertyManager().getOwnedProperties(backendGame_.getBoard(), debtor);
+            std::vector<std::pair<int, bool>> actions;
+            for (int index = 0; index < static_cast<int>(properties.size()); index++) {
+                OwnableTile* property = properties.at(index);
+                if (property == nullptr) {
+                    continue;
+                }
+                actions.push_back({index, false});
+                if (backendGame_.getPropertyManager().canMortgage(debtor, *property)) {
+                    actions.push_back({index, true});
+                }
+            }
+
+            if (actions.empty()) {
+                declareBankrupt();
+                return true;
+            }
+
+            const int choice = ComputerDecisionMaker::decideLiquidation(static_cast<int>(actions.size()));
+            if (choice <= 0) {
+                declareBankrupt();
+                return true;
+            }
+
+            const std::pair<int, bool>& action = actions.at(std::max(0, std::min(choice - 1, static_cast<int>(actions.size()) - 1)));
+            overlay.setSelectedIndex(action.first);
+            if (action.second) {
+                mortgageLiquidationSelectedTile();
+            } else {
+                liquidateSelectedTile();
+            }
+            return true;
+        }
+
+        case OverlayType::CardDraw:
+            if (!currentComputer) {
+                return false;
+            }
+            if (overlay.getCard().getKind() == CardKind::Hand) {
+                storeDrawnCard();
+            } else {
+                applyDrawnCard();
+            }
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+bool GUIGameController::handleComputerFreeTurn() {
+    const int currentIndex = currentBackendPlayerIndex();
+    if (!isBackendPlayerComputer(currentIndex) || !guiTurnStarted_) {
+        return false;
+    }
+
+    Player& player = backendGame_.getCurrentPlayer();
+    if (player.isBankrupt()) {
+        endTurn();
+        return true;
+    }
+
+    if (backendGame_.getBankruptcyManager().isBankruptcyActive() || player.getMoney() < 0) {
+        maybeOpenLiquidation();
+        return true;
+    }
+
+    if (backendGame_.getCardManager().needsForceDrop(player)) {
+        openForceDrop();
+        return true;
+    }
+
+    if (player.isJailed()) {
+        openJail();
+        return true;
+    }
+
+    if (backendGame_.getTurnManager().isRolledThisTurn()) {
+        commandController_.finishTurnAfterDiceIfReady();
+        return true;
+    }
+
+    if (!player.hasUsedHandCardThisTurn() &&
+        player.countCards() > 0 &&
+        ComputerDecisionMaker::rollThreshold(50)) {
+        std::vector<int> usableCards;
+        for (int index = 0; index < player.countCards(); index++) {
+            if (canComputerUseCard(player, index)) {
+                usableCards.push_back(index);
+            }
+        }
+
+        if (!usableCards.empty()) {
+            const int choice = ComputerDecisionMaker::decideAbilityCard(static_cast<int>(usableCards.size()));
+            const int cardIndex = usableCards.at(std::max(0, std::min(choice - 1, static_cast<int>(usableCards.size()) - 1)));
+            appState_.getOverlay().setSelectedIndex(cardIndex);
+            if (prepareComputerCard(player, cardIndex)) {
+                useSelectedHandCard();
+                return true;
+            }
+        }
+    }
+
+    const std::vector<int> buildOptions = currentPlayerBuildOptions();
+    if (!buildOptions.empty() && ComputerDecisionMaker::rollThreshold(60)) {
+        const int choice = ComputerDecisionMaker::decideBuildTile(static_cast<int>(buildOptions.size()));
+        appState_.getOverlay().setSelectedIndex(std::max(0, std::min(choice - 1, static_cast<int>(buildOptions.size()) - 1)));
+        buildOnSelectedTile();
+        return true;
+    }
+
+    rollDice();
+    return true;
+}
+
+bool GUIGameController::canComputerUseCard(const Player& player, int cardIndex) const {
+    const std::vector<std::shared_ptr<HandCard>> cards = backendGame_.getCardManager().getHandCards(player);
+    if (cardIndex < 0 || cardIndex >= static_cast<int>(cards.size()) || cards.at(cardIndex) == nullptr) {
+        return false;
+    }
+
+    if (std::dynamic_pointer_cast<TeleportCard>(cards.at(cardIndex)) != nullptr) {
+        return backendGame_.getBoard().getBoardSize() > 0;
+    }
+
+    if (std::dynamic_pointer_cast<LassoCard>(cards.at(cardIndex)) != nullptr) {
+        const int myPosition = player.getPosition();
+        const int boardSize = backendGame_.getBoard().getBoardSize();
+        for (const Player& candidate : backendGame_.getPlayers()) {
+            if (&candidate == &player || candidate.isBankrupt() || candidate.isJailed()) {
+                continue;
+            }
+            const int otherPosition = candidate.getPosition();
+            const bool isAhead = (otherPosition > myPosition) ||
+                                 (otherPosition < myPosition && boardSize > 0 && (myPosition - otherPosition) > boardSize / 2);
+            if (isAhead) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    if (std::dynamic_pointer_cast<DemolitionCard>(cards.at(cardIndex)) != nullptr) {
+        for (const Player& opponent : backendGame_.getPlayers()) {
+            if (&opponent == &player || opponent.isBankrupt()) {
+                continue;
+            }
+            for (OwnableTile* property : backendGame_.getPropertyManager().getOwnedProperties(backendGame_.getBoard(), opponent)) {
+                StreetTile* street = dynamic_cast<StreetTile*>(property);
+                if (street != nullptr && street->getBuildingLevel() > 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    return true;
+}
+
+bool GUIGameController::prepareComputerCard(Player& player, int cardIndex) {
+    const std::vector<std::shared_ptr<HandCard>> cards = backendGame_.getCardManager().getHandCards(player);
+    if (cardIndex < 0 || cardIndex >= static_cast<int>(cards.size()) || cards.at(cardIndex) == nullptr) {
+        return false;
+    }
+
+    if (std::dynamic_pointer_cast<TeleportCard>(cards.at(cardIndex)) != nullptr) {
+        const int boardSize = backendGame_.getBoard().getBoardSize();
+        if (boardSize <= 0) {
+            return false;
+        }
+        appState_.getGame().setSelectedTile(ComputerDecisionMaker::randomInt(0, boardSize - 1));
+    }
+
+    return canComputerUseCard(player, cardIndex);
+}
+
+bool GUIGameController::isBackendPlayerComputer(int playerIndex) const {
+    const std::vector<Player>& players = backendGame_.getPlayers();
+    return playerIndex >= 0 &&
+           playerIndex < static_cast<int>(players.size()) &&
+           players.at(playerIndex).isComputerPlayer();
+}
+
+int GUIGameController::activeLiquidationPlayerIndex() const {
+    Player* debtor = backendGame_.getBankruptcyManager().getPendingDebtor();
+    if (debtor != nullptr) {
+        const int debtorIndex = backendPlayerIndex(debtor);
+        if (debtorIndex >= 0) {
+            return debtorIndex;
+        }
+    }
+
+    const int selectedPlayer = appState_.getOverlay().getSelectedPlayer();
+    if (selectedPlayer >= 0 && selectedPlayer < static_cast<int>(backendGame_.getPlayers().size())) {
+        return selectedPlayer;
+    }
+
+    return currentBackendPlayerIndex();
+}
 
 void GUIGameController::addToast(const std::string& text, Color accent, float duration) {
     std::deque<Toast>& toasts = appState_.getGame().getToasts();
@@ -664,7 +1054,8 @@ PlayerInfo GUIGameController::makePlayerInfoFromBackend(const Player& player, in
         player.getFailedJailRolls(),
         player.getDiscountPercent(),
         properties,
-        cards
+        cards,
+        player.isComputerPlayer()
     };
 }
 

@@ -126,7 +126,7 @@ void OverlayRenderer::drawAuction(GUIGameController& session, const UiToolkit& t
     const std::string leader = auction.getHighestBidder() >= 0 ? game.getPlayers().at(auction.getHighestBidder()).getName() : "Belum ada";
     DrawTextEx(font, ("Leader: " + leader).c_str(), {modal.x + 300.0f, modal.y + 104.0f}, 22.0f, 1.0f, toolkit.theme().getInkMuted());
 
-    DrawTextEx(font, "Pilih bidder aktif", {modal.x + 28.0f, modal.y + 150.0f}, 20.0f, 1.0f, toolkit.theme().getInk());
+    DrawTextEx(font, "Bidder aktif mengikuti urutan turn backend", {modal.x + 28.0f, modal.y + 150.0f}, 20.0f, 1.0f, toolkit.theme().getInk());
     for (int index = 0; index < static_cast<int>(game.getPlayers().size()); index++) {
         const PlayerInfo& player = game.getPlayers().at(index);
         const Rectangle row = {modal.x + 28.0f, modal.y + 186.0f + index * 62.0f, modal.width - 56.0f, 52.0f};
@@ -135,9 +135,7 @@ void OverlayRenderer::drawAuction(GUIGameController& session, const UiToolkit& t
         DrawTextEx(font, player.getName().c_str(), {row.x + 32.0f, row.y + 8.0f}, 20.0f, 1.0f, toolkit.theme().getInk());
         DrawTextEx(font, toolkit.formatMoney(player.getMoney()).c_str(), {row.x + 32.0f, row.y + 28.0f}, 16.0f, 1.0f, toolkit.theme().getInkMuted());
 
-        if (toolkit.drawButton(index == auction.getSelectedBidder() ? "Terpilih" : "Pilih", {row.x + row.width - 86.0f, row.y + 8.0f, 68.0f, 34.0f}, index == auction.getSelectedBidder() ? player.getAccent() : toolkit.mix(toolkit.theme().getPaper(), player.getAccent(), 0.16f), index == auction.getSelectedBidder() ? toolkit.theme().getPaperSoft() : toolkit.theme().getInk(), true, 16.0f)) {
-            auction.setSelectedBidder(index);
-        }
+        toolkit.drawButton(index == auction.getSelectedBidder() ? "Aktif" : "Tunggu", {row.x + row.width - 86.0f, row.y + 8.0f, 68.0f, 34.0f}, index == auction.getSelectedBidder() ? player.getAccent() : toolkit.mix(toolkit.theme().getPaper(), player.getAccent(), 0.16f), index == auction.getSelectedBidder() ? toolkit.theme().getPaperSoft() : toolkit.theme().getInk(), false, 16.0f);
     }
 
     const float bidButtonY = modal.y + modal.height - 138.0f;
@@ -178,14 +176,12 @@ void OverlayRenderer::drawIncomeTax(GUIGameController& session, const UiToolkit&
     DrawTextEx(font, toolkit.formatMoney(percentageTax).c_str(), {percentRect.x + 18.0f, percentRect.y + 56.0f}, 30.0f, 1.0f, toolkit.theme().getTeal());
     DrawTextEx(font, "10% dari total kekayaan saat ini.", {percentRect.x + 18.0f, percentRect.y + 96.0f}, 17.0f, 1.0f, toolkit.theme().getInkMuted());
 
-    if (toolkit.drawButton("Bayar Flat", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 160.0f, 42.0f}, toolkit.theme().getCoral(), toolkit.theme().getPaperSoft(), player.getMoney() >= flatTax, 20.0f)) {
+    (void) player;
+    if (toolkit.drawButton("Bayar Flat", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 220.0f, 42.0f}, toolkit.theme().getCoral(), toolkit.theme().getPaperSoft(), true, 20.0f)) {
         session.payIncomeTax(true);
     }
-    if (toolkit.drawButton("Bayar Persentase", {modal.x + 208.0f, modal.y + modal.height - 64.0f, 220.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), player.getMoney() >= percentageTax, 20.0f)) {
+    if (toolkit.drawButton("Bayar Persentase", {modal.x + modal.width - 268.0f, modal.y + modal.height - 64.0f, 240.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), true, 20.0f)) {
         session.payIncomeTax(false);
-    }
-    if (toolkit.drawButton("Batal", {modal.x + modal.width - 120.0f, modal.y + modal.height - 64.0f, 92.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), true, 20.0f)) {
-        session.closeOverlay();
     }
 }
 
@@ -201,11 +197,9 @@ void OverlayRenderer::drawLuxuryTax(GUIGameController& session, const UiToolkit&
     toolkit.drawWrappedText("Petak ini menarik pajak barang mewah dari pemain aktif.", {modal.x + 28.0f, modal.y + 76.0f, modal.width - 56.0f, 54.0f}, 20.0f, toolkit.theme().getInkMuted());
     DrawTextEx(font, toolkit.formatMoney(tax).c_str(), {modal.x + 28.0f, modal.y + 146.0f}, 38.0f, 1.0f, toolkit.theme().getDanger());
 
-    if (toolkit.drawButton("Bayar", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 120.0f, 42.0f}, toolkit.theme().getCoral(), toolkit.theme().getPaperSoft(), player.getMoney() >= tax, 20.0f)) {
+    (void) player;
+    if (toolkit.drawButton("Bayar", {modal.x + 28.0f, modal.y + modal.height - 64.0f, modal.width - 56.0f, 42.0f}, toolkit.theme().getCoral(), toolkit.theme().getPaperSoft(), true, 20.0f)) {
         session.payLuxuryTax();
-    }
-    if (toolkit.drawButton("Tutup", {modal.x + modal.width - 120.0f, modal.y + modal.height - 64.0f, 92.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), true, 20.0f)) {
-        session.closeOverlay();
     }
 }
 
@@ -213,31 +207,32 @@ void OverlayRenderer::drawFestival(GUIGameController& session, const UiToolkit& 
     AppState& state = session.state();
     const Rectangle modal = toolkit.drawModalShell(state.getOverlay().getAnim(), 0.58f, 0.66f);
     const Font font = toolkit.font();
-    const std::vector<int> streets = session.currentPlayerStreetOptions();
+    const std::vector<int> options = session.currentPlayerOwnableOptions();
 
     DrawTextEx(font, "Festival", {modal.x + 28.0f, modal.y + 28.0f}, 34.0f, 1.0f, toolkit.theme().getInk());
-    DrawTextEx(font, "Pilih street milik pemain aktif untuk diberi boost festival tiga turn.", {modal.x + 28.0f, modal.y + 70.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
+    DrawTextEx(font, "Pilih properti milik pemain aktif untuk diberi boost festival.", {modal.x + 28.0f, modal.y + 70.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
 
-    if (streets.empty()) {
-        toolkit.drawWrappedText("Belum ada street yang dimiliki. Festival tidak punya target saat ini.", {modal.x + 28.0f, modal.y + 140.0f, modal.width - 56.0f, 60.0f}, 20.0f, toolkit.theme().getCoral());
+    if (options.empty()) {
+        toolkit.drawWrappedText("Belum ada properti yang dimiliki. Festival tidak punya target saat ini.", {modal.x + 28.0f, modal.y + 140.0f, modal.width - 56.0f, 60.0f}, 20.0f, toolkit.theme().getCoral());
     } else {
-        for (int index = 0; index < static_cast<int>(streets.size()); index++) {
-            const TileInfo& tile = state.getGame().getBoard().at(streets.at(index));
-            const Rectangle row = {modal.x + 28.0f, modal.y + 128.0f + index * 64.0f, modal.width - 56.0f, 54.0f};
+        for (int index = 0; index < static_cast<int>(options.size()); index++) {
+            const TileInfo& tile = state.getGame().getBoard().at(options.at(index));
+            const Rectangle row = {modal.x + 28.0f, modal.y + 128.0f + index * 56.0f, modal.width - 56.0f, 48.0f};
             DrawRectangleRec(row, index == state.getOverlay().getSelectedIndex() ? toolkit.mix(toolkit.theme().getPaperSoft(), tile.getAccent(), 0.18f) : toolkit.mix(toolkit.theme().getPaperSoft(), tile.getAccent(), 0.08f));
-            DrawTextEx(font, tile.getName().c_str(), {row.x + 16.0f, row.y + 10.0f}, 21.0f, 1.0f, toolkit.theme().getInk());
-            DrawTextEx(font, ("Festival aktif: " + std::to_string(tile.getFestivalTurns()) + " turn").c_str(), {row.x + 16.0f, row.y + 30.0f}, 16.0f, 1.0f, toolkit.theme().getInkMuted());
-            if (toolkit.drawButton(index == state.getOverlay().getSelectedIndex() ? "Terpilih" : "Pilih", {row.x + row.width - 84.0f, row.y + 10.0f, 68.0f, 34.0f}, index == state.getOverlay().getSelectedIndex() ? tile.getAccent() : toolkit.mix(toolkit.theme().getPaper(), tile.getAccent(), 0.12f), index == state.getOverlay().getSelectedIndex() ? toolkit.theme().getPaperSoft() : toolkit.theme().getInk(), true, 16.0f)) {
+            DrawTextEx(font, tile.getName().c_str(), {row.x + 16.0f, row.y + 6.0f}, 19.0f, 1.0f, toolkit.theme().getInk());
+            DrawTextEx(font, ("Festival aktif: " + std::to_string(tile.getFestivalTurns()) + " turn").c_str(), {row.x + 16.0f, row.y + 26.0f}, 15.0f, 1.0f, toolkit.theme().getInkMuted());
+            if (toolkit.drawButton(index == state.getOverlay().getSelectedIndex() ? "Terpilih" : "Pilih", {row.x + row.width - 84.0f, row.y + 7.0f, 68.0f, 32.0f}, index == state.getOverlay().getSelectedIndex() ? tile.getAccent() : toolkit.mix(toolkit.theme().getPaper(), tile.getAccent(), 0.12f), index == state.getOverlay().getSelectedIndex() ? toolkit.theme().getPaperSoft() : toolkit.theme().getInk(), true, 16.0f)) {
                 state.getOverlay().setSelectedIndex(index);
             }
         }
     }
 
-    if (toolkit.drawButton("Aktifkan", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 132.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), !streets.empty(), 20.0f)) {
+    if (toolkit.drawButton("Aktifkan", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 132.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), !options.empty(), 20.0f)) {
         session.activateFestivalOnSelectedTile();
     }
-    if (toolkit.drawButton("Tutup", {modal.x + modal.width - 120.0f, modal.y + modal.height - 64.0f, 92.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), true, 20.0f)) {
+    if (toolkit.drawButton("Lewati", {modal.x + modal.width - 120.0f, modal.y + modal.height - 64.0f, 92.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), true, 20.0f)) {
         session.closeOverlay();
+        session.commands().finishTurnAfterDiceIfReady();
     }
 }
 
@@ -298,9 +293,16 @@ void OverlayRenderer::drawCards(GUIGameController& session, const UiToolkit& too
         }
     }
 
-    DrawTextEx(font, "Kartu Teleport akan menuju tile yang sedang dipilih di board.", {modal.x + 28.0f, modal.y + modal.height - 104.0f}, 16.0f, 1.0f, toolkit.theme().getTeal());
-    if (toolkit.drawButton("Gunakan", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 120.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), !player.getHandCards().empty(), 20.0f)) {
+    const bool canUse = !player.getHandCards().empty() && state.getGame().isTurnStarted() && !state.getGame().isRolledThisTurn();
+    const std::string hint = state.getGame().isRolledThisTurn()
+        ? "Kartu hanya bisa digunakan sebelum lempar dadu."
+        : "Kartu Teleport akan menuju tile yang sedang dipilih di board.";
+    DrawTextEx(font, hint.c_str(), {modal.x + 28.0f, modal.y + modal.height - 104.0f}, 16.0f, 1.0f, state.getGame().isRolledThisTurn() ? toolkit.theme().getCoral() : toolkit.theme().getTeal());
+    if (toolkit.drawButton("Gunakan", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 120.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), canUse, 20.0f)) {
         session.useSelectedHandCard();
+    }
+    if (toolkit.drawButton("Buang", {modal.x + 164.0f, modal.y + modal.height - 64.0f, 120.0f, 42.0f}, toolkit.mix(toolkit.theme().getCoral(), WHITE, 0.18f), toolkit.theme().getInk(), canUse, 20.0f)) {
+        session.dropSelectedHandCard();
     }
     if (toolkit.drawButton("Tutup", {modal.x + modal.width - 120.0f, modal.y + modal.height - 64.0f, 92.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), true, 20.0f)) {
         session.closeOverlay();
@@ -613,11 +615,16 @@ void OverlayRenderer::drawLiquidation(GUIGameController& session, const UiToolki
     AppState& state = session.state();
     const Rectangle modal = toolkit.drawModalShell(state.getOverlay().getAnim(), 0.62f, 0.74f);
     const Font font = toolkit.font();
-    const PlayerInfo& player = state.getGame().getPlayers().at(state.getGame().getCurrentPlayer());
+    const GameState& game = state.getGame();
+    int playerIndex = state.getOverlay().getSelectedPlayer();
+    if (playerIndex < 0 || playerIndex >= static_cast<int>(game.getPlayers().size())) {
+        playerIndex = game.getCurrentPlayer();
+    }
+    const PlayerInfo& player = game.getPlayers().at(playerIndex);
 
     DrawTextEx(font, "Liquidation", {modal.x + 28.0f, modal.y + 28.0f}, 34.0f, 1.0f, toolkit.theme().getInk());
-    DrawTextEx(font, ("Saldo saat ini: " + toolkit.formatMoney(player.getMoney())).c_str(), {modal.x + 28.0f, modal.y + 68.0f}, 22.0f, 1.0f, player.getMoney() >= 0 ? toolkit.theme().getInk() : toolkit.theme().getDanger());
-    DrawTextEx(font, "Jual atau lepaskan aset untuk kembali positif.", {modal.x + 28.0f, modal.y + 104.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
+    DrawTextEx(font, (player.getName() + " - saldo: " + toolkit.formatMoney(player.getMoney())).c_str(), {modal.x + 28.0f, modal.y + 68.0f}, 22.0f, 1.0f, player.getMoney() >= 0 ? toolkit.theme().getInk() : toolkit.theme().getDanger());
+    DrawTextEx(font, "Jual atau gadaikan aset sampai kewajiban backend terpenuhi.", {modal.x + 28.0f, modal.y + 104.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
 
     if (player.getProperties().empty()) {
         toolkit.drawWrappedText("Tidak ada aset tersisa. Satu-satunya opsi adalah bangkrut.", {modal.x + 28.0f, modal.y + 148.0f, modal.width - 56.0f, 56.0f}, 20.0f, toolkit.theme().getCoral());
@@ -628,20 +635,30 @@ void OverlayRenderer::drawLiquidation(GUIGameController& session, const UiToolki
             const Rectangle row = {modal.x + 28.0f, modal.y + 148.0f + index * 68.0f, modal.width - 56.0f, 58.0f};
             DrawRectangleRec(row, index == state.getOverlay().getSelectedIndex() ? toolkit.mix(toolkit.theme().getPaperSoft(), tile.getAccent(), 0.18f) : toolkit.mix(toolkit.theme().getPaperSoft(), tile.getAccent(), 0.08f));
             DrawTextEx(font, tile.getName().c_str(), {row.x + 16.0f, row.y + 10.0f}, 22.0f, 1.0f, toolkit.theme().getInk());
-            DrawTextEx(font, ("Nilai jual: " + toolkit.formatMoney(session.getMortgageValue(tile))).c_str(), {row.x + 16.0f, row.y + 34.0f}, 16.0f, 1.0f, toolkit.theme().getInkMuted());
+            DrawTextEx(font, ("Jual: " + toolkit.formatMoney(session.getSellToBankValue(tile)) + " | Gadai: " + toolkit.formatMoney(session.getMortgageValue(tile))).c_str(), {row.x + 16.0f, row.y + 34.0f}, 16.0f, 1.0f, toolkit.theme().getInkMuted());
             if (toolkit.drawButton(index == state.getOverlay().getSelectedIndex() ? "Terpilih" : "Pilih", {row.x + row.width - 84.0f, row.y + 12.0f, 68.0f, 34.0f}, index == state.getOverlay().getSelectedIndex() ? tile.getAccent() : toolkit.mix(toolkit.theme().getPaper(), tile.getAccent(), 0.14f), index == state.getOverlay().getSelectedIndex() ? toolkit.theme().getPaperSoft() : toolkit.theme().getInk(), true, 16.0f)) {
                 state.getOverlay().setSelectedIndex(index);
             }
         }
     }
 
+    bool canMortgageSelection = false;
+    if (!player.getProperties().empty()) {
+        const int selected = std::max(0, std::min(state.getOverlay().getSelectedIndex(), static_cast<int>(player.getProperties().size()) - 1));
+        const TileInfo& selectedTile = state.getGame().getBoard().at(player.getProperties().at(selected));
+        canMortgageSelection = !selectedTile.isMortgaged();
+    }
+
     if (toolkit.drawButton("Jual Aset", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 136.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), !player.getProperties().empty(), 20.0f)) {
         session.liquidateSelectedTile();
     }
-    if (toolkit.drawButton("Bangkrut", {modal.x + 182.0f, modal.y + modal.height - 64.0f, 120.0f, 42.0f}, toolkit.theme().getCoral(), toolkit.theme().getPaperSoft(), true, 20.0f)) {
+    if (toolkit.drawButton("Gadai", {modal.x + 180.0f, modal.y + modal.height - 64.0f, 104.0f, 42.0f}, toolkit.mix(toolkit.theme().getGold(), WHITE, 0.16f), toolkit.theme().getInk(), canMortgageSelection, 20.0f)) {
+        session.mortgageLiquidationSelectedTile();
+    }
+    if (toolkit.drawButton("Bangkrut", {modal.x + 302.0f, modal.y + modal.height - 64.0f, 120.0f, 42.0f}, toolkit.theme().getCoral(), toolkit.theme().getPaperSoft(), true, 20.0f)) {
         session.declareBankrupt();
     }
-    if (toolkit.drawButton("Tutup", {modal.x + modal.width - 120.0f, modal.y + modal.height - 64.0f, 92.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), true, 20.0f)) {
+    if (toolkit.drawButton("Tutup", {modal.x + modal.width - 120.0f, modal.y + modal.height - 64.0f, 92.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), !session.isLiquidationRequired(), 20.0f)) {
         session.closeOverlay();
     }
 }
@@ -670,9 +687,7 @@ void OverlayRenderer::drawCardDraw(GUIGameController& session, const UiToolkit& 
             session.applyDrawnCard();
         }
     }
-    if (toolkit.drawButton("Tutup", {modal.x + modal.width - 120.0f, modal.y + modal.height - 64.0f, 92.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), true, 20.0f)) {
-        session.closeOverlay();
-    }
+    toolkit.drawButton("Wajib", {modal.x + modal.width - 120.0f, modal.y + modal.height - 64.0f, 92.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), false, 20.0f);
 }
 
 void OverlayRenderer::drawGameOver(GUIGameController& session, const UiToolkit& toolkit) const {

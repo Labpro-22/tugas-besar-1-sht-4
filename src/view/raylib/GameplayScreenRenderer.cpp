@@ -29,13 +29,18 @@ void GameplayScreenRenderer::draw(GUIGameController& session, const UiToolkit& t
     const Rectangle boardRect = {marginX, top, boardSize, boardSize};
     const Rectangle sidebarRect = {boardRect.x + boardRect.width + gap, top, screenWidth - (boardRect.x + boardRect.width + gap) - marginX, boardSize};
 
-    const bool interactive = !session.isOverlayOpen();
+    const bool currentPlayerIsComputer =
+        !state.getGame().getPlayers().empty() &&
+        state.getGame().getCurrentPlayer() >= 0 &&
+        state.getGame().getCurrentPlayer() < static_cast<int>(state.getGame().getPlayers().size()) &&
+        state.getGame().getPlayers().at(state.getGame().getCurrentPlayer()).isComputerPlayer();
+    const bool interactive = !session.isOverlayOpen() && !currentPlayerIsComputer;
 
     drawBoardPanel(session, toolkit, boardRect, interactive);
 
     const float summaryH = 318.0f;
-    const float actionH = 272.0f;
-    const float logsH = std::max(180.0f, sidebarRect.height - summaryH - actionH - gap * 2.0f);
+    const float actionH = 360.0f;
+    const float logsH = std::max(160.0f, sidebarRect.height - summaryH - actionH - gap * 2.0f);
     const Rectangle summaryRect = {sidebarRect.x, sidebarRect.y, sidebarRect.width, summaryH};
     const Rectangle actionRect = {sidebarRect.x, summaryRect.y + summaryRect.height + gap, sidebarRect.width, actionH};
     const Rectangle logsRect = {sidebarRect.x, actionRect.y + actionRect.height + gap, sidebarRect.width, logsH};
@@ -60,11 +65,17 @@ void GameplayScreenRenderer::drawCurrentPlayerPanel(
     DrawTextEx(font, ("Posisi: " + game.getBoard().at(player.getPosition()).getName()).c_str(), {rect.x + 18.0f, rect.y + 86.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
 
     toolkit.drawBadge(player.isJailed() ? "Jailed" : "Active", {rect.x + rect.width - 118.0f, rect.y + 18.0f, 92.0f, 28.0f}, player.isJailed() ? toolkit.mix(toolkit.theme().getDanger(), WHITE, 0.32f) : toolkit.mix(toolkit.theme().getSuccess(), WHITE, 0.42f), toolkit.theme().getInk());
+    float badgeY = rect.y + 54.0f;
+    if (player.isComputerPlayer()) {
+        toolkit.drawBadge("COM", {rect.x + rect.width - 118.0f, badgeY, 92.0f, 28.0f}, toolkit.mix(toolkit.theme().getTeal(), WHITE, 0.24f), toolkit.theme().getInk());
+        badgeY += 36.0f;
+    }
     if (player.isShieldActive()) {
-        toolkit.drawBadge("Shield", {rect.x + rect.width - 118.0f, rect.y + 54.0f, 92.0f, 28.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.24f), toolkit.theme().getPaperSoft());
+        toolkit.drawBadge("Shield", {rect.x + rect.width - 118.0f, badgeY, 92.0f, 28.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.24f), toolkit.theme().getPaperSoft());
+        badgeY += 36.0f;
     }
     if (player.getDiscountPercent() > 0) {
-        toolkit.drawBadge("Disc " + std::to_string(player.getDiscountPercent()) + "%", {rect.x + rect.width - 118.0f, rect.y + 90.0f, 92.0f, 28.0f}, toolkit.mix(toolkit.theme().getGold(), WHITE, 0.24f), toolkit.theme().getInk());
+        toolkit.drawBadge("Disc " + std::to_string(player.getDiscountPercent()) + "%", {rect.x + rect.width - 118.0f, badgeY, 92.0f, 28.0f}, toolkit.mix(toolkit.theme().getGold(), WHITE, 0.24f), toolkit.theme().getInk());
     }
 
     DrawTextEx(font, "Roster", {rect.x + 18.0f, rect.y + 136.0f}, 19.0f, 1.0f, toolkit.theme().getInk());
@@ -263,9 +274,12 @@ void GameplayScreenRenderer::drawActionPanel(
     const std::vector<std::string> labels = {
         "Roll Dice",
         "Atur Dadu",
-        "Detail Tile",
-        "Portfolio",
+        "Bangun",
+        "Gadai",
+        "Tebus",
         "Cards",
+        "Portfolio",
+        "Detail Tile",
         "Save",
         "Logs",
         "Help",
@@ -285,6 +299,18 @@ void GameplayScreenRenderer::drawActionPanel(
             const bool canSetDice = interactive && state.getGame().isTurnStarted() && !state.getGame().isRolledThisTurn();
             if (toolkit.drawButton(labels.at(index), button, toolkit.mix(toolkit.theme().getGold(), WHITE, 0.18f), toolkit.theme().getInk(), canSetDice, 15.0f)) {
                 session.openSetDice();
+            }
+        } else if (labels.at(index) == "Bangun") {
+            if (toolkit.drawButton(labels.at(index), button, toolkit.mix(toolkit.theme().getTeal(), WHITE, 0.18f), toolkit.theme().getInk(), interactive && state.getGame().isTurnStarted() && !state.getGame().isRolledThisTurn(), 15.0f)) {
+                session.openBuild();
+            }
+        } else if (labels.at(index) == "Gadai") {
+            if (toolkit.drawButton(labels.at(index), button, toolkit.mix(toolkit.theme().getCoral(), WHITE, 0.18f), toolkit.theme().getInk(), interactive && state.getGame().isTurnStarted() && !state.getGame().isRolledThisTurn(), 15.0f)) {
+                session.openMortgage();
+            }
+        } else if (labels.at(index) == "Tebus") {
+            if (toolkit.drawButton(labels.at(index), button, toolkit.mix(toolkit.theme().getSage(), WHITE, 0.22f), toolkit.theme().getInk(), interactive && state.getGame().isTurnStarted() && !state.getGame().isRolledThisTurn(), 15.0f)) {
+                session.openRedeem();
             }
         } else if (labels.at(index) == "Detail Tile") {
             if (toolkit.drawButton(labels.at(index), button, toolkit.mix(toolkit.theme().getGold(), WHITE, 0.16f), toolkit.theme().getInk(), interactive, 15.0f)) {

@@ -42,6 +42,7 @@ public:
 
     int getMortgageValue(const view::raylibgui::TileInfo& tile) const;
     int getRedeemCost(const view::raylibgui::TileInfo& tile) const;
+    int getSellToBankValue(const view::raylibgui::TileInfo& tile) const;
     int findJailIndex() const;
     int computeRent(const view::raylibgui::TileInfo& tile) const;
     int computeTileAssetValue(const view::raylibgui::TileInfo& tile) const;
@@ -111,11 +112,14 @@ public:
     void saveSession();
     void dropSelectedHandCard();
     void liquidateSelectedTile();
+    void mortgageLiquidationSelectedTile();
     void declareBankrupt();
+    bool isLiquidationRequired() const;
 
     void syncViewFromBackend();
 
     std::vector<int> currentPlayerStreetOptions() const;
+    std::vector<int> currentPlayerOwnableOptions() const;
     std::vector<int> currentPlayerBuildOptions() const;
     std::vector<int> currentPlayerMortgageOptions() const;
     std::vector<int> currentPlayerRedeemOptions() const;
@@ -125,6 +129,7 @@ private:
     Game backendGame_;
     bool guiTurnStarted_ = false;
     bool diceRolledThisTurn_ = false;
+    float computerActionCooldown_ = 0.0f;
     std::shared_ptr<ChanceCard> pendingChanceCard_;
     std::shared_ptr<CommunityChestCard> pendingCommunityChestCard_;
     GUIControllerContext controllerContext_;
@@ -136,6 +141,13 @@ private:
     void updateToasts(float deltaTime);
     void addLog(const std::string& actor, const std::string& action, const std::string& detail);
     void maybeOpenLiquidation();
+    bool driveComputerTurn();
+    bool handleComputerOverlay();
+    bool handleComputerFreeTurn();
+    bool canComputerUseCard(const Player& player, int cardIndex) const;
+    bool prepareComputerCard(Player& player, int cardIndex);
+    bool isBackendPlayerComputer(int playerIndex) const;
+    int activeLiquidationPlayerIndex() const;
 
     int uiTileIndexFromBackend(int backendIndex) const;
     int backendTileIndexFromUi(int uiIndex) const;

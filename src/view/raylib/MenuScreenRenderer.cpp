@@ -1,9 +1,16 @@
 #include "view/raylib/MenuScreenRenderer.hpp"
 
 #include <algorithm>
+#include <string>
 #include <vector>
 
 namespace view::raylibgui {
+namespace {
+std::string professorName(int index) {
+    return index == 0 ? "ProfessorRayapSunggal" : "ProfessorRayapSunggal" + std::to_string(index + 1);
+}
+}
+
 void MenuScreenRenderer::draw(GUIGameController& session, const UiToolkit& toolkit) const {
     switch (session.state().getScreen()) {
         case Screen::MainMenu:
@@ -158,7 +165,7 @@ void MenuScreenRenderer::drawNewGame(GUIGameController& session, const UiToolkit
     DrawTextEx(font, "Game Baru", {card.x + 28.0f, card.y + 26.0f}, 34.0f, 1.0f, toolkit.theme().getInk());
     DrawTextEx(
         font,
-        "Atur jumlah pemain, nama pemain, saldo awal, dan batas turn.",
+        "Atur pemain manusia, pemain COM, saldo awal, dan batas turn.",
         {card.x + 28.0f, card.y + 66.0f},
         19.0f,
         1.0f,
@@ -170,8 +177,13 @@ void MenuScreenRenderer::drawNewGame(GUIGameController& session, const UiToolkit
         const float x = card.x + 30.0f + (count - kMinPlayers) * 136.0f;
         if (toolkit.drawChip(std::to_string(count) + " pemain", {x, card.y + 158.0f, 116.0f, 46.0f}, state.getPlayerCount() == count, toolkit.theme().getTeal())) {
             state.setPlayerCount(count);
+            state.setComputerPlayerCount(std::min(state.getComputerPlayerCount(), state.getPlayerCount()));
         }
     }
+
+    const int computerCount = std::max(0, std::min(state.getComputerPlayerCount(), state.getPlayerCount()));
+    const int humanCount = state.getPlayerCount() - computerCount;
+    state.setComputerPlayerCount(computerCount);
 
     const float fieldsTop = card.y + 258.0f;
     const float fieldHeight = 60.0f;
@@ -190,16 +202,27 @@ void MenuScreenRenderer::drawNewGame(GUIGameController& session, const UiToolkit
         };
         const std::string label = "Pemain " + std::to_string(index + 1);
         DrawTextEx(font, label.c_str(), {field.x, field.y - 30.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
-        toolkit.drawTextField(
-            state,
-            "player-" + std::to_string(index),
-            state.getPlayerNames().at(index),
-            "Masukkan nama",
-            field,
-            18
-        );
 
-        if (index >= state.getPlayerCount()) {
+        if (index < humanCount) {
+            toolkit.drawTextField(
+                state,
+                "player-" + std::to_string(index),
+                state.getPlayerNames().at(index),
+                "Masukkan nama",
+                field,
+                18
+            );
+        } else if (index < state.getPlayerCount()) {
+            toolkit.drawPanel(field, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getTeal(), 0.07f), toolkit.withAlpha(toolkit.theme().getInkMuted(), 0.12f), 0.0f);
+            const std::string displayText = professorName(index - humanCount);
+            DrawTextEx(font, displayText.c_str(), {field.x + 16.0f, field.y + 19.0f}, 18.0f, 1.0f, toolkit.theme().getInk());
+        } else {
+            toolkit.drawPanel(field, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getPaperSoft(), 0.35f), toolkit.withAlpha(toolkit.theme().getInkMuted(), 0.10f), 0.0f);
+        }
+
+        if (index >= humanCount && index < state.getPlayerCount()) {
+            toolkit.drawBadge("COM", {field.x + field.width - 72.0f, field.y + 15.0f, 52.0f, 30.0f}, toolkit.mix(toolkit.theme().getTeal(), WHITE, 0.18f), toolkit.theme().getInk());
+        } else if (index >= state.getPlayerCount()) {
             DrawRectangleRec(field, toolkit.withAlpha(toolkit.theme().getPaper(), 0.50f));
             DrawTextEx(font, "slot nonaktif", {field.x + field.width - 130.0f, field.y + 19.0f}, 16.0f, 1.0f, toolkit.theme().getInkMuted());
         }
@@ -211,16 +234,17 @@ void MenuScreenRenderer::drawNewGame(GUIGameController& session, const UiToolkit
     int turnLimit = state.getTurnLimit();
     drawStepper(toolkit, "Batas turn", turnLimit, 12, 60, 2, {card.x + card.width * 0.58f, card.y + 266.0f, card.width * 0.32f, 82.0f});
     state.setTurnLimit(turnLimit);
+    int computerPlayers = state.getComputerPlayerCount();
+    drawStepper(toolkit, "Pemain COM", computerPlayers, 0, state.getPlayerCount(), 1, {card.x + card.width * 0.58f, card.y + 370.0f, card.width * 0.32f, 82.0f});
+    state.setComputerPlayerCount(std::max(0, std::min(computerPlayers, state.getPlayerCount())));
 
-    const Rectangle note = {card.x + card.width * 0.58f, card.y + 378.0f, card.width * 0.34f, 210.0f};
+    const Rectangle note = {card.x + card.width * 0.58f, card.y + 474.0f, card.width * 0.34f, 150.0f};
     toolkit.drawPanel(note, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getGold(), 0.08f), toolkit.withAlpha(toolkit.theme().getInkMuted(), 0.10f), 0.0f);
     DrawTextEx(font, "Alur Giliran", {note.x + 18.0f, note.y + 18.0f}, 24.0f, 1.0f, toolkit.theme().getInk());
     const std::vector<std::string> flow = {
         "1. Turn pemain aktif dimulai otomatis",
-        "2. Lempar dadu dan pindahkan pion",
-        "3. Selesaikan efek petak",
-        "4. Kelola aset dan kartu bila tersedia",
-        "5. Turn berganti otomatis setelah dadu diproses",
+        "2. Profesor memakai keputusan COM backend",
+        "3. Turn berganti setelah efek petak selesai",
     };
 
     float flowY = note.y + 58.0f;
