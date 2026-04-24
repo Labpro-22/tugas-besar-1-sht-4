@@ -32,7 +32,7 @@ directories:
 
 # Link object files to create executable
 $(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) $^ -o $@
+	$(CXX) $(CXXFLAGS) $^ -o $@ -static-libgcc -static-libstdc++
 	@echo "Build successful! Executable is at $(TARGET)"
 
 # Compile source files into object files

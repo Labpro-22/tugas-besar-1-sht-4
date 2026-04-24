@@ -2,6 +2,7 @@
 
 #include "controller/CommandController.hpp"
 #include "controller/TileController.hpp"
+#include "model/ComputerDecisionMaker.hpp"
 #include "model/Game.hpp"
 #include "model/Player.hpp"
 #include "model/managers/PropertyManager.hpp"
@@ -150,6 +151,24 @@ void GameController::runTurn() {
         return;
     }
 
+    if (player.isComputerPlayer()) {
+        if (!player.hasUsedHandCardThisTurn() && player.countCards() > 0
+                && ComputerDecisionMaker::rollThreshold(50)) {
+            uiManager.printMessage("[COM " + player.getUsername() + "] Mencoba menggunakan kartu kemampuan.");
+            const bool ok = commandController->processCommand("GUNAKAN_KEMAMPUAN");
+            if (ok && isPlayerActionCommand("GUNAKAN_KEMAMPUAN")) {
+                game.getTurnManager().registerAction();
+            }
+        }
+        if (!rolledThisTurn && ComputerDecisionMaker::rollThreshold(60)) {
+            uiManager.printMessage("[COM " + player.getUsername() + "] Mencoba membangun properti.");
+            const bool ok = commandController->processCommand("BANGUN");
+            if (ok && isPlayerActionCommand("BANGUN")) {
+                game.getTurnManager().registerAction();
+            }
+        }
+    }
+
     while (game.isGameRunning() && !rolledThisTurn) {
         string input = uiManager.readCommand();
         if (input.empty()) {
@@ -205,6 +224,8 @@ void GameController::handleStartTurn(bool resumeExistingTurn) {
     }
 
     Player& player = game.getCurrentPlayer();
+    uiManager.setCurrentActor(&player);
+
     if (player.isBankrupt()) {
         return;
     }

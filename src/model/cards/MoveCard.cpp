@@ -26,7 +26,12 @@ MoveCard& MoveCard::operator=(const MoveCard& other) {
 int MoveCard::getSteps() const { return steps; }
 
 void MoveCard::apply(Game& game, Player& player) {
-    game.getMovementManager().movePlayer(player, steps);
+    const int boardSize = game.getBoard().getBoardSize();
+    int newPos = player.getPosition() + steps;
+    if (boardSize > 0) {
+        newPos = ((newPos - 1) % boardSize + boardSize) % boardSize + 1;
+    }
+    game.getMovementManager().movePlayerTo(player, newPos);
 
     game.getLogManager().addLog(
         game.getCurrentTurn(),

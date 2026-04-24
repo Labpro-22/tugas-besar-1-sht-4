@@ -56,4 +56,5 @@ public:
     void handleForceDrop(Player& player);
     bool handleJailTurn(Player& player);
     void handleBankruptcy(Player& player);
+    void triggerBankruptcy(Player& player, int amount, Player* creditor, bool debtToBank);
 };

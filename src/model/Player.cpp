@@ -12,7 +12,8 @@ Player::Player()
       usedHandCardThisTurn(false),
       shieldActive(false),
       discountPercent(0),
-      discountDuration(0)
+      discountDuration(0),
+      computerPlayer(false)
 {}
 
 Player::Player(
@@ -35,7 +36,8 @@ Player::Player(
         usedHandCardThisTurn{usedHandCardThisTurn},
         shieldActive{shieldActive},
         discountPercent{discountPercent},
-        discountDuration{discountDuration}
+        discountDuration{discountDuration},
+        computerPlayer{false}
     {}
 
 Player::Player(const Player& other) {
@@ -49,6 +51,7 @@ Player::Player(const Player& other) {
     this->shieldActive = other.shieldActive;
     this->discountPercent = other.discountPercent;
     this->discountDuration = other.discountDuration;
+    this->computerPlayer = other.computerPlayer;
 }
 
 Player::~Player() {}
@@ -65,6 +68,7 @@ Player& Player::operator=(const Player& other) {
         this->shieldActive = other.shieldActive;
         this->discountPercent = other.discountPercent;
         this->discountDuration = other.discountDuration;
+        this->computerPlayer = other.computerPlayer;
     }
     return *this;
 }
@@ -244,4 +248,12 @@ vector<shared_ptr<HandCard>> Player::getHandCards() const {
 
 bool Player::hasUsedHandCardThisTurn() const {
     return usedHandCardThisTurn;
+}
+
+bool Player::isComputerPlayer() const {
+    return computerPlayer;
+}
+
+void Player::setComputerPlayer(bool val) {
+    computerPlayer = val;
 }
