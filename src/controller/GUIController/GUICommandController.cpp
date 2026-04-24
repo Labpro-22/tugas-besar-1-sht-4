@@ -119,8 +119,8 @@ void GUICommandController::startTurn() {
 
     if (player.isJailed()) {
         controller_.openJail();
-    } else {
-        controller_.cards().maybeOpenForceDrop();
+    } else if (player.getHandCards().size() > 3U) {
+        controller_.openForceDrop();
     }
 }
 

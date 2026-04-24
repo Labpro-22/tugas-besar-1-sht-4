@@ -635,7 +635,7 @@ void GUITileController::declareBankrupt() {
         return;
     }
 
-    controller_.commands().endTurn();
+    controller_.endTurn();
 }
 
 std::vector<int> GUITileController::currentPlayerStreetOptions() const {
