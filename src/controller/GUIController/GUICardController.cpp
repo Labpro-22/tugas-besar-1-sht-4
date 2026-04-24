@@ -8,13 +8,13 @@ GUICardController::GUICardController(GUIGameController& controller)
     : controller_(controller) {}
 
 void GUICardController::openCards() {
-    controller_.state().overlay.selectedIndex = 0;
+    controller_.state().getOverlay().setSelectedIndex(0);
     controller_.openOverlay(OverlayType::Cards);
 }
 
 void GUICardController::openRandomCardDraw(int deckKey) {
-    controller_.state().overlay.deckKey = deckKey;
-    controller_.state().overlay.card = pickRandomCard(deckKey);
+    controller_.state().getOverlay().setDeckKey(deckKey);
+    controller_.state().getOverlay().setCard(pickRandomCard(deckKey));
     controller_.openOverlay(OverlayType::CardDraw);
 }
 
@@ -29,12 +29,13 @@ void GUICardController::dropSelectedHandCard() {}
 void GUICardController::useJailCard() {}
 
 bool GUICardController::currentPlayerNeedsForceDrop() const {
-    if (controller_.state().game.players.empty()) {
+    const GameState& game = controller_.state().getGame();
+    if (game.getPlayers().empty()) {
         return false;
     }
 
-    const PlayerInfo& player = controller_.state().game.players.at(controller_.state().game.currentPlayer);
-    return player.handCards.size() > 3U;
+    const PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
+    return player.getHandCards().size() > 3U;
 }
 
 void GUICardController::maybeOpenForceDrop() {
@@ -42,7 +43,7 @@ void GUICardController::maybeOpenForceDrop() {
         return;
     }
 
-    controller_.state().overlay.selectedIndex = 0;
+    controller_.state().getOverlay().setSelectedIndex(0);
     controller_.openOverlay(OverlayType::ForceDrop);
 }
 
@@ -53,7 +54,7 @@ CardInfo GUICardController::pickRandomCard(int deckKey) {
     }
 
     std::uniform_int_distribution<int> distribution(0, static_cast<int>(cards.size()) - 1);
-    return cards.at(distribution(controller_.state().rng));
+    return cards.at(distribution(controller_.state().getRng()));
 }
 
 std::vector<CardInfo> GUICardController::chanceDeck() const {
