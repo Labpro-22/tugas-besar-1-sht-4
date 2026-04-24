@@ -27,6 +27,4 @@ public:
 
 private:
     GUIGameController& controller_;
-
-    void applyCardEffect(const view::raylibgui::CardInfo& card, bool fromHand);
 };

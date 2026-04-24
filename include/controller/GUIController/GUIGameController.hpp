@@ -3,10 +3,20 @@
 #include "controller/GUIController/GUICardController.hpp"
 #include "controller/GUIController/GUICommandController.hpp"
 #include "controller/GUIController/GUITileController.hpp"
+#include "model/Game.hpp"
 #include "view/raylib/GuiTypes.hpp"
 
+#include <memory>
 #include <string>
 #include <vector>
+
+class Card;
+class ChanceCard;
+class CommunityChestCard;
+class OwnableTile;
+class Player;
+class StreetTile;
+class Tile;
 
 class GUIGameController {
 public:
@@ -35,6 +45,7 @@ public:
     int computeRent(const view::raylibgui::TileInfo& tile) const;
     int computeTileAssetValue(const view::raylibgui::TileInfo& tile) const;
     int computeNetWorth(int playerIndex) const;
+    int jailFineAmount() const;
     Rectangle boardTileRect(Rectangle square, int index) const;
 
     void setSelectedTile(int tileIndex);
@@ -100,6 +111,8 @@ public:
     void liquidateSelectedTile();
     void declareBankrupt();
 
+    void syncViewFromBackend();
+
     std::vector<int> currentPlayerStreetOptions() const;
     std::vector<int> currentPlayerBuildOptions() const;
     std::vector<int> currentPlayerMortgageOptions() const;
@@ -114,14 +127,38 @@ private:
     GUICardController cardController_;
     GUICommandController commandController_;
     GUITileController tileController_;
+    Game backendGame_;
+    bool guiTurnStarted_ = false;
+    bool diceRolledThisTurn_ = false;
+    std::shared_ptr<ChanceCard> pendingChanceCard_;
+    std::shared_ptr<CommunityChestCard> pendingCommunityChestCard_;
 
     void addToast(const std::string& text, Color accent, float duration = 3.2f);
     void updateToasts(float deltaTime);
     void addLog(const std::string& actor, const std::string& action, const std::string& detail);
     void maybeOpenLiquidation();
 
-    view::raylibgui::GameState createBaseGame() const;
-    void applyScenario(view::raylibgui::GameState& game, int scenarioIndex) const;
-    std::vector<view::raylibgui::TileInfo> createBoard() const;
+    int uiTileIndexFromBackend(int backendIndex) const;
+    int backendTileIndexFromUi(int uiIndex) const;
+    int normalizedBackendTileIndex(int backendIndex) const;
+    int backendPlayerIndex(const Player* player) const;
+    int currentBackendPlayerIndex() const;
+    Tile* tileFromUi(int uiIndex) const;
+    OwnableTile* ownableFromUi(int uiIndex) const;
+    StreetTile* streetFromUi(int uiIndex) const;
+
+    view::raylibgui::TileKind toGuiTileKind(const Tile& tile) const;
+    view::raylibgui::TileInfo makeTileInfoFromBackend(const Tile& tile) const;
+    view::raylibgui::PlayerInfo makePlayerInfoFromBackend(const Player& player, int playerIndex) const;
+    view::raylibgui::CardInfo makeCardInfoFromBackend(const Card& card) const;
+    view::raylibgui::LogItem makeLogItemFromBackend(const LogManager::LogEntry& entry) const;
+
+    int moveBackendPlayer(Player& player, int steps);
+    void resolveBackendLanding(int backendTileIndex, bool fromMovement = false);
+    void closeCardDrawOverlay(bool discardPendingCard);
+    void clearPendingDrawnCard(bool discardPendingCard);
+    void discardAllCards(Player& player);
+    void configureSelectedHandCard(Player& player, int cardIndex);
+
     std::vector<view::raylibgui::SaveSlot> createInitialSaveSlots() const;
 };

@@ -127,7 +127,13 @@ void GameplayScreenRenderer::drawBoardPanel(
         }
     }
 
-    const Rectangle center = {square.x + square.width / 7.0f, square.y + square.height / 7.0f, square.width * 5.0f / 7.0f, square.height * 5.0f / 7.0f};
+    const float cellSize = square.width / static_cast<float>(kGridCells);
+    const Rectangle center = {
+        square.x + cellSize,
+        square.y + cellSize,
+        square.width - 2.0f * cellSize,
+        square.height - 2.0f * cellSize
+    };
     toolkit.drawPanel(center, toolkit.mix(toolkit.theme().getPaperSoft(), toolkit.theme().getGold(), 0.04f), toolkit.withAlpha(toolkit.theme().getInkMuted(), 0.10f), 0.0f);
     const TileInfo& tile = state.getGame().getBoard().at(state.getGame().getSelectedTile());
 
@@ -218,12 +224,13 @@ void GameplayScreenRenderer::drawBoardPanel(
     for (int index = 0; index < static_cast<int>(state.getGame().getPlayers().size()); index++) {
         const PlayerInfo& player = state.getGame().getPlayers().at(index);  
         const Rectangle tileRect = session.boardTileRect(square, player.getPosition());
-        const float chipOffsetX = 40.0f + (index % 2) * 40.0f;
-        const float chipOffsetY = 40.0f + (index / 2) * 40.0f;
+        const float chipOffsetX = tileRect.width * (0.30f + (index % 2) * 0.34f);
+        const float chipOffsetY = tileRect.height * (0.34f + (index / 2) * 0.30f);
+        const float chipRadius = std::max(7.0f, std::min(13.0f, tileRect.width * 0.18f));
         const float pulse = 1.0f + (index == state.getGame().getCurrentPlayer() ? std::sin(state.getTime() * 4.0f) * 0.08f : 0.0f);
         const Vector2 chipCenter = {tileRect.x + chipOffsetX, tileRect.y + chipOffsetY};
-        DrawCircleV(chipCenter, 16.0f * pulse, player.getAccent());
-        DrawCircleLines(static_cast<int>(chipCenter.x), static_cast<int>(chipCenter.y), 16.0f * pulse, toolkit.withAlpha(toolkit.theme().getPaperSoft(), 0.9f));
+        DrawCircleV(chipCenter, chipRadius * pulse, player.getAccent());
+        DrawCircleLines(static_cast<int>(chipCenter.x), static_cast<int>(chipCenter.y), chipRadius * pulse, toolkit.withAlpha(toolkit.theme().getPaperSoft(), 0.9f));
     }
 }
 
@@ -398,8 +405,6 @@ void GameplayScreenRenderer::drawInteractionLab(
         } else if (buttons.at(index) == "Festival") {
             session.openFestival();
         } else if (buttons.at(index) == "Jail") {
-            state.getGame().getPlayers().at(state.getGame().getCurrentPlayer()).setJailed(true);
-            state.getGame().getPlayers().at(state.getGame().getCurrentPlayer()).setPosition(session.findJailIndex());
             session.openJail();
         } else if (buttons.at(index) == "Card Draw") {
             session.openRandomCardDraw(kChanceDeckKey);
@@ -410,7 +415,6 @@ void GameplayScreenRenderer::drawInteractionLab(
         } else if (buttons.at(index) == "Build") {
             session.openBuild();
         } else if (buttons.at(index) == "Liquidate") {
-            state.getGame().getPlayers().at(state.getGame().getCurrentPlayer()).setMoney(-120);
             session.openLiquidation();
         } else if (buttons.at(index) == "Game Over") {
             session.openGameOver();

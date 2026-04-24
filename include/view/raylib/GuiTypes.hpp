@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace view::raylibgui {
-inline constexpr int kGridCells = 7;
+inline constexpr int kGridCells = 11;
 inline constexpr int kMaxPlayers = 4;
 inline constexpr int kMinPlayers = 2;
 inline constexpr int kMaxLogEntries = 48;

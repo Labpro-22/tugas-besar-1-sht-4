@@ -61,7 +61,7 @@ void MenuScreenRenderer::drawMainMenu(GUIGameController& session, const UiToolki
         squareSize
     };
     DrawRectangleRec(square, toolkit.mix(toolkit.theme().getPaperSoft(), toolkit.theme().getTeal(), 0.06f));
-    for (int index = 0; index < 24; index++) {
+    for (int index = 0; index < 4 * (kGridCells - 1); index++) {
         const Rectangle tile = session.boardTileRect(square, index);
         const Color tint = index % 4 == 0 ? toolkit.withAlpha(toolkit.theme().getCoral(), 0.25f) : toolkit.withAlpha(toolkit.theme().getTeal(), 0.18f);
         DrawRectangleRec(toolkit.inset(tile, 3.0f), tint);

@@ -247,7 +247,7 @@ void OverlayRenderer::drawJail(GUIGameController& session, const UiToolkit& tool
     const Rectangle modal = toolkit.drawModalShell(state.getOverlay().getAnim(), 0.54f, 0.56f);
     const Font font = toolkit.font();
     const PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    const int fine = 100;
+    const int fine = session.jailFineAmount();
 
     DrawTextEx(font, "Jail", {modal.x + 28.0f, modal.y + 28.0f}, 34.0f, 1.0f, toolkit.theme().getInk());
     DrawTextEx(font, player.isJailed() ? "Pemain aktif sedang ditahan." : "Pemain hanya sedang berkunjung.", {modal.x + 28.0f, modal.y + 68.0f}, 19.0f, 1.0f, toolkit.theme().getInkMuted());

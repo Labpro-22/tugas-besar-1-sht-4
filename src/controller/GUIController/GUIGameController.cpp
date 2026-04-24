@@ -1,10 +1,41 @@
 #include "controller/GUIController/GUIGameController.hpp"
 
+#include "model/Dice.hpp"
+#include "model/NimonException.hpp"
+#include "model/cards/BirthdayCard.hpp"
+#include "model/cards/CampaignFeeCard.hpp"
+#include "model/cards/Card.hpp"
+#include "model/cards/ChanceCard.hpp"
+#include "model/cards/CommunityChestCard.hpp"
+#include "model/cards/DemolitionCard.hpp"
+#include "model/cards/DiscountCard.hpp"
+#include "model/cards/DoctorFeeCard.hpp"
+#include "model/cards/GoToJailCard.hpp"
+#include "model/cards/GoToNearestRailroadCard.hpp"
+#include "model/cards/HandCard.hpp"
+#include "model/cards/LassoCard.hpp"
+#include "model/cards/MoveBackThreeCard.hpp"
+#include "model/cards/MoveCard.hpp"
+#include "model/cards/ShieldCard.hpp"
+#include "model/cards/TeleportCard.hpp"
+#include "model/managers/LogManager.hpp"
+#include "model/tiles/FestivalTile.hpp"
+#include "model/tiles/GoTile.hpp"
+#include "model/tiles/IncomeTaxTile.hpp"
+#include "model/tiles/LuxuryTaxTile.hpp"
+#include "model/tiles/OwnableTile.hpp"
+#include "model/tiles/RailroadTile.hpp"
+#include "model/tiles/StreetTile.hpp"
+#include "model/tiles/Tile.hpp"
+#include "model/tiles/UtilityTile.hpp"
 #include "view/raylib/UiToolkit.hpp"
 
 #include <algorithm>
 #include <cctype>
 #include <ctime>
+#include <exception>
+#include <fstream>
+#include <memory>
 #include <random>
 #include <string>
 #include <vector>
@@ -23,181 +54,79 @@ Color playerAccent(int index) {
     }
 }
 
-bool isOwnable(TileKind kind) {
-    return kind == TileKind::Street || kind == TileKind::Railroad || kind == TileKind::Utility;
-}
-
-std::vector<int> findGroupTiles(const GameState& game, const TileInfo& sourceTile) {
-    std::vector<int> groupTiles;
-    for (const TileInfo& tile : game.getBoard()) {
-        if (tile.getKind() == TileKind::Street && tile.getGroup() == sourceTile.getGroup()) {
-            groupTiles.push_back(tile.getIndex());
+std::string normalizeKey(std::string value) {
+    std::string normalized;
+    for (char ch : value) {
+        if (std::isalnum(static_cast<unsigned char>(ch))) {
+            normalized += static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
         }
     }
-    return groupTiles;
+    return normalized;
 }
 
-bool playerOwnsFullStreetGroup(const GameState& game, int playerIndex, const TileInfo& tile) {
-    if (tile.getKind() != TileKind::Street || tile.getGroup().empty()) {
+Color groupAccent(const std::string& group) {
+    const std::string key = normalizeKey(group);
+    if (key == "COKLAT" || key == "BROWN") return {142, 96, 70, 255};
+    if (key == "BIRUMUDA" || key == "LIGHTBLUE") return {86, 165, 197, 255};
+    if (key == "PINK") return {205, 105, 149, 255};
+    if (key == "ORANGE" || key == "ORANYE") return {226, 127, 59, 255};
+    if (key == "MERAH" || key == "RED") return {190, 76, 71, 255};
+    if (key == "KUNING" || key == "YELLOW") return {220, 176, 78, 255};
+    if (key == "HIJAU" || key == "GREEN") return {96, 154, 101, 255};
+    if (key == "BIRUTUA" || key == "NAVY" || key == "DARKBLUE") return {58, 73, 111, 255};
+    if (key == "ABUABU" || key == "UTILITY") return toolkit.theme().getTeal();
+    return toolkit.colorForGroup(group);
+}
+
+Color kindAccent(TileKind kind, const std::string& group) {
+    if (kind == TileKind::Street) return groupAccent(group);
+    if (kind == TileKind::Railroad) return toolkit.theme().getNavy();
+    if (kind == TileKind::Utility) return toolkit.theme().getTeal();
+    if (kind == TileKind::Chance) return toolkit.theme().getCoral();
+    if (kind == TileKind::CommunityChest) return toolkit.theme().getSage();
+    if (kind == TileKind::IncomeTax || kind == TileKind::LuxuryTax) return toolkit.theme().getDanger();
+    if (kind == TileKind::Festival) return toolkit.theme().getGold();
+    if (kind == TileKind::Jail || kind == TileKind::GoToJail) return toolkit.theme().getDanger();
+    if (kind == TileKind::Go) return toolkit.theme().getGold();
+    return toolkit.theme().getPaper();
+}
+
+std::string tileFlavor(TileKind kind) {
+    switch (kind) {
+        case TileKind::Go: return "Petak mulai. Pemain mendapat bonus saat melewati GO.";
+        case TileKind::Street: return "Properti street yang dapat dibeli, dibangun, digadai, dan menarik sewa.";
+        case TileKind::Railroad: return "Properti stasiun dengan sewa berdasarkan jumlah stasiun yang dimiliki.";
+        case TileKind::Utility: return "Properti utilitas dengan sewa berdasarkan hasil dadu.";
+        case TileKind::Chance: return "Ambil kartu kesempatan dari deck backend.";
+        case TileKind::CommunityChest: return "Ambil kartu dana umum dari deck backend.";
+        case TileKind::IncomeTax: return "Bayar pajak penghasilan.";
+        case TileKind::LuxuryTax: return "Bayar pajak barang mewah.";
+        case TileKind::Festival: return "Aktifkan festival pada properti milik pemain.";
+        case TileKind::Jail: return "Petak penjara atau kunjungan.";
+        case TileKind::GoToJail: return "Pemain dikirim ke penjara.";
+        case TileKind::FreeParking: return "Petak bebas parkir.";
+    }
+    return "";
+}
+
+bool hasTxtExtension(const std::string& filename) {
+    if (filename.size() < 4) {
         return false;
     }
-
-    const std::vector<int> groupTiles = findGroupTiles(game, tile);
-    if (groupTiles.empty()) {
-        return false;
-    }
-
-    for (int tileIndex : groupTiles) {
-        const TileInfo& groupedTile = game.getBoard().at(tileIndex);
-        if (groupedTile.getOwnerIndex() != playerIndex || groupedTile.isMortgaged()) {
-            return false;
-        }
-    }
-    return true;
-}
-
-int recoveredBuildingValue(const TileInfo& tile) {
-    if (tile.getKind() != TileKind::Street || tile.getBuildings() <= 0) {
-        return 0;
-    }
-
-    const int houseCount = std::min(tile.getBuildings(), 4);
-    int recovery = houseCount * tile.getHouseCost();
-    if (tile.getBuildings() >= 5) {
-        recovery += tile.getHotelCost();
-    }
-    return recovery / 2;
-}
-
-int countOwnedByKind(const GameState& game, int ownerIndex, TileKind kind) {
-    int total = 0;
-    for (const TileInfo& tile : game.getBoard()) {
-        if (tile.getOwnerIndex() == ownerIndex && tile.getKind() == kind) {
-            total++;
-        }
-    }
-    return total;
-}
-
-int computeStreetRent(const GameState& game, const TileInfo& tile) {
-    int rent = tile.getBaseRent();
-    if (tile.getBuildings() == 0 &&
-        tile.getOwnerIndex() >= 0 &&
-        playerOwnsFullStreetGroup(game, tile.getOwnerIndex(), tile)) {
-        rent *= 2;
-    }
-    if (tile.getBuildings() == 1) rent = tile.getBaseRent() * 2;
-    if (tile.getBuildings() == 2) rent = tile.getBaseRent() * 4;
-    if (tile.getBuildings() == 3) rent = tile.getBaseRent() * 7;
-    if (tile.getBuildings() == 4) rent = tile.getBaseRent() * 10;
-    if (tile.getBuildings() >= 5) rent = tile.getBaseRent() * 14;
-    return tile.getFestivalTurns() > 0 ? rent + rent / 2 : rent;
-}
-
-void removePropertyReference(PlayerInfo& player, int tileIndex) {
-    player.getProperties().erase(
-        std::remove(player.getProperties().begin(), player.getProperties().end(), tileIndex),
-        player.getProperties().end()
-    );
-}
-
-void assignTileToPlayer(GameState& game, int tileIndex, int playerIndex) {
-    if (tileIndex < 0 || tileIndex >= static_cast<int>(game.getBoard().size()) ||
-        playerIndex < 0 || playerIndex >= static_cast<int>(game.getPlayers().size())) {
-        return;
-    }
-
-    TileInfo& tile = game.getBoard().at(tileIndex);
-    if (tile.getOwnerIndex() >= 0 && tile.getOwnerIndex() < static_cast<int>(game.getPlayers().size())) {
-        removePropertyReference(game.getPlayers().at(tile.getOwnerIndex()), tileIndex);
-    }
-
-    tile.setOwnerIndex(playerIndex);
-    tile.setMortgaged(false);
-    if (std::find(game.getPlayers().at(playerIndex).getProperties().begin(),
-                  game.getPlayers().at(playerIndex).getProperties().end(),
-                  tileIndex) == game.getPlayers().at(playerIndex).getProperties().end()) {
-        game.getPlayers().at(playerIndex).getProperties().push_back(tileIndex);
-    }
-}
-
-void releaseTile(GameState& game, int tileIndex) {
-    if (tileIndex < 0 || tileIndex >= static_cast<int>(game.getBoard().size())) {
-        return;
-    }
-
-    TileInfo& tile = game.getBoard().at(tileIndex);
-    if (tile.getOwnerIndex() >= 0 && tile.getOwnerIndex() < static_cast<int>(game.getPlayers().size())) {
-        removePropertyReference(game.getPlayers().at(tile.getOwnerIndex()), tileIndex);
-    }
-
-    tile.setOwnerIndex(-1);
-    tile.setBuildings(0);
-    tile.setFestivalTurns(0);
-    tile.setMortgaged(false);
-}
-
-int findFirstTile(const GameState& game, TileKind kind) {
-    for (const TileInfo& tile : game.getBoard()) {
-        if (tile.getKind() == kind) {
-            return tile.getIndex();
-        }
-    }
-    return -1;
-}
-
-int findJailTile(const GameState& game) {
-    for (const TileInfo& tile : game.getBoard()) {
-        if (tile.getKind() == TileKind::Jail) {
-            return tile.getIndex();
-        }
-    }
-    return 6;
-}
-
-std::vector<CardInfo> chanceDeck() {
-    return {
-        {"Teleport", "Pindah ke tile terpilih.", CardKind::Hand, CardEffect::TeleportAnywhere, 0, SKYBLUE},
-        {"Go To Jail", "Masuk jail.", CardKind::Instant, CardEffect::GoToJail, 0, RED},
-        {"Move Back 3", "Mundur tiga langkah.", CardKind::Instant, CardEffect::MoveBackThree, 3, ORANGE},
-    };
-}
-
-std::vector<CardInfo> communityDeck() {
-    return {
-        {"Birthday Card", "Tambah uang.", CardKind::Instant, CardEffect::GainMoney, 150, GREEN},
-        {"Doctor Fee", "Kurangi uang.", CardKind::Instant, CardEffect::LoseMoney, 75, MAROON},
-        {"Shield", "Lindungi dari jail.", CardKind::Hand, CardEffect::ActivateShield, 0, DARKBLUE},
-    };
-}
-
-CardInfo pickRandomCard(AppState& state, int deckKey) {
-    const std::vector<CardInfo> cards = deckKey == kCommunityDeckKey ? communityDeck() : chanceDeck();
-    if (cards.empty()) {
-        return {};
-    }
-
-    std::uniform_int_distribution<int> distribution(0, static_cast<int>(cards.size()) - 1);
-    return cards.at(distribution(state.getRng()));
-}
-
-bool currentPlayerNeedsForceDrop(const GameState& game) {
-    if (game.getPlayers().empty()) {
-        return false;
-    }
-
-    return game.getPlayers().at(game.getCurrentPlayer()).getHandCards().size() > 3U;
-}
-
-bool isJailCard(const CardInfo& card) {
-    std::string title = card.getTitle();
-    std::transform(title.begin(), title.end(), title.begin(), [](unsigned char ch) {
+    std::string suffix = filename.substr(filename.size() - 4);
+    std::transform(suffix.begin(), suffix.end(), suffix.begin(), [](unsigned char ch) {
         return static_cast<char>(std::tolower(ch));
     });
-    return card.getEffect() == CardEffect::ActivateShield ||
-           title.find("jail") != std::string::npos ||
-           title.find("bebas") != std::string::npos;
+    return suffix == ".txt";
 }
+
+std::string withTxtExtension(std::string filename) {
+    if (filename.empty()) {
+        filename = "save-1";
+    }
+    return hasTxtExtension(filename) ? filename : filename + ".txt";
+}
+
 }
 
 GUIGameController::GUIGameController()
@@ -286,6 +215,7 @@ void GUIGameController::openOverlay(OverlayType type) {
 }
 
 void GUIGameController::closeOverlay() {
+    closeCardDrawOverlay(true);
     appState_.setOverlay(OverlayState{});
     appState_.getActiveField().clear();
 }
@@ -295,86 +225,99 @@ bool GUIGameController::isOverlayOpen() const {
 }
 
 int GUIGameController::getMortgageValue(const TileInfo& tile) const {
-    return tile.getMortgageValue() > 0 ? tile.getMortgageValue() : tile.getPrice() / 2;
+    const OwnableTile* ownable = ownableFromUi(tile.getIndex());
+    return ownable != nullptr ? ownable->getMortgageValue() : tile.getMortgageValue();
 }
 
 int GUIGameController::getRedeemCost(const TileInfo& tile) const {
-    const int mortgageValue = getMortgageValue(tile);
-    return mortgageValue + mortgageValue / 10;
+    const OwnableTile* ownable = ownableFromUi(tile.getIndex());
+    return ownable != nullptr ? backendGame_.getPropertyManager().getRedeemCost(*ownable) : getMortgageValue(tile);
 }
 
 int GUIGameController::findJailIndex() const {
-    return findJailTile(appState_.getGame());
-}
-
-int GUIGameController::computeRent(const TileInfo& tile) const {
-    if (tile.isMortgaged() || tile.getOwnerIndex() < 0) {
-        return 0;
+    for (const std::shared_ptr<Tile>& tile : backendGame_.getBoard().getTiles()) {
+        if (tile != nullptr && tile->onLand() == Tile::TileType::Jail) {
+            return uiTileIndexFromBackend(tile->getIndex());
+        }
     }
-
-    if (tile.getKind() == TileKind::Street) {
-        return computeStreetRent(appState_.getGame(), tile);
-    }
-    if (tile.getKind() == TileKind::Railroad) {
-        return 25 * std::max(1, countOwnedByKind(appState_.getGame(), tile.getOwnerIndex(), TileKind::Railroad));
-    }
-    if (tile.getKind() == TileKind::Utility) {
-        return countOwnedByKind(appState_.getGame(), tile.getOwnerIndex(), TileKind::Utility) >= 2 ? 90 : 40;
-    }
-
     return 0;
 }
 
-int GUIGameController::computeTileAssetValue(const TileInfo& tile) const {
-    int total = tile.getPrice();
-    if (tile.getKind() == TileKind::Street) {
-        total += std::min(tile.getBuildings(), 4) * tile.getHouseCost();
-        if (tile.getBuildings() >= 5) {
-            total += tile.getHotelCost();
-        }
-    }
-    return total;
-}
-
-int GUIGameController::computeNetWorth(int playerIndex) const {
-    const GameState& game = appState_.getGame();
-    if (playerIndex < 0 || playerIndex >= static_cast<int>(game.getPlayers().size())) {
+int GUIGameController::computeRent(const TileInfo& tile) const {
+    const OwnableTile* ownable = ownableFromUi(tile.getIndex());
+    if (ownable == nullptr || ownable->getOwner() == nullptr || ownable->isMortgaged()) {
         return 0;
     }
 
-    const PlayerInfo& player = game.getPlayers().at(playerIndex);
-    int wealth = player.getMoney();
-    for (int tileIndex : player.getProperties()) {
-        wealth += computeTileAssetValue(game.getBoard().at(tileIndex));
+    RentContext rentContext = backendGame_.getPropertyManager().createRentContext(
+        backendGame_.getBoard(),
+        backendGame_.getConfigManager(),
+        backendGame_.getDice(),
+        *ownable
+    );
+    return ownable->calculateRent(rentContext);
+}
+
+int GUIGameController::computeTileAssetValue(const TileInfo& tile) const {
+    const OwnableTile* ownable = ownableFromUi(tile.getIndex());
+    if (ownable == nullptr) {
+        return 0;
     }
-    wealth += static_cast<int>(player.getHandCards().size()) * 75;
-    return wealth;
+    return ownable->getPurchasePrice() + ownable->getBuildingValue();
+}
+
+int GUIGameController::computeNetWorth(int playerIndex) const {
+    const std::vector<Player>& players = backendGame_.getPlayers();
+    if (playerIndex < 0 || playerIndex >= static_cast<int>(players.size())) {
+        return 0;
+    }
+
+    int total = players.at(playerIndex).getMoney();
+    for (OwnableTile* property : backendGame_.getPropertyManager().getOwnedProperties(backendGame_.getBoard(), players.at(playerIndex))) {
+        if (property != nullptr) {
+            total += property->getPurchasePrice() + property->getBuildingValue();
+        }
+    }
+    total += players.at(playerIndex).countCards() * 75;
+    return total;
+}
+
+int GUIGameController::jailFineAmount() const {
+    return backendGame_.getConfigManager().getJailFine();
 }
 
 Rectangle GUIGameController::boardTileRect(Rectangle square, int index) const {
+    const int edge = kGridCells - 1;
+    const int perimeter = edge * 4;
+    const int normalized = perimeter > 0 ? ((index % perimeter) + perimeter) % perimeter : index;
     const float cell = square.width / static_cast<float>(kGridCells);
+
     int row = 0;
     int column = 0;
-
-    if (index <= 6) {
-        row = 6;
-        column = 6 - index;
-    } else if (index <= 12) {
-        row = 12 - index;
+    if (normalized <= edge) {
+        row = edge;
+        column = edge - normalized;
+    } else if (normalized <= edge * 2) {
+        row = edge * 2 - normalized;
         column = 0;
-    } else if (index <= 18) {
+    } else if (normalized <= edge * 3) {
         row = 0;
-        column = index - 12;
+        column = normalized - edge * 2;
     } else {
-        row = index - 18;
-        column = 6;
+        row = normalized - edge * 3;
+        column = edge;
     }
 
     return {square.x + column * cell, square.y + row * cell, cell, cell};
 }
 
 void GUIGameController::setSelectedTile(int tileIndex) {
-    appState_.getGame().setSelectedTile(tileIndex);
+    const int boardSize = static_cast<int>(appState_.getGame().getBoard().size());
+    if (boardSize <= 0) {
+        appState_.getGame().setSelectedTile(0);
+        return;
+    }
+    appState_.getGame().setSelectedTile(std::max(0, std::min(tileIndex, boardSize - 1)));
 }
 
 void GUIGameController::openTileDetail(int tileIndex) {
@@ -389,6 +332,19 @@ void GUIGameController::openPurchase(int tileIndex) {
 
 void GUIGameController::openAuctionForTile(int tileIndex) {
     appState_.getOverlay().setTileIndex(tileIndex);
+
+    if (StreetTile* street = streetFromUi(tileIndex)) {
+        try {
+            backendGame_.getAuctionManager().initializeAuction(
+                backendGame_.getGameContext(),
+                *street,
+                backendGame_.getPlayers().empty() ? nullptr : &backendGame_.getCurrentPlayer()
+            );
+        } catch (const std::exception& exception) {
+            addToast(exception.what(), RED);
+        }
+    }
+
     appState_.getOverlay().setAuction({
         tileIndex,
         appState_.getGame().getCurrentPlayer(),
@@ -400,17 +356,32 @@ void GUIGameController::openAuctionForTile(int tileIndex) {
 }
 
 void GUIGameController::openIncomeTax() {
-    appState_.getOverlay().setTileIndex(findFirstTile(appState_.getGame(), TileKind::IncomeTax));
+    for (const TileInfo& tile : appState_.getGame().getBoard()) {
+        if (tile.getKind() == TileKind::IncomeTax) {
+            appState_.getOverlay().setTileIndex(tile.getIndex());
+            break;
+        }
+    }
     openOverlay(OverlayType::IncomeTax);
 }
 
 void GUIGameController::openLuxuryTax() {
-    appState_.getOverlay().setTileIndex(findFirstTile(appState_.getGame(), TileKind::LuxuryTax));
+    for (const TileInfo& tile : appState_.getGame().getBoard()) {
+        if (tile.getKind() == TileKind::LuxuryTax) {
+            appState_.getOverlay().setTileIndex(tile.getIndex());
+            break;
+        }
+    }
     openOverlay(OverlayType::LuxuryTax);
 }
 
 void GUIGameController::openFestival() {
-    appState_.getOverlay().setTileIndex(findFirstTile(appState_.getGame(), TileKind::Festival));
+    for (const TileInfo& tile : appState_.getGame().getBoard()) {
+        if (tile.getKind() == TileKind::Festival) {
+            appState_.getOverlay().setTileIndex(tile.getIndex());
+            break;
+        }
+    }
     appState_.getOverlay().setSelectedIndex(0);
     openOverlay(OverlayType::Festival);
 }
@@ -474,9 +445,29 @@ void GUIGameController::openLiquidation() {
 }
 
 void GUIGameController::openRandomCardDraw(int deckKey) {
-    appState_.getOverlay().setDeckKey(deckKey);
-    appState_.getOverlay().setCard(pickRandomCard(appState_, deckKey));
-    openOverlay(OverlayType::CardDraw);
+    clearPendingDrawnCard(true);
+    try {
+        if (deckKey == kCommunityDeckKey) {
+            pendingCommunityChestCard_ = backendGame_.getCardManager().drawCommunityChestCard();
+            if (pendingCommunityChestCard_ == nullptr) {
+                addToast("Deck Dana Umum kosong.", RED);
+                return;
+            }
+            appState_.getOverlay().setCard(makeCardInfoFromBackend(*pendingCommunityChestCard_));
+        } else {
+            pendingChanceCard_ = backendGame_.getCardManager().drawChanceCard();
+            if (pendingChanceCard_ == nullptr) {
+                addToast("Deck Chance kosong.", RED);
+                return;
+            }
+            appState_.getOverlay().setCard(makeCardInfoFromBackend(*pendingChanceCard_));
+        }
+        appState_.getOverlay().setDeckKey(deckKey);
+        openOverlay(OverlayType::CardDraw);
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        clearPendingDrawnCard(true);
+    }
 }
 
 void GUIGameController::openGameOver() {
@@ -484,267 +475,260 @@ void GUIGameController::openGameOver() {
 }
 
 void GUIGameController::startFreshSession() {
-    closeOverlay();
-    appState_.setGame(createBaseGame());
-    appState_.setScreen(Screen::Gameplay);
+    try {
+        closeOverlay();
+        backendGame_ = Game();
+        backendGame_.getConfigManager().loadAllConfigs();
+
+        std::vector<Player>& players = backendGame_.getPlayers();
+        players.clear();
+        const int playerCount = std::max(kMinPlayers, std::min(kMaxPlayers, appState_.getPlayerCount()));
+        const int startingCash = appState_.getStartingCash() > 0
+            ? appState_.getStartingCash()
+            : backendGame_.getConfigManager().getInitialBalance();
+
+        for (int index = 0; index < playerCount; index++) {
+            players.push_back(Player(
+                appState_.getPlayerNames().at(index),
+                startingCash,
+                1,
+                PlayerStatus::ACTIVE,
+                0,
+                false,
+                false,
+                0,
+                0
+            ));
+        }
+
+        backendGame_.startNewGame();
+        if (appState_.getTurnLimit() > 0) {
+            backendGame_.getGameContext().setMaxTurn(appState_.getTurnLimit());
+        }
+
+        guiTurnStarted_ = false;
+        diceRolledThisTurn_ = false;
+        appState_.setScreen(Screen::Gameplay);
+        syncViewFromBackend();
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+    }
 }
 
 void GUIGameController::loadSessionFromSlot(int slotIndex) {
     appState_.setSelectedSave(slotIndex);
-    appState_.setGame(createBaseGame());
-    applyScenario(appState_.getGame(), slotIndex);
-    appState_.setScreen(Screen::Gameplay);
-    closeOverlay();
+    std::string filename = appState_.getLoadInput();
+    if (filename.empty() && slotIndex >= 0 && slotIndex < static_cast<int>(appState_.getSaveSlots().size())) {
+        filename = appState_.getSaveSlots().at(slotIndex).getName();
+    }
+    filename = withTxtExtension(filename);
+
+    try {
+        closeOverlay();
+        backendGame_ = Game();
+        backendGame_.loadGame(filename);
+        guiTurnStarted_ = true;
+        diceRolledThisTurn_ = false;
+        appState_.setScreen(Screen::Gameplay);
+        syncViewFromBackend();
+        addToast("Permainan dimuat dari " + filename + ".", SKYBLUE);
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+    }
 }
 
 void GUIGameController::startTurn() {
-    GameState& game = appState_.getGame();
-    if (appState_.getScreen() != Screen::Gameplay || game.getPlayers().empty()) {
+    if (appState_.getScreen() != Screen::Gameplay || !backendGame_.isGameRunning() || backendGame_.getPlayers().empty()) {
+        return;
+    }
+    if (guiTurnStarted_) {
+        addToast("Turn sudah berjalan.", RED);
         return;
     }
 
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    if (player.isBankrupt()) {
-        addToast("Pemain ini sudah bangkrut.", RED);
-        return;
-    }
+    try {
+        backendGame_.getTurnManager().startTurn(backendGame_.getGameContext());
+        Player& player = backendGame_.getCurrentPlayer();
+        if (player.isBankrupt()) {
+            addToast("Pemain ini sudah bangkrut.", RED);
+            syncViewFromBackend();
+            return;
+        }
 
-    game.setTurnStarted(true);
-    game.setRolledThisTurn(false);
-    addLog(player.getName(), "Start Turn", "Memulai giliran.");
+        player.setUsedHandCardThisTurn(false);
+        guiTurnStarted_ = true;
+        diceRolledThisTurn_ = false;
+        addLog(player.getUsername(), "START_TURN", "Memulai giliran.");
 
-    if (player.isJailed()) {
-        openJail();
-    } else if (currentPlayerNeedsForceDrop(game)) {
-        openForceDrop();
+        std::shared_ptr<HandCard> drawnCard = backendGame_.getCardManager().giveStartTurnCard(player);
+        syncViewFromBackend();
+        addToast("Giliran " + player.getUsername() + " dimulai.", playerAccent(currentBackendPlayerIndex()));
+        if (drawnCard != nullptr) {
+            addToast("Kartu baru: " + drawnCard->getName() + ".", SKYBLUE);
+        }
+
+        if (backendGame_.getCardManager().needsForceDrop(player)) {
+            openForceDrop();
+        } else if (player.isJailed()) {
+            openJail();
+        }
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
     }
 }
 
 void GUIGameController::rollDice() {
-    GameState& game = appState_.getGame();
-    if (appState_.getScreen() != Screen::Gameplay || game.getPlayers().empty()) {
+    if (appState_.getScreen() != Screen::Gameplay || !backendGame_.isGameRunning() || backendGame_.getPlayers().empty()) {
         return;
     }
-
-    if (!game.isTurnStarted()) {
+    if (!guiTurnStarted_) {
         addToast("Mulai turn dulu sebelum melempar dadu.", RED);
         return;
     }
-    if (game.isRolledThisTurn()) {
+    if (backendGame_.getTurnManager().isRolledThisTurn()) {
         addToast("Dadu sudah dilempar pada turn ini.", RED);
         return;
     }
 
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    if (player.isJailed()) {
-        openJail();
-        addToast("Pemain masih di jail.", RED);
-        return;
+    try {
+        Player& player = backendGame_.getCurrentPlayer();
+        if (player.isJailed()) {
+            openJail();
+            addToast("Pemain masih di jail.", RED);
+            return;
+        }
+
+        backendGame_.getDice().roll();
+        backendGame_.getTurnManager().registerDiceResult(backendGame_.getDice().isDouble());
+        diceRolledThisTurn_ = true;
+
+        if (backendGame_.getTurnManager().getConsecutiveDoubles() >= 3) {
+            backendGame_.getJailManager().sendToJail(player);
+            player.moveTo(backendTileIndexFromUi(findJailIndex()));
+            addLog(player.getUsername(), "JAIL", "Masuk penjara karena double tiga kali berturut-turut.");
+            syncViewFromBackend();
+            openJail();
+            return;
+        }
+
+        const int total = backendGame_.getDice().getTotal();
+        const int destination = moveBackendPlayer(player, total);
+        addLog(
+            player.getUsername(),
+            "DADU",
+            "Lempar " + std::to_string(backendGame_.getDice().getDie1()) + "+" +
+                std::to_string(backendGame_.getDice().getDie2()) + "=" + std::to_string(total)
+        );
+        addToast(
+            "Dadu " + std::to_string(backendGame_.getDice().getDie1()) + " + " +
+                std::to_string(backendGame_.getDice().getDie2()),
+            playerAccent(currentBackendPlayerIndex())
+        );
+        resolveBackendLanding(destination, false);
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
     }
-
-    std::uniform_int_distribution<int> distribution(1, 6);
-    game.setLastDieOne(distribution(appState_.getRng()));
-    game.setLastDieTwo(distribution(appState_.getRng()));
-    game.setRolledThisTurn(true);
-
-    const int steps = game.getLastDieOne() + game.getLastDieTwo();
-    const int previousPosition = player.getPosition();
-    const int boardSize = static_cast<int>(game.getBoard().size());
-    const int nextPosition = boardSize > 0 ? (previousPosition + steps) % boardSize : previousPosition;
-    if (boardSize > 0 && previousPosition + steps >= boardSize) {
-        player.setMoney(player.getMoney() + 200);
-        addToast("Melewati GO: +200.", GOLD);
-    }
-
-    player.setPosition(nextPosition);
-    addLog(
-        player.getName(),
-        "Roll Dice",
-        "Melempar " + std::to_string(game.getLastDieOne()) + " dan " +
-            std::to_string(game.getLastDieTwo()) + ", mendarat di " +
-            game.getBoard().at(nextPosition).getName() + "."
-    );
-    addToast(
-        "Dadu " + std::to_string(game.getLastDieOne()) + " + " + std::to_string(game.getLastDieTwo()),
-        player.getAccent()
-    );
-    triggerTileEvent(nextPosition, false);
 }
 
 void GUIGameController::applyManualDice() {
-    GameState& game = appState_.getGame();
-    if (appState_.getScreen() != Screen::Gameplay || game.getPlayers().empty()) {
+    if (appState_.getScreen() != Screen::Gameplay || !backendGame_.isGameRunning() || backendGame_.getPlayers().empty()) {
         return;
     }
-
-    if (!game.isTurnStarted()) {
+    if (!guiTurnStarted_) {
         addToast("Mulai turn dulu sebelum mengatur dadu.", RED);
         return;
     }
-    if (game.isRolledThisTurn()) {
+    if (backendGame_.getTurnManager().isRolledThisTurn()) {
         addToast("Dadu sudah dilempar pada turn ini.", RED);
         return;
     }
 
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    if (player.isJailed()) {
-        openJail();
-        addToast("Pemain masih di jail.", RED);
-        return;
+    try {
+        Player& player = backendGame_.getCurrentPlayer();
+        if (player.isJailed()) {
+            openJail();
+            addToast("Pemain masih di jail.", RED);
+            return;
+        }
+
+        const int dieOne = appState_.getOverlay().getManualDieOne();
+        const int dieTwo = appState_.getOverlay().getManualDieTwo();
+        backendGame_.getDice() = Dice(dieOne, dieTwo, true);
+        backendGame_.getTurnManager().registerDiceResult(backendGame_.getDice().isDouble());
+        diceRolledThisTurn_ = true;
+        closeOverlay();
+
+        if (backendGame_.getTurnManager().getConsecutiveDoubles() >= 3) {
+            backendGame_.getJailManager().sendToJail(player);
+            player.moveTo(backendTileIndexFromUi(findJailIndex()));
+            addLog(player.getUsername(), "JAIL", "Masuk penjara karena double tiga kali berturut-turut.");
+            syncViewFromBackend();
+            openJail();
+            return;
+        }
+
+        const int destination = moveBackendPlayer(player, dieOne + dieTwo);
+        addLog(
+            player.getUsername(),
+            "ATUR_DADU",
+            "Dadu manual " + std::to_string(dieOne) + "+" + std::to_string(dieTwo)
+        );
+        addToast("Dadu manual diterapkan.", playerAccent(currentBackendPlayerIndex()));
+        resolveBackendLanding(destination, false);
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
     }
-
-    const OverlayState& overlay = appState_.getOverlay();
-    game.setLastDieOne(overlay.getManualDieOne());
-    game.setLastDieTwo(overlay.getManualDieTwo());
-    game.setRolledThisTurn(true);
-    closeOverlay();
-
-    const int steps = game.getLastDieOne() + game.getLastDieTwo();
-    const int previousPosition = player.getPosition();
-    const int boardSize = static_cast<int>(game.getBoard().size());
-    const int nextPosition = boardSize > 0 ? (previousPosition + steps) % boardSize : previousPosition;
-    if (boardSize > 0 && previousPosition + steps >= boardSize) {
-        player.setMoney(player.getMoney() + 200);
-        addToast("Melewati GO: +200.", GOLD);
-    }
-
-    player.setPosition(nextPosition);
-    addLog(
-        player.getName(),
-        "Set Dice",
-        "Menggunakan dadu manual " + std::to_string(game.getLastDieOne()) + " dan " +
-            std::to_string(game.getLastDieTwo()) + ", mendarat di " +
-            game.getBoard().at(nextPosition).getName() + "."
-    );
-    addToast("Dadu manual diterapkan.", player.getAccent());
-    triggerTileEvent(nextPosition, false);
 }
 
 void GUIGameController::endTurn() {
-    GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
+    if (!backendGame_.isGameRunning() || backendGame_.getPlayers().empty()) {
         return;
     }
 
-    if (game.getPlayers().at(game.getCurrentPlayer()).getMoney() < 0) {
-        maybeOpenLiquidation();
-        return;
-    }
-
-    int activePlayers = 0;
-    for (TileInfo& tile : game.getBoard()) {
-        if (tile.getFestivalTurns() > 0) {
-            tile.setFestivalTurns(tile.getFestivalTurns() - 1);
+    try {
+        Player& player = backendGame_.getCurrentPlayer();
+        if (player.getMoney() < 0 || backendGame_.getBankruptcyManager().isBankruptcyActive()) {
+            syncViewFromBackend();
+            maybeOpenLiquidation();
+            return;
         }
-    }
-    for (const PlayerInfo& player : game.getPlayers()) {
-        if (!player.isBankrupt()) {
-            activePlayers++;
-        }
-    }
-    if (activePlayers <= 1) {
-        openGameOver();
-        return;
-    }
 
-    int nextPlayer = game.getCurrentPlayer();
-    for (int checked = 0; checked < static_cast<int>(game.getPlayers().size()); checked++) {
-        nextPlayer = (nextPlayer + 1) % static_cast<int>(game.getPlayers().size());
-        if (!game.getPlayers().at(nextPlayer).isBankrupt()) {
-            break;
+        player.setShieldActive(false);
+        player.decrementDiscountDuration();
+        const int previousTurn = backendGame_.getCurrentTurn();
+        backendGame_.getTurnManager().endTurn(backendGame_.getGameContext());
+        if (backendGame_.getCurrentTurn() > previousTurn) {
+            std::vector<OwnableTile*> properties;
+            for (const std::shared_ptr<Tile>& tile : backendGame_.getBoard().getTiles()) {
+                std::shared_ptr<OwnableTile> ownable = std::dynamic_pointer_cast<OwnableTile>(tile);
+                if (ownable != nullptr) {
+                    properties.push_back(ownable.get());
+                }
+            }
+            backendGame_.getFestivalManager().decrementFestivalDurations(properties);
         }
-    }
 
-    game.getPlayers().at(game.getCurrentPlayer()).setDiscountPercent(0);
-    game.setCurrentPlayer(nextPlayer);
-    game.setTurn(game.getTurn() + 1);
-    game.setTurnStarted(false);
-    game.setRolledThisTurn(false);
-    if (game.getTurnLimit() > 0 && game.getTurn() > game.getTurnLimit()) {
-        openGameOver();
+        guiTurnStarted_ = false;
+        diceRolledThisTurn_ = false;
+        syncViewFromBackend();
+        if (backendGame_.isGameOver()) {
+            openGameOver();
+        }
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
     }
 }
 
 void GUIGameController::triggerTileEvent(int tileIndex, bool fromMovement) {
-    GameState& game = appState_.getGame();
-    if (game.getPlayers().empty() || tileIndex < 0 || tileIndex >= static_cast<int>(game.getBoard().size())) {
-        return;
-    }
-
-    game.setSelectedTile(tileIndex);
-    TileInfo& tile = game.getBoard().at(tileIndex);
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-
-    switch (tile.getKind()) {
-        case TileKind::Street:
-        case TileKind::Railroad:
-        case TileKind::Utility: {
-            if (tile.getOwnerIndex() < 0) {
-                openPurchase(tileIndex);
-                return;
-            }
-            if (tile.getOwnerIndex() == game.getCurrentPlayer()) {
-                addToast("Mendarat di properti sendiri.", tile.getAccent());
-                return;
-            }
-
-            const int rent = computeRent(tile);
-            if (rent <= 0) {
-                addToast("Properti ini tidak menarik sewa.", tile.getAccent());
-                return;
-            }
-
-            PlayerInfo& owner = game.getPlayers().at(tile.getOwnerIndex());
-            owner.setMoney(owner.getMoney() + rent);
-            player.setMoney(player.getMoney() - rent);
-            addLog(player.getName(), "Bayar Rent", "Membayar " + std::to_string(rent) + " ke " + owner.getName() + ".");
-            addToast("Bayar rent " + std::to_string(rent) + ".", tile.getAccent());
-            maybeOpenLiquidation();
-            return;
-        }
-        case TileKind::Chance:
-            openRandomCardDraw(kChanceDeckKey);
-            return;
-        case TileKind::CommunityChest:
-            openRandomCardDraw(kCommunityDeckKey);
-            return;
-        case TileKind::IncomeTax:
-            openIncomeTax();
-            return;
-        case TileKind::LuxuryTax:
-            openLuxuryTax();
-            return;
-        case TileKind::Festival:
-            openFestival();
-            return;
-        case TileKind::GoToJail:
-            if (player.isShieldActive()) {
-                player.setShieldActive(false);
-                addLog(player.getName(), "Shield", "Shield aktif menahan efek jail.");
-                addToast("Shield menahan efek jail.", player.getAccent());
-                return;
-            }
-            player.setJailed(true);
-            player.setPosition(findJailIndex());
-            player.setFailedJailRolls(0);
-            addLog(player.getName(), "Go To Jail", fromMovement ? "Kartu atau perpindahan" : "Petak Go To Jail");
-            addToast(player.getName() + " masuk jail.", RED);
-            openJail();
-            return;
-        case TileKind::Go:
-            addToast("Mendarat di GO.", tile.getAccent());
-            return;
-        case TileKind::Jail:
-            addToast(player.isJailed() ? "Masih berada di jail." : "Hanya berkunjung ke jail.", tile.getAccent());
-            return;
-        case TileKind::FreeParking:
-            addToast("Istirahat sejenak di Free Parking.", tile.getAccent());
-            return;
-    }
+    resolveBackendLanding(backendTileIndexFromUi(tileIndex), fromMovement);
 }
 
 bool GUIGameController::canSaveNow() const {
-    return appState_.getGame().isTurnStarted() && !appState_.getGame().isRolledThisTurn();
+    return backendGame_.isGameRunning() && guiTurnStarted_ && !backendGame_.getTurnManager().isRolledThisTurn();
 }
 
 void GUIGameController::adjustManualDie(int dieIndex, int delta) {
@@ -759,61 +743,48 @@ void GUIGameController::adjustManualDie(int dieIndex, int delta) {
 }
 
 bool GUIGameController::canCurrentPlayerAffordSelectedPurchase() const {
-    const GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
+    const int playerIndex = currentBackendPlayerIndex();
+    if (playerIndex < 0 || playerIndex >= static_cast<int>(backendGame_.getPlayers().size())) {
         return false;
     }
-
-    return game.getPlayers().at(game.getCurrentPlayer()).getMoney() >= currentPurchasePrice();
+    return backendGame_.getPlayers().at(playerIndex).getMoney() >= currentPurchasePrice();
 }
 
 int GUIGameController::currentPurchasePrice() const {
-    const GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
+    const OwnableTile* ownable = ownableFromUi(appState_.getOverlay().getTileIndex());
+    const int playerIndex = currentBackendPlayerIndex();
+    if (ownable == nullptr || playerIndex < 0 || playerIndex >= static_cast<int>(backendGame_.getPlayers().size())) {
         return 0;
     }
-
-    const int tileIndex = appState_.getOverlay().getTileIndex();
-    if (tileIndex < 0 || tileIndex >= static_cast<int>(game.getBoard().size())) {
-        return 0;
-    }
-
-    const TileInfo& tile = game.getBoard().at(tileIndex);
-    const PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    const int discount = player.getDiscountPercent();
-    return discount > 0 ? tile.getPrice() * (100 - discount) / 100 : tile.getPrice();
+    return backendGame_.getPlayers().at(playerIndex).effectiveCost(ownable->getPurchasePrice());
 }
 
 void GUIGameController::buySelectedProperty() {
-    GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
-        return;
-    }
+    try {
+        OwnableTile* property = ownableFromUi(appState_.getOverlay().getTileIndex());
+        if (property == nullptr || property->getOwner() != nullptr || property->getOwnershipStatus() != OwnershipStatus::BANK) {
+            addToast("Properti ini tidak bisa dibeli.", RED);
+            return;
+        }
 
-    const int tileIndex = appState_.getOverlay().getTileIndex();
-    if (tileIndex < 0 || tileIndex >= static_cast<int>(game.getBoard().size())) {
-        return;
-    }
+        Player& player = backendGame_.getCurrentPlayer();
+        const int price = player.effectiveCost(property->getPurchasePrice());
+        if (player.getMoney() < price) {
+            addToast("Saldo tidak cukup untuk membeli properti.", RED);
+            return;
+        }
 
-    TileInfo& tile = game.getBoard().at(tileIndex);
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    if (!isOwnable(tile.getKind()) || tile.getOwnerIndex() >= 0) {
-        addToast("Properti ini tidak bisa dibeli.", RED);
-        return;
+        player -= property->getPurchasePrice();
+        property->setOwner(&player);
+        property->setOwnershipStatus(OwnershipStatus::OWNED);
+        addLog(player.getUsername(), "BELI", "Membeli " + property->getName() + " seharga M" + std::to_string(price) + ".");
+        addToast("Berhasil membeli " + property->getName() + ".", groupAccent(""));
+        closeOverlay();
+        syncViewFromBackend();
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
     }
-
-    const int price = currentPurchasePrice();
-    if (player.getMoney() < price) {
-        addToast("Saldo tidak cukup untuk membeli properti.", RED);
-        return;
-    }
-
-    player.setMoney(player.getMoney() - price);
-    assignTileToPlayer(game, tileIndex, game.getCurrentPlayer());
-    player.setDiscountPercent(0);
-    addLog(player.getName(), "Beli Properti", "Membeli " + tile.getName() + " seharga " + std::to_string(price) + ".");
-    addToast("Berhasil membeli " + tile.getName() + ".", tile.getAccent());
-    closeOverlay();
 }
 
 void GUIGameController::skipSelectedPurchase() {
@@ -821,10 +792,9 @@ void GUIGameController::skipSelectedPurchase() {
 }
 
 void GUIGameController::auctionRaiseBid(int amount) {
-    GameState& game = appState_.getGame();
     AuctionState& auction = appState_.getOverlay().getAuction();
     const int bidderIndex = auction.getSelectedBidder();
-    if (bidderIndex < 0 || bidderIndex >= static_cast<int>(game.getPlayers().size())) {
+    if (bidderIndex < 0 || bidderIndex >= static_cast<int>(backendGame_.getPlayers().size())) {
         return;
     }
     if (bidderIndex < static_cast<int>(auction.getPassed().size()) && auction.getPassed().at(bidderIndex)) {
@@ -832,53 +802,48 @@ void GUIGameController::auctionRaiseBid(int amount) {
         return;
     }
 
-    PlayerInfo& bidder = game.getPlayers().at(bidderIndex);
-    if (bidder.isBankrupt()) {
-        addToast("Pemain bangkrut tidak bisa ikut bid.", RED);
-        return;
-    }
-
+    Player& bidder = backendGame_.getPlayers().at(bidderIndex);
     const int nextBid = auction.getHighestBid() + amount;
-    if (bidder.getMoney() < nextBid) {
-        addToast("Saldo bidder tidak cukup.", RED);
+    if (bidder.isBankrupt() || bidder.getMoney() < nextBid) {
+        addToast("Bidder tidak bisa menaikkan bid.", RED);
         return;
     }
 
+    backendGame_.getAuctionManager().placeBid(bidder, nextBid);
     auction.setHighestBid(nextBid);
     auction.setHighestBidder(bidderIndex);
-    addLog(bidder.getName(), "Auction Bid", "Menaikkan bid menjadi " + std::to_string(nextBid) + ".");
-    addToast("Bid " + std::to_string(nextBid) + " oleh " + bidder.getName() + ".", bidder.getAccent());
+    addLog(bidder.getUsername(), "BID", "Menawar M" + std::to_string(nextBid) + ".");
 
-    for (int checked = 0; checked < static_cast<int>(game.getPlayers().size()); checked++) {
-        const int nextIndex = (bidderIndex + checked + 1) % static_cast<int>(game.getPlayers().size());
-        if (nextIndex >= static_cast<int>(auction.getPassed().size())) {
-            continue;
-        }
-        if (!auction.getPassed().at(nextIndex) && !game.getPlayers().at(nextIndex).isBankrupt()) {
+    for (int checked = 0; checked < static_cast<int>(backendGame_.getPlayers().size()); checked++) {
+        const int nextIndex = (bidderIndex + checked + 1) % static_cast<int>(backendGame_.getPlayers().size());
+        if (nextIndex < static_cast<int>(auction.getPassed().size()) &&
+            !auction.getPassed().at(nextIndex) &&
+            !backendGame_.getPlayers().at(nextIndex).isBankrupt()) {
             auction.setSelectedBidder(nextIndex);
             break;
         }
     }
+    syncViewFromBackend();
 }
 
 void GUIGameController::auctionPass() {
-    GameState& game = appState_.getGame();
     AuctionState& auction = appState_.getOverlay().getAuction();
-    if (auction.getSelectedBidder() < static_cast<int>(auction.getPassed().size())) {
-        auction.getPassed().at(auction.getSelectedBidder()) = true;
-        addLog(
-            game.getPlayers().at(auction.getSelectedBidder()).getName(),
-            "Auction Pass",
-            "Memilih pass pada lelang."
-        );
+    const int bidderIndex = auction.getSelectedBidder();
+    if (bidderIndex < 0 || bidderIndex >= static_cast<int>(backendGame_.getPlayers().size())) {
+        return;
     }
 
-    for (int checked = 0; checked < static_cast<int>(game.getPlayers().size()); checked++) {
-        const int nextIndex = (auction.getSelectedBidder() + checked + 1) % static_cast<int>(game.getPlayers().size());
-        if (nextIndex >= static_cast<int>(auction.getPassed().size())) {
-            continue;
-        }
-        if (!auction.getPassed().at(nextIndex) && !game.getPlayers().at(nextIndex).isBankrupt()) {
+    if (bidderIndex < static_cast<int>(auction.getPassed().size())) {
+        auction.getPassed().at(bidderIndex) = true;
+        backendGame_.getAuctionManager().pass(backendGame_.getPlayers().at(bidderIndex));
+        addLog(backendGame_.getPlayers().at(bidderIndex).getUsername(), "PASS", "Pass pada lelang.");
+    }
+
+    for (int checked = 0; checked < static_cast<int>(backendGame_.getPlayers().size()); checked++) {
+        const int nextIndex = (bidderIndex + checked + 1) % static_cast<int>(backendGame_.getPlayers().size());
+        if (nextIndex < static_cast<int>(auction.getPassed().size()) &&
+            !auction.getPassed().at(nextIndex) &&
+            !backendGame_.getPlayers().at(nextIndex).isBankrupt()) {
             auction.setSelectedBidder(nextIndex);
             return;
         }
@@ -886,528 +851,532 @@ void GUIGameController::auctionPass() {
 }
 
 void GUIGameController::finalizeAuction() {
-    GameState& game = appState_.getGame();
-    AuctionState& auction = appState_.getOverlay().getAuction();
-    const int tileIndex = auction.getTileIndex();
-    if (tileIndex >= 0 && tileIndex < static_cast<int>(game.getBoard().size()) &&
-        auction.getHighestBidder() >= 0 &&
-        auction.getHighestBidder() < static_cast<int>(game.getPlayers().size())) {
-        TileInfo& tile = game.getBoard().at(tileIndex);
-        PlayerInfo& winner = game.getPlayers().at(auction.getHighestBidder());
-        if (!winner.isBankrupt() && winner.getMoney() >= auction.getHighestBid()) {
-            winner.setMoney(winner.getMoney() - auction.getHighestBid());
-            assignTileToPlayer(game, tileIndex, auction.getHighestBidder());
-            addLog(
-                winner.getName(),
-                "Auction Win",
-                "Memenangkan " + tile.getName() + " dengan bid " + std::to_string(auction.getHighestBid()) + "."
-            );
-            addToast("Lelang dimenangkan " + winner.getName() + ".", winner.getAccent());
+    try {
+        AuctionState& auction = appState_.getOverlay().getAuction();
+        OwnableTile* property = ownableFromUi(auction.getTileIndex());
+        const int winnerIndex = auction.getHighestBidder();
+        if (property != nullptr &&
+            winnerIndex >= 0 &&
+            winnerIndex < static_cast<int>(backendGame_.getPlayers().size())) {
+            Player& winner = backendGame_.getPlayers().at(winnerIndex);
+            if (!winner.isBankrupt() && winner.getMoney() >= auction.getHighestBid()) {
+                winner -= auction.getHighestBid();
+                property->setOwner(&winner);
+                property->setOwnershipStatus(OwnershipStatus::OWNED);
+                addLog(
+                    winner.getUsername(),
+                    "LELANG",
+                    "Menang " + property->getName() + " seharga M" + std::to_string(auction.getHighestBid()) + "."
+                );
+                addToast("Lelang dimenangkan " + winner.getUsername() + ".", playerAccent(winnerIndex));
+            }
         }
+        closeOverlay();
+        syncViewFromBackend();
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
     }
-    closeOverlay();
 }
 
 int GUIGameController::flatIncomeTax() const {
-    return 200;
+    return backendGame_.getConfigManager().getPphFlat();
 }
 
 int GUIGameController::percentageIncomeTax() const {
-    return std::max(120, computeNetWorth(appState_.getGame().getCurrentPlayer()) / 10);
+    const int playerIndex = currentBackendPlayerIndex();
+    if (playerIndex < 0 || playerIndex >= static_cast<int>(backendGame_.getPlayers().size())) {
+        return 0;
+    }
+    const int wealth = computeNetWorth(playerIndex);
+    return wealth * backendGame_.getConfigManager().getPphPercent() / 100;
 }
 
 void GUIGameController::payIncomeTax(bool useFlatTax) {
-    GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
-        return;
+    try {
+        Player& player = backendGame_.getCurrentPlayer();
+        const int tax = useFlatTax ? flatIncomeTax() : percentageIncomeTax();
+        if (player.isShieldActive()) {
+            player.setShieldActive(false);
+            addToast("Shield menahan pajak.", playerAccent(currentBackendPlayerIndex()));
+        } else if (player.getMoney() < player.effectiveCost(tax)) {
+            backendGame_.getBankruptcyManager().beginBankruptcySession(player, nullptr, tax, true);
+            addToast("Dana kurang untuk membayar pajak.", RED);
+        } else {
+            backendGame_.getTaxManager().processTaxPayment(player, tax);
+        }
+        addLog(player.getUsername(), "PAJAK", "Membayar PPh M" + std::to_string(tax) + ".");
+        closeOverlay();
+        syncViewFromBackend();
+        maybeOpenLiquidation();
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
+        maybeOpenLiquidation();
     }
-
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    const int tax = useFlatTax ? flatIncomeTax() : percentageIncomeTax();
-    player.setMoney(player.getMoney() - tax);
-    addLog(player.getName(), "Bayar PPh", "Membayar pajak sebesar " + std::to_string(tax) + ".");
-    addToast("PPh dibayar.", RED);
-    closeOverlay();
-    maybeOpenLiquidation();
 }
 
 int GUIGameController::luxuryTaxAmount() const {
-    return 150;
+    return backendGame_.getConfigManager().getPbmFlat();
 }
 
 void GUIGameController::payLuxuryTax() {
-    GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
-        return;
+    try {
+        Player& player = backendGame_.getCurrentPlayer();
+        const int tax = luxuryTaxAmount();
+        if (player.isShieldActive()) {
+            player.setShieldActive(false);
+            addToast("Shield menahan pajak.", playerAccent(currentBackendPlayerIndex()));
+        } else if (player.getMoney() < player.effectiveCost(tax)) {
+            backendGame_.getBankruptcyManager().beginBankruptcySession(player, nullptr, tax, true);
+            addToast("Dana kurang untuk membayar pajak.", RED);
+        } else {
+            backendGame_.getTaxManager().processTaxPayment(player, tax);
+        }
+        addLog(player.getUsername(), "PAJAK", "Membayar PBM M" + std::to_string(tax) + ".");
+        closeOverlay();
+        syncViewFromBackend();
+        maybeOpenLiquidation();
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
+        maybeOpenLiquidation();
     }
-
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    const int tax = luxuryTaxAmount();
-    player.setMoney(player.getMoney() - tax);
-    addLog(player.getName(), "Bayar PBM", "Membayar pajak mewah sebesar " + std::to_string(tax) + ".");
-    addToast("PBM dibayar.", RED);
-    closeOverlay();
-    maybeOpenLiquidation();
 }
 
 void GUIGameController::activateFestivalOnSelectedTile() {
-    GameState& game = appState_.getGame();
     const std::vector<int> options = currentPlayerStreetOptions();
-    if (options.empty() || game.getPlayers().empty()) {
+    if (options.empty()) {
         addToast("Belum ada street untuk festival.", RED);
         return;
     }
 
-    const int selected = std::max(0, std::min(appState_.getOverlay().getSelectedIndex(), static_cast<int>(options.size()) - 1));
-    TileInfo& tile = game.getBoard().at(options.at(selected));
-    tile.setFestivalTurns(3);
-    addLog(game.getPlayers().at(game.getCurrentPlayer()).getName(), "Festival", "Mengaktifkan festival di " + tile.getName() + ".");
-    addToast("Festival aktif di " + tile.getName() + ".", tile.getAccent());
-    closeOverlay();
+    try {
+        const int selected = std::max(0, std::min(appState_.getOverlay().getSelectedIndex(), static_cast<int>(options.size()) - 1));
+        OwnableTile* property = ownableFromUi(options.at(selected));
+        if (property == nullptr) {
+            addToast("Target festival tidak valid.", RED);
+            return;
+        }
+
+        backendGame_.getFestivalManager().activateFestival(*property);
+        addLog(backendGame_.getCurrentPlayer().getUsername(), "FESTIVAL", "Mengaktifkan festival di " + property->getName() + ".");
+        addToast("Festival aktif di " + property->getName() + ".", kindAccent(TileKind::Festival, ""));
+        closeOverlay();
+        syncViewFromBackend();
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
+    }
 }
 
 void GUIGameController::payJailFine() {
-    GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
-        return;
-    }
+    try {
+        Player& player = backendGame_.getCurrentPlayer();
+        const int fine = jailFineAmount();
+        if (player.getMoney() < player.effectiveCost(fine)) {
+            backendGame_.getBankruptcyManager().beginBankruptcySession(player, nullptr, fine, true);
+            syncViewFromBackend();
+            openLiquidation();
+            return;
+        }
 
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    const int fine = 100;
-    if (player.getMoney() < fine) {
-        addToast("Saldo tidak cukup untuk membayar denda jail.", RED);
-        openLiquidation();
-        return;
+        backendGame_.getJailManager().payJailFine(player, fine);
+        backendGame_.getJailManager().releaseFromJail(player);
+        addLog(player.getUsername(), "JAIL", "Membayar denda M" + std::to_string(fine) + ".");
+        addToast("Denda jail dibayar.", playerAccent(currentBackendPlayerIndex()));
+        closeOverlay();
+        syncViewFromBackend();
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
     }
-
-    player.setMoney(player.getMoney() - fine);
-    player.setJailed(false);
-    player.setFailedJailRolls(0);
-    addLog(player.getName(), "Keluar Jail", "Membayar denda sebesar 100.");
-    addToast("Denda jail dibayar.", player.getAccent());
-    closeOverlay();
 }
 
 void GUIGameController::useJailCard() {
-    GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
-        return;
-    }
+    try {
+        Player& player = backendGame_.getCurrentPlayer();
+        std::vector<std::shared_ptr<HandCard>> cards = backendGame_.getCardManager().getHandCards(player);
+        int shieldIndex = -1;
+        for (int index = 0; index < static_cast<int>(cards.size()); index++) {
+            if (std::dynamic_pointer_cast<ShieldCard>(cards.at(index)) != nullptr) {
+                shieldIndex = index;
+                break;
+            }
+        }
 
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    if (!player.isJailed()) {
-        addToast("Pemain ini tidak sedang di jail.", RED);
-        return;
-    }
+        if (shieldIndex < 0) {
+            addToast("Tidak ada kartu shield untuk keluar jail.", RED);
+            return;
+        }
 
-    const auto found = std::find_if(player.getHandCards().begin(), player.getHandCards().end(), isJailCard);
-    if (found == player.getHandCards().end()) {
-        addToast("Tidak ada kartu bebas jail yang bisa dipakai.", RED);
-        return;
+        backendGame_.getCardManager().dropHandCard(player, shieldIndex);
+        backendGame_.getJailManager().releaseFromJail(player);
+        addLog(player.getUsername(), "JAIL", "Menggunakan ShieldCard untuk keluar dari jail.");
+        addToast("Keluar dari jail dengan kartu.", SKYBLUE);
+        closeOverlay();
+        syncViewFromBackend();
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
     }
-
-    const CardInfo usedCard = *found;
-    player.getHandCards().erase(found);
-    player.setJailed(false);
-    player.setFailedJailRolls(0);
-    addLog(player.getName(), "Use Jail Card", "Menggunakan " + usedCard.getTitle() + " untuk keluar dari jail.");
-    addToast("Keluar dari jail dengan kartu.", usedCard.getAccent());
-    closeOverlay();
 }
 
 void GUIGameController::useSelectedHandCard() {
-    GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
-        return;
-    }
-
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    if (player.getHandCards().empty()) {
-        addToast("Belum ada kartu di tangan.", RED);
-        return;
-    }
-
-    const int selected = std::max(0, std::min(appState_.getOverlay().getSelectedIndex(), static_cast<int>(player.getHandCards().size()) - 1));
-    const CardInfo card = player.getHandCards().at(selected);
-    player.getHandCards().erase(player.getHandCards().begin() + selected);
-    closeOverlay();
-
-    addLog(player.getName(), "Use Card", card.getTitle() + ": " + card.getDescription());
-    switch (card.getEffect()) {
-        case CardEffect::GainMoney:
-            player.setMoney(player.getMoney() + card.getMagnitude());
-            addToast("Uang bertambah " + std::to_string(card.getMagnitude()) + ".", card.getAccent());
-            break;
-        case CardEffect::LoseMoney:
-            player.setMoney(player.getMoney() - card.getMagnitude());
-            addToast("Uang berkurang " + std::to_string(card.getMagnitude()) + ".", card.getAccent());
-            maybeOpenLiquidation();
-            break;
-        case CardEffect::MoveToGo:
-            player.setPosition(0);
-            player.setMoney(player.getMoney() + 200);
-            addToast("Pindah ke GO.", card.getAccent());
-            triggerTileEvent(0, true);
-            break;
-        case CardEffect::MoveBackThree: {
-            const int boardSize = static_cast<int>(game.getBoard().size());
-            if (boardSize <= 0) {
-                break;
-            }
-            const int nextPosition = (player.getPosition() - std::max(1, card.getMagnitude()) + boardSize) % boardSize;
-            player.setPosition(nextPosition);
-            addToast("Mundur ke " + game.getBoard().at(nextPosition).getName() + ".", card.getAccent());
-            triggerTileEvent(nextPosition, true);
-            break;
+    try {
+        Player& player = backendGame_.getCurrentPlayer();
+        std::vector<std::shared_ptr<HandCard>> cards = backendGame_.getCardManager().getHandCards(player);
+        if (cards.empty()) {
+            addToast("Belum ada kartu di tangan.", RED);
+            return;
         }
-        case CardEffect::GoToJail:
-            if (player.isShieldActive()) {
-                player.setShieldActive(false);
-                addToast("Shield aktif menahan efek jail.", card.getAccent());
-                break;
-            }
-            player.setJailed(true);
-            player.setFailedJailRolls(0);
-            player.setPosition(findJailIndex());
-            addToast("Masuk jail.", RED);
-            openJail();
-            break;
-        case CardEffect::TeleportAnywhere: {
-            const int destination = std::max(0, std::min(game.getSelectedTile(), static_cast<int>(game.getBoard().size()) - 1));
-            player.setPosition(destination);
-            addToast("Teleport ke " + game.getBoard().at(destination).getName() + ".", card.getAccent());
-            triggerTileEvent(destination, true);
-            break;
+        if (player.hasUsedHandCardThisTurn()) {
+            addToast("Kartu kemampuan sudah dipakai pada turn ini.", RED);
+            return;
         }
-        case CardEffect::ActivateShield:
-            if (player.isJailed()) {
-                player.setJailed(false);
-                player.setFailedJailRolls(0);
-                addToast("Kartu membebaskan pemain dari jail.", card.getAccent());
-            } else {
-                player.setShieldActive(true);
-                addToast("Shield aktif untuk pemain ini.", card.getAccent());
-            }
-            break;
-        case CardEffect::ActivateDiscount:
-            player.setDiscountPercent(card.getMagnitude() > 0 ? card.getMagnitude() : 20);
-            addToast("Diskon pembelian aktif.", card.getAccent());
-            break;
+
+        const int selected = std::max(0, std::min(appState_.getOverlay().getSelectedIndex(), static_cast<int>(cards.size()) - 1));
+        const int previousPosition = player.getPosition();
+        configureSelectedHandCard(player, selected);
+        backendGame_.getCardManager().useHandCard(backendGame_, player, selected);
+
+        const int normalizedPosition = normalizedBackendTileIndex(player.getPosition());
+        player.moveTo(normalizedPosition);
+        addToast("Kartu digunakan.", SKYBLUE);
+        closeOverlay();
+        if (normalizedPosition != normalizedBackendTileIndex(previousPosition)) {
+            resolveBackendLanding(normalizedPosition, true);
+        } else {
+            syncViewFromBackend();
+        }
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
     }
 }
 
 void GUIGameController::storeDrawnCard() {
-    GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
-        return;
-    }
-
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    const CardInfo card = appState_.getOverlay().getCard();
-    player.getHandCards().push_back(card);
-    addLog(player.getName(), "Draw Card", "Menyimpan kartu " + card.getTitle() + " ke tangan.");
-    addToast("Kartu disimpan ke tangan.", card.getAccent());
-    closeOverlay();
-    if (currentPlayerNeedsForceDrop(game)) {
-        openForceDrop();
-    }
+    addToast("Kartu backend dari petak ini harus langsung diterapkan.", RED);
 }
 
 void GUIGameController::applyDrawnCard() {
-    GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
-        return;
-    }
+    try {
+        Player& player = backendGame_.getCurrentPlayer();
+        const int previousPosition = player.getPosition();
+        if (pendingChanceCard_ != nullptr) {
+            addLog(player.getUsername(), "KSP", "Mengambil kartu " + pendingChanceCard_->getName() + ".");
+            pendingChanceCard_->apply(backendGame_, player);
+            backendGame_.getCardManager().discardChanceCard(pendingChanceCard_);
+            pendingChanceCard_.reset();
+        } else if (pendingCommunityChestCard_ != nullptr) {
+            addLog(player.getUsername(), "DNU", "Mengambil kartu " + pendingCommunityChestCard_->getName() + ".");
+            pendingCommunityChestCard_->apply(backendGame_, player);
+            backendGame_.getCardManager().discardCommunityChestCard(pendingCommunityChestCard_);
+            pendingCommunityChestCard_.reset();
+        } else {
+            closeOverlay();
+            return;
+        }
 
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    const CardInfo card = appState_.getOverlay().getCard();
-    closeOverlay();
-
-    addLog(player.getName(), "Apply Card", card.getTitle() + ": " + card.getDescription());
-    switch (card.getEffect()) {
-        case CardEffect::GainMoney:
-            player.setMoney(player.getMoney() + card.getMagnitude());
-            addToast("Uang bertambah " + std::to_string(card.getMagnitude()) + ".", card.getAccent());
-            break;
-        case CardEffect::LoseMoney:
-            player.setMoney(player.getMoney() - card.getMagnitude());
-            addToast("Uang berkurang " + std::to_string(card.getMagnitude()) + ".", card.getAccent());
+        const int normalizedPosition = normalizedBackendTileIndex(player.getPosition());
+        player.moveTo(normalizedPosition);
+        closeOverlay();
+        if (normalizedPosition != normalizedBackendTileIndex(previousPosition)) {
+            resolveBackendLanding(normalizedPosition, true);
+        } else {
+            syncViewFromBackend();
             maybeOpenLiquidation();
-            break;
-        case CardEffect::MoveToGo:
-            player.setPosition(0);
-            player.setMoney(player.getMoney() + 200);
-            addToast("Pindah ke GO.", card.getAccent());
-            triggerTileEvent(0, true);
-            break;
-        case CardEffect::MoveBackThree: {
-            const int boardSize = static_cast<int>(game.getBoard().size());
-            if (boardSize <= 0) {
-                break;
-            }
-            const int nextPosition = (player.getPosition() - std::max(1, card.getMagnitude()) + boardSize) % boardSize;
-            player.setPosition(nextPosition);
-            addToast("Mundur ke " + game.getBoard().at(nextPosition).getName() + ".", card.getAccent());
-            triggerTileEvent(nextPosition, true);
-            break;
         }
-        case CardEffect::GoToJail:
-            if (player.isShieldActive()) {
-                player.setShieldActive(false);
-                addToast("Shield aktif menahan efek jail.", card.getAccent());
-                break;
-            }
-            player.setJailed(true);
-            player.setFailedJailRolls(0);
-            player.setPosition(findJailIndex());
-            addToast("Masuk jail.", RED);
-            openJail();
-            break;
-        case CardEffect::TeleportAnywhere: {
-            const int destination = std::max(0, std::min(game.getSelectedTile(), static_cast<int>(game.getBoard().size()) - 1));
-            player.setPosition(destination);
-            addToast("Teleport ke " + game.getBoard().at(destination).getName() + ".", card.getAccent());
-            triggerTileEvent(destination, true);
-            break;
-        }
-        case CardEffect::ActivateShield:
-            if (player.isJailed()) {
-                player.setJailed(false);
-                player.setFailedJailRolls(0);
-                addToast("Kartu membebaskan pemain dari jail.", card.getAccent());
-            } else {
-                player.setShieldActive(true);
-                addToast("Shield aktif untuk pemain ini.", card.getAccent());
-            }
-            break;
-        case CardEffect::ActivateDiscount:
-            player.setDiscountPercent(card.getMagnitude() > 0 ? card.getMagnitude() : 20);
-            addToast("Diskon pembelian aktif.", card.getAccent());
-            break;
+    } catch (const std::exception& exception) {
+        clearPendingDrawnCard(true);
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
+        maybeOpenLiquidation();
     }
 }
 
 void GUIGameController::buildOnSelectedTile() {
-    GameState& game = appState_.getGame();
     const std::vector<int> options = currentPlayerBuildOptions();
-    if (options.empty() || game.getPlayers().empty()) {
+    if (options.empty()) {
         addToast("Tidak ada properti yang bisa dibangun.", RED);
         return;
     }
 
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    const int selected = std::max(0, std::min(appState_.getOverlay().getSelectedIndex(), static_cast<int>(options.size()) - 1));
-    TileInfo& tile = game.getBoard().at(options.at(selected));
-    if (tile.getBuildings() >= 5) {
-        addToast("Properti ini sudah maksimal.", RED);
-        return;
+    try {
+        Player& player = backendGame_.getCurrentPlayer();
+        const int selected = std::max(0, std::min(appState_.getOverlay().getSelectedIndex(), static_cast<int>(options.size()) - 1));
+        StreetTile* street = streetFromUi(options.at(selected));
+        if (street == nullptr) {
+            addToast("Target bangunan tidak valid.", RED);
+            return;
+        }
+        const int oldLevel = street->getBuildingLevel();
+        backendGame_.getPropertyManager().buildOnStreet(backendGame_.getBoard(), player, *street);
+        if (street->getBuildingLevel() == oldLevel) {
+            addToast("Properti ini belum memenuhi syarat bangun.", RED);
+            return;
+        }
+        addLog(player.getUsername(), "BANGUN", "Menambah bangunan di " + street->getName() + ".");
+        addToast("Bangunan ditambahkan di " + street->getName() + ".", groupAccent(street->getColorGroup()));
+        closeOverlay();
+        syncViewFromBackend();
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
     }
-
-    const int cost = tile.getBuildings() >= 4 ? tile.getHotelCost() : tile.getHouseCost();
-    if (player.getMoney() < cost) {
-        addToast("Saldo tidak cukup untuk membangun.", RED);
-        return;
-    }
-
-    player.setMoney(player.getMoney() - cost);
-    tile.setBuildings(tile.getBuildings() + 1);
-    addLog(player.getName(), "Bangun", "Menambah bangunan di " + tile.getName() + " seharga " + std::to_string(cost) + ".");
-    addToast("Bangunan ditambahkan di " + tile.getName() + ".", tile.getAccent());
-    closeOverlay();
 }
 
 void GUIGameController::mortgageSelectedTile() {
-    GameState& game = appState_.getGame();
     const std::vector<int> options = currentPlayerMortgageOptions();
-    if (options.empty() || game.getPlayers().empty()) {
+    if (options.empty()) {
         addToast("Tidak ada aset yang bisa digadai.", RED);
         return;
     }
 
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    const int selected = std::max(0, std::min(appState_.getOverlay().getSelectedIndex(), static_cast<int>(options.size()) - 1));
-    TileInfo& tile = game.getBoard().at(options.at(selected));
-
-    int cashIn = getMortgageValue(tile);
-    if (tile.getKind() == TileKind::Street && tile.getBuildings() > 0) {
-        cashIn += recoveredBuildingValue(tile);
-        tile.setBuildings(0);
+    try {
+        Player& player = backendGame_.getCurrentPlayer();
+        const int selected = std::max(0, std::min(appState_.getOverlay().getSelectedIndex(), static_cast<int>(options.size()) - 1));
+        OwnableTile* property = ownableFromUi(options.at(selected));
+        if (property == nullptr) {
+            addToast("Aset tidak valid.", RED);
+            return;
+        }
+        backendGame_.getPropertyManager().mortgageProperty(player, *property);
+        addLog(player.getUsername(), "GADAI", "Menggadaikan " + property->getName() + ".");
+        addToast("Aset digadai.", kindAccent(toGuiTileKind(*property), ""));
+        closeOverlay();
+        syncViewFromBackend();
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
     }
-
-    tile.setMortgaged(true);
-    player.setMoney(player.getMoney() + cashIn);
-    addLog(player.getName(), "Mortgage", "Menggadaikan " + tile.getName() + " dan menerima " + std::to_string(cashIn) + ".");
-    addToast("Aset digadai.", tile.getAccent());
-    closeOverlay();
 }
 
 void GUIGameController::redeemSelectedTile() {
-    GameState& game = appState_.getGame();
     const std::vector<int> options = currentPlayerRedeemOptions();
-    if (options.empty() || game.getPlayers().empty()) {
+    if (options.empty()) {
         addToast("Tidak ada aset tergadai untuk ditebus.", RED);
         return;
     }
 
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    const int selected = std::max(0, std::min(appState_.getOverlay().getSelectedIndex(), static_cast<int>(options.size()) - 1));
-    TileInfo& tile = game.getBoard().at(options.at(selected));
-    const int cost = getRedeemCost(tile);
-    if (player.getMoney() < cost) {
-        addToast("Saldo tidak cukup untuk menebus aset.", RED);
-        return;
+    try {
+        Player& player = backendGame_.getCurrentPlayer();
+        const int selected = std::max(0, std::min(appState_.getOverlay().getSelectedIndex(), static_cast<int>(options.size()) - 1));
+        OwnableTile* property = ownableFromUi(options.at(selected));
+        if (property == nullptr) {
+            addToast("Aset tidak valid.", RED);
+            return;
+        }
+        if (player.getMoney() < player.effectiveCost(backendGame_.getPropertyManager().getRedeemCost(*property))) {
+            addToast("Saldo tidak cukup untuk menebus aset.", RED);
+            return;
+        }
+        backendGame_.getPropertyManager().redeemProperty(player, *property);
+        addLog(player.getUsername(), "TEBUS", "Menebus " + property->getName() + ".");
+        addToast("Aset berhasil ditebus.", kindAccent(toGuiTileKind(*property), ""));
+        closeOverlay();
+        syncViewFromBackend();
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
     }
-
-    player.setMoney(player.getMoney() - cost);
-    tile.setMortgaged(false);
-    addLog(player.getName(), "Redeem", "Menebus " + tile.getName() + " dengan biaya " + std::to_string(cost) + ".");
-    addToast("Aset berhasil ditebus.", tile.getAccent());
-    closeOverlay();
 }
 
 void GUIGameController::saveSession() {
-    GameState& game = appState_.getGame();
     if (!canSaveNow()) {
         addToast("Game hanya bisa disimpan di awal turn.", RED);
         return;
     }
 
-    std::string name = appState_.getSaveInput();
-    if (name.empty()) {
-        name = "save-" + std::to_string(game.getTurn());
+    std::string filename = withTxtExtension(appState_.getSaveInput());
+    try {
+        backendGame_.getSaveLoadManager().saveGame(backendGame_, filename);
+
+        SaveSlot slot;
+        slot.setName(filename);
+        slot.setSubtitle(
+            backendGame_.getPlayers().empty()
+                ? "Belum ada pemain"
+                : backendGame_.getCurrentPlayer().getUsername() + " - " +
+                      std::to_string(backendGame_.getCurrentPlayer().getMoney())
+        );
+        slot.setTurn(backendGame_.getCurrentTurn());
+        slot.setPlayerCount(static_cast<int>(backendGame_.getPlayers().size()));
+        slot.setAccent(playerAccent(currentBackendPlayerIndex()));
+
+        std::vector<SaveSlot>& saveSlots = appState_.getSaveSlots();
+        int slotIndex = appState_.getSelectedSave();
+        if (slotIndex < 0 || slotIndex >= static_cast<int>(saveSlots.size())) {
+            saveSlots.push_back(slot);
+            appState_.setSelectedSave(static_cast<int>(saveSlots.size()) - 1);
+        } else {
+            saveSlots.at(slotIndex) = slot;
+        }
+
+        addToast("Session tersimpan sebagai " + filename + ".", SKYBLUE);
+        closeOverlay();
+        syncViewFromBackend();
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
     }
-
-    SaveSlot slot;
-    slot.setName(name);
-    slot.setSubtitle(
-        game.getPlayers().empty()
-            ? "Belum ada pemain"
-            : game.getPlayers().at(game.getCurrentPlayer()).getName() + " - " +
-                  std::to_string(game.getPlayers().at(game.getCurrentPlayer()).getMoney())
-    );
-    slot.setTurn(game.getTurn());
-    slot.setPlayerCount(static_cast<int>(game.getPlayers().size()));
-    slot.setAccent(
-        game.getPlayers().empty() ? SKYBLUE : game.getPlayers().at(game.getCurrentPlayer()).getAccent()
-    );
-
-    std::vector<SaveSlot>& saveSlots = appState_.getSaveSlots();
-    int slotIndex = appState_.getSelectedSave();
-    if (slotIndex < 0 || slotIndex >= static_cast<int>(saveSlots.size())) {
-        saveSlots.push_back(slot);
-        appState_.setSelectedSave(static_cast<int>(saveSlots.size()) - 1);
-    } else {
-        saveSlots.at(slotIndex) = slot;
-    }
-
-    game.setSessionLabel(name);
-    addLog(
-        game.getPlayers().at(game.getCurrentPlayer()).getName(),
-        "Save",
-        "Menyimpan sesi sebagai " + name + "."
-    );
-    addToast("Session tersimpan sebagai " + name + ".", SKYBLUE);
-    closeOverlay();
 }
 
 void GUIGameController::dropSelectedHandCard() {
-    GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
-        return;
-    }
+    try {
+        Player& player = backendGame_.getCurrentPlayer();
+        const int cardCount = player.countCards();
+        if (cardCount <= 0) {
+            closeOverlay();
+            return;
+        }
 
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    if (player.getHandCards().empty()) {
-        closeOverlay();
-        return;
-    }
-
-    const int selected = std::max(0, std::min(appState_.getOverlay().getSelectedIndex(), static_cast<int>(player.getHandCards().size()) - 1));
-    const CardInfo discarded = player.getHandCards().at(selected);
-    player.getHandCards().erase(player.getHandCards().begin() + selected);
-    addLog(player.getName(), "Drop Card", "Membuang kartu " + discarded.getTitle() + ".");
-    addToast("Kartu dibuang.", discarded.getAccent());
-    if (player.getHandCards().size() <= 3U) {
-        closeOverlay();
-    } else {
-        appState_.getOverlay().setSelectedIndex(std::min(selected, static_cast<int>(player.getHandCards().size()) - 1));
+        const int selected = std::max(0, std::min(appState_.getOverlay().getSelectedIndex(), cardCount - 1));
+        std::vector<std::shared_ptr<HandCard>> cards = backendGame_.getCardManager().getHandCards(player);
+        std::string cardName = selected < static_cast<int>(cards.size()) && cards.at(selected) != nullptr
+            ? cards.at(selected)->getName()
+            : "Kartu";
+        backendGame_.getCardManager().dropHandCard(player, selected);
+        addLog(player.getUsername(), "DROP_CARD", "Membuang " + cardName + ".");
+        addToast("Kartu dibuang.", SKYBLUE);
+        syncViewFromBackend();
+        if (!backendGame_.getCardManager().needsForceDrop(player)) {
+            closeOverlay();
+        }
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
     }
 }
 
 void GUIGameController::liquidateSelectedTile() {
-    GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
-        return;
-    }
+    try {
+        Player& player = backendGame_.getCurrentPlayer();
+        std::vector<OwnableTile*> properties = backendGame_.getPropertyManager().getOwnedProperties(backendGame_.getBoard(), player);
+        if (properties.empty()) {
+            addToast("Tidak ada aset untuk dijual.", RED);
+            return;
+        }
 
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    if (player.getProperties().empty()) {
-        addToast("Tidak ada aset untuk dijual.", RED);
-        return;
-    }
-
-    const int selected = std::max(0, std::min(appState_.getOverlay().getSelectedIndex(), static_cast<int>(player.getProperties().size()) - 1));
-    const int tileIndex = player.getProperties().at(selected);
-    TileInfo& tile = game.getBoard().at(tileIndex);
-    const int saleValue = getMortgageValue(tile) + recoveredBuildingValue(tile);
-    player.setMoney(player.getMoney() + saleValue);
-    addLog(player.getName(), "Liquidation", "Menjual " + tile.getName() + " dengan nilai " + std::to_string(saleValue) + ".");
-    addToast("Aset dijual untuk menambah cash.", tile.getAccent());
-    releaseTile(game, tileIndex);
-
-    if (player.getMoney() >= 0 || player.getProperties().empty()) {
-        closeOverlay();
-    } else {
-        appState_.getOverlay().setSelectedIndex(
-            std::max(0, std::min(appState_.getOverlay().getSelectedIndex(), static_cast<int>(player.getProperties().size()) - 1))
-        );
+        const int selected = std::max(0, std::min(appState_.getOverlay().getSelectedIndex(), static_cast<int>(properties.size()) - 1));
+        OwnableTile* property = properties.at(selected);
+        const int saleValue = backendGame_.getPropertyManager().calculateSellToBankValue(*property);
+        backendGame_.getPropertyManager().sellPropertyToBank(player, *property);
+        property->setOwnershipStatus(OwnershipStatus::BANK);
+        if (backendGame_.getBankruptcyManager().isBankruptcyActive()) {
+            backendGame_.getBankruptcyManager().resolveLiquidationAction(player, "SELL");
+        }
+        addLog(player.getUsername(), "LIKUIDASI", "Menjual " + property->getName() + " ke bank.");
+        addToast("Aset dijual seharga M" + std::to_string(saleValue) + ".", kindAccent(toGuiTileKind(*property), ""));
+        syncViewFromBackend();
+        if (!backendGame_.getBankruptcyManager().isBankruptcyActive()) {
+            closeOverlay();
+        }
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
     }
 }
 
 void GUIGameController::declareBankrupt() {
-    GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
-        return;
+    try {
+        Player& player = backendGame_.getCurrentPlayer();
+        std::vector<OwnableTile*> properties = backendGame_.getPropertyManager().getOwnedProperties(backendGame_.getBoard(), player);
+        for (OwnableTile* property : properties) {
+            if (property == nullptr) {
+                continue;
+            }
+            if (StreetTile* street = dynamic_cast<StreetTile*>(property)) {
+                street->sellBuildings();
+            }
+            property->setOwner(nullptr);
+            property->setOwnershipStatus(OwnershipStatus::BANK);
+            property->setFestivalState(1, 0);
+        }
+        discardAllCards(player);
+        backendGame_.getJailManager().releaseFromJail(player);
+        backendGame_.getBankruptcyManager().declareBankrupt(player, nullptr);
+        addLog(player.getUsername(), "BANGKRUT", "Pemain keluar dari permainan.");
+        addToast(player.getUsername() + " bangkrut.", RED);
+        closeOverlay();
+        syncViewFromBackend();
+        if (backendGame_.isGameOver()) {
+            openGameOver();
+        } else {
+            endTurn();
+        }
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+        syncViewFromBackend();
     }
+}
 
-    PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    std::vector<int> ownedTiles = player.getProperties();
-    for (int tileIndex : ownedTiles) {
-        releaseTile(game, tileIndex);
-    }
-    player.getHandCards().clear();
-    player.setJailed(false);
-    player.setFailedJailRolls(0);
-    player.setBankrupt(true);
-    addLog(player.getName(), "Bankrupt", "Pemain dinyatakan bangkrut.");
-    addToast(player.getName() + " bangkrut.", RED);
-    closeOverlay();
+void GUIGameController::syncViewFromBackend() {
+    const GameState previous = appState_.getGame();
+    GameState view;
+    view.setSessionLabel("NIMONSPOLI");
+    view.setToasts(previous.getToasts());
+    view.setSelectedTile(previous.getSelectedTile());
+    view.setHoveredTile(previous.getHoveredTile());
+    view.setStartCash(appState_.getStartingCash());
+    view.setTurnStarted(guiTurnStarted_);
+    view.setRolledThisTurn(backendGame_.getTurnManager().isRolledThisTurn());
+    view.setLastDieOne(backendGame_.getDice().getDie1());
+    view.setLastDieTwo(backendGame_.getDice().getDie2());
+    view.setTurn(backendGame_.getCurrentTurn());
+    view.setTurnLimit(backendGame_.getMaxTurn());
+    view.setCurrentPlayer(std::max(0, currentBackendPlayerIndex()));
 
-    int activePlayers = 0;
-    for (const PlayerInfo& candidate : game.getPlayers()) {
-        if (!candidate.isBankrupt()) {
-            activePlayers++;
+    std::vector<TileInfo> board;
+    for (const std::shared_ptr<Tile>& tile : backendGame_.getBoard().getTiles()) {
+        if (tile != nullptr) {
+            board.push_back(makeTileInfoFromBackend(*tile));
         }
     }
-    if (activePlayers <= 1) {
-        openGameOver();
-        return;
+    std::sort(board.begin(), board.end(), [](const TileInfo& left, const TileInfo& right) {
+        return left.getIndex() < right.getIndex();
+    });
+    view.setBoard(board);
+
+    std::vector<PlayerInfo> players;
+    const std::vector<Player>& backendPlayers = backendGame_.getPlayers();
+    for (int index = 0; index < static_cast<int>(backendPlayers.size()); index++) {
+        players.push_back(makePlayerInfoFromBackend(backendPlayers.at(index), index));
+    }
+    view.setPlayers(players);
+
+    std::vector<LogItem> logs;
+    const std::vector<LogManager::LogEntry>& backendLogs = backendGame_.getLogManager().getLogs();
+    const int firstLog = std::max(0, static_cast<int>(backendLogs.size()) - kMaxLogEntries);
+    for (int index = firstLog; index < static_cast<int>(backendLogs.size()); index++) {
+        logs.push_back(makeLogItemFromBackend(backendLogs.at(index)));
+    }
+    view.setLogs(logs);
+
+    if (!view.getBoard().empty()) {
+        view.setSelectedTile(std::max(0, std::min(view.getSelectedTile(), static_cast<int>(view.getBoard().size()) - 1)));
+    } else {
+        view.setSelectedTile(0);
+    }
+    if (!view.getPlayers().empty()) {
+        view.setCurrentPlayer(std::max(0, std::min(view.getCurrentPlayer(), static_cast<int>(view.getPlayers().size()) - 1)));
+    } else {
+        view.setCurrentPlayer(0);
     }
 
-    endTurn();
+    appState_.setGame(view);
 }
 
 std::vector<int> GUIGameController::currentPlayerStreetOptions() const {
     std::vector<int> streets;
-    const GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
+    const int playerIndex = currentBackendPlayerIndex();
+    if (playerIndex < 0 || playerIndex >= static_cast<int>(backendGame_.getPlayers().size())) {
         return streets;
     }
 
-    const PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    for (int tileIndex : player.getProperties()) {
-        if (game.getBoard().at(tileIndex).getKind() == TileKind::Street) {
-            streets.push_back(tileIndex);
+    for (OwnableTile* property : backendGame_.getPropertyManager().getOwnedProperties(backendGame_.getBoard(), backendGame_.getPlayers().at(playerIndex))) {
+        if (dynamic_cast<StreetTile*>(property) != nullptr) {
+            streets.push_back(uiTileIndexFromBackend(property->getIndex()));
         }
     }
     return streets;
@@ -1415,45 +1384,31 @@ std::vector<int> GUIGameController::currentPlayerStreetOptions() const {
 
 std::vector<int> GUIGameController::currentPlayerBuildOptions() const {
     std::vector<int> buildable;
-    const GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
+    const int playerIndex = currentBackendPlayerIndex();
+    if (playerIndex < 0 || playerIndex >= static_cast<int>(backendGame_.getPlayers().size())) {
         return buildable;
     }
 
-    const PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    for (int tileIndex : player.getProperties()) {
-        const TileInfo& tile = game.getBoard().at(tileIndex);
-        if (tile.getKind() != TileKind::Street || tile.isMortgaged() || tile.getBuildings() >= 5) {
-            continue;
-        }
-        if (!playerOwnsFullStreetGroup(game, game.getCurrentPlayer(), tile)) {
-            continue;
-        }
-
-        const std::vector<int> groupTiles = findGroupTiles(game, tile);
-        int minimumBuildings = tile.getBuildings();
-        for (int groupTileIndex : groupTiles) {
-            minimumBuildings = std::min(minimumBuildings, game.getBoard().at(groupTileIndex).getBuildings());
-        }
-        if (tile.getBuildings() <= minimumBuildings) {
-            buildable.push_back(tileIndex);
+    Player& player = const_cast<Player&>(backendGame_.getPlayers().at(playerIndex));
+    for (OwnableTile* property : backendGame_.getPropertyManager().getOwnedProperties(backendGame_.getBoard(), player)) {
+        StreetTile* street = dynamic_cast<StreetTile*>(property);
+        if (street != nullptr && backendGame_.getPropertyManager().canBuild(backendGame_.getBoard(), player, *street)) {
+            buildable.push_back(uiTileIndexFromBackend(street->getIndex()));
         }
     }
-
     return buildable;
 }
 
 std::vector<int> GUIGameController::currentPlayerMortgageOptions() const {
     std::vector<int> items;
-    const GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
+    const int playerIndex = currentBackendPlayerIndex();
+    if (playerIndex < 0 || playerIndex >= static_cast<int>(backendGame_.getPlayers().size())) {
         return items;
     }
 
-    const PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    for (int tileIndex : player.getProperties()) {
-        if (!game.getBoard().at(tileIndex).isMortgaged()) {
-            items.push_back(tileIndex);
+    for (OwnableTile* property : backendGame_.getPropertyManager().getMortgageableProperties(backendGame_, backendGame_.getPlayers().at(playerIndex))) {
+        if (property != nullptr) {
+            items.push_back(uiTileIndexFromBackend(property->getIndex()));
         }
     }
     return items;
@@ -1461,15 +1416,14 @@ std::vector<int> GUIGameController::currentPlayerMortgageOptions() const {
 
 std::vector<int> GUIGameController::currentPlayerRedeemOptions() const {
     std::vector<int> items;
-    const GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
+    const int playerIndex = currentBackendPlayerIndex();
+    if (playerIndex < 0 || playerIndex >= static_cast<int>(backendGame_.getPlayers().size())) {
         return items;
     }
 
-    const PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
-    for (int tileIndex : player.getProperties()) {
-        if (game.getBoard().at(tileIndex).isMortgaged()) {
-            items.push_back(tileIndex);
+    for (OwnableTile* property : backendGame_.getPropertyManager().getRedeemableProperties(backendGame_, backendGame_.getPlayers().at(playerIndex))) {
+        if (property != nullptr) {
+            items.push_back(uiTileIndexFromBackend(property->getIndex()));
         }
     }
     return items;
@@ -1480,7 +1434,6 @@ void GUIGameController::addToast(const std::string& text, Color accent, float du
     if (toasts.size() >= 4) {
         toasts.pop_front();
     }
-
     toasts.push_back({text, accent, duration, duration});
 }
 
@@ -1489,13 +1442,17 @@ void GUIGameController::updateToasts(float deltaTime) {
     for (Toast& toast : toasts) {
         toast.setTimeLeft(toast.getTimeLeft() - deltaTime);
     }
-
     while (!toasts.empty() && toasts.front().getTimeLeft() <= 0.0f) {
         toasts.pop_front();
     }
 }
 
 void GUIGameController::addLog(const std::string& actor, const std::string& action, const std::string& detail) {
+    if (backendGame_.isGameRunning() || !backendGame_.getPlayers().empty()) {
+        backendGame_.getLogManager().addLog(backendGame_.getCurrentTurn(), actor, action, detail);
+        return;
+    }
+
     GameState& game = appState_.getGame();
     game.getLogs().push_back({game.getTurn(), actor, action, detail});
     if (static_cast<int>(game.getLogs().size()) > kMaxLogEntries) {
@@ -1504,90 +1461,489 @@ void GUIGameController::addLog(const std::string& actor, const std::string& acti
 }
 
 void GUIGameController::maybeOpenLiquidation() {
-    const GameState& game = appState_.getGame();
-    if (game.getPlayers().empty()) {
+    if (!backendGame_.isGameRunning() || backendGame_.getPlayers().empty()) {
         return;
     }
-
-    if (game.getPlayers().at(game.getCurrentPlayer()).getMoney() < 0) {
+    const Player& player = backendGame_.getCurrentPlayer();
+    if (player.getMoney() < 0 || backendGame_.getBankruptcyManager().isBankruptcyActive()) {
         openLiquidation();
     }
 }
 
-GameState GUIGameController::createBaseGame() const {
-    GameState game;
-    game.setSessionLabel("NIMONSPOLI");
-    game.setBoard(createBoard());
-    game.setTurn(1);
-    game.setTurnLimit(std::max(12, appState_.getTurnLimit()));
-    game.setCurrentPlayer(0);
-    game.setSelectedTile(0);
-    game.setStartCash(appState_.getStartingCash());
-
-    for (int index = 0; index < appState_.getPlayerCount(); index++) {
-        PlayerInfo player;
-        player.setName(appState_.getPlayerNames().at(index));
-        player.setAccent(playerAccent(index));
-        player.setMoney(appState_.getStartingCash());
-        player.setPosition(0);
-        game.getPlayers().push_back(player);
+int GUIGameController::uiTileIndexFromBackend(int backendIndex) const {
+    const int boardSize = backendGame_.getBoard().getBoardSize();
+    if (boardSize <= 0) {
+        return 0;
     }
-
-    return game;
+    return normalizedBackendTileIndex(backendIndex) - 1;
 }
 
-void GUIGameController::applyScenario(GameState& game, int scenarioIndex) const {
-    if (game.getPlayers().empty()) {
+int GUIGameController::backendTileIndexFromUi(int uiIndex) const {
+    const int boardSize = backendGame_.getBoard().getBoardSize();
+    if (boardSize <= 0) {
+        return 1;
+    }
+    int zeroBased = uiIndex % boardSize;
+    if (zeroBased < 0) {
+        zeroBased += boardSize;
+    }
+    return zeroBased + 1;
+}
+
+int GUIGameController::normalizedBackendTileIndex(int backendIndex) const {
+    const int boardSize = backendGame_.getBoard().getBoardSize();
+    if (boardSize <= 0) {
+        return backendIndex;
+    }
+    int zeroBased = (backendIndex - 1) % boardSize;
+    if (zeroBased < 0) {
+        zeroBased += boardSize;
+    }
+    return zeroBased + 1;
+}
+
+int GUIGameController::backendPlayerIndex(const Player* player) const {
+    const std::vector<Player>& players = backendGame_.getPlayers();
+    for (int index = 0; index < static_cast<int>(players.size()); index++) {
+        if (&players.at(index) == player) {
+            return index;
+        }
+    }
+    return -1;
+}
+
+int GUIGameController::currentBackendPlayerIndex() const {
+    if (backendGame_.getPlayers().empty()) {
+        return 0;
+    }
+    try {
+        return backendPlayerIndex(&backendGame_.getCurrentPlayer());
+    } catch (...) {
+        return 0;
+    }
+}
+
+Tile* GUIGameController::tileFromUi(int uiIndex) const {
+    std::shared_ptr<Tile> tile = backendGame_.getBoard().getTile(backendTileIndexFromUi(uiIndex));
+    return tile.get();
+}
+
+OwnableTile* GUIGameController::ownableFromUi(int uiIndex) const {
+    return dynamic_cast<OwnableTile*>(tileFromUi(uiIndex));
+}
+
+StreetTile* GUIGameController::streetFromUi(int uiIndex) const {
+    return dynamic_cast<StreetTile*>(tileFromUi(uiIndex));
+}
+
+TileKind GUIGameController::toGuiTileKind(const Tile& tile) const {
+    switch (tile.onLand()) {
+        case Tile::TileType::Go: return TileKind::Go;
+        case Tile::TileType::Street: return TileKind::Street;
+        case Tile::TileType::Railroad: return TileKind::Railroad;
+        case Tile::TileType::Utility: return TileKind::Utility;
+        case Tile::TileType::Chance: return TileKind::Chance;
+        case Tile::TileType::CommunityChest: return TileKind::CommunityChest;
+        case Tile::TileType::IncomeTax: return TileKind::IncomeTax;
+        case Tile::TileType::LuxuryTax: return TileKind::LuxuryTax;
+        case Tile::TileType::Festival: return TileKind::Festival;
+        case Tile::TileType::Jail: return TileKind::Jail;
+        case Tile::TileType::GoToJail: return TileKind::GoToJail;
+        case Tile::TileType::FreeParking: return TileKind::FreeParking;
+    }
+    return TileKind::Go;
+}
+
+TileInfo GUIGameController::makeTileInfoFromBackend(const Tile& tile) const {
+    const TileKind kind = toGuiTileKind(tile);
+    std::string group;
+    int price = 0;
+    int mortgageValue = 0;
+    int baseRent = 0;
+    int houseCost = 0;
+    int hotelCost = 0;
+    int ownerIndex = -1;
+    int buildings = 0;
+    int festivalTurns = 0;
+    bool mortgaged = false;
+
+    const OwnableTile* ownable = dynamic_cast<const OwnableTile*>(&tile);
+    if (ownable != nullptr) {
+        price = ownable->getPurchasePrice();
+        mortgageValue = ownable->getMortgageValue();
+        ownerIndex = backendPlayerIndex(ownable->getOwner());
+        festivalTurns = ownable->getFestivalDuration();
+        mortgaged = ownable->isMortgaged();
+    }
+
+    const StreetTile* street = dynamic_cast<const StreetTile*>(&tile);
+    if (street != nullptr) {
+        group = street->getColorGroup();
+        houseCost = street->getHouseBuildCost();
+        hotelCost = street->getHotelBuildCost();
+        buildings = street->getBuildingLevel();
+        if (!street->getRentLevels().empty()) {
+            baseRent = street->getRentLevels().front();
+        }
+    } else if (ownable != nullptr) {
+        RentContext rentContext = backendGame_.getPropertyManager().createRentContext(
+            backendGame_.getBoard(),
+            backendGame_.getConfigManager(),
+            backendGame_.getDice(),
+            *ownable
+        );
+        baseRent = ownable->calculateRent(rentContext);
+    }
+
+    return {
+        uiTileIndexFromBackend(tile.getIndex()),
+        tile.getCode(),
+        tile.getName(),
+        tileFlavor(kind),
+        group,
+        kind,
+        kindAccent(kind, group),
+        price,
+        mortgageValue,
+        baseRent,
+        houseCost,
+        hotelCost,
+        ownerIndex,
+        buildings,
+        festivalTurns,
+        mortgaged
+    };
+}
+
+PlayerInfo GUIGameController::makePlayerInfoFromBackend(const Player& player, int playerIndex) const {
+    std::vector<int> properties;
+    for (OwnableTile* property : backendGame_.getPropertyManager().getOwnedProperties(backendGame_.getBoard(), player)) {
+        if (property != nullptr) {
+            properties.push_back(uiTileIndexFromBackend(property->getIndex()));
+        }
+    }
+
+    std::vector<CardInfo> cards;
+    for (const std::shared_ptr<HandCard>& card : backendGame_.getCardManager().getHandCards(player)) {
+        if (card != nullptr) {
+            cards.push_back(makeCardInfoFromBackend(*card));
+        }
+    }
+
+    return {
+        player.getUsername(),
+        playerAccent(playerIndex),
+        player.getMoney(),
+        uiTileIndexFromBackend(player.getPosition()),
+        player.isJailed(),
+        player.isBankrupt(),
+        player.isShieldActive(),
+        player.getFailedJailRolls(),
+        player.getDiscountPercent(),
+        properties,
+        cards
+    };
+}
+
+CardInfo GUIGameController::makeCardInfoFromBackend(const Card& card) const {
+    CardKind kind = dynamic_cast<const HandCard*>(&card) != nullptr ? CardKind::Hand : CardKind::Instant;
+    CardEffect effect = CardEffect::GainMoney;
+    Color accent = SKYBLUE;
+    int magnitude = 0;
+
+    if (dynamic_cast<const DoctorFeeCard*>(&card) != nullptr ||
+        dynamic_cast<const CampaignFeeCard*>(&card) != nullptr) {
+        effect = CardEffect::LoseMoney;
+        accent = RED;
+    } else if (dynamic_cast<const GoToJailCard*>(&card) != nullptr) {
+        effect = CardEffect::GoToJail;
+        accent = RED;
+    } else if (dynamic_cast<const MoveBackThreeCard*>(&card) != nullptr) {
+        effect = CardEffect::MoveBackThree;
+        magnitude = 3;
+        accent = ORANGE;
+    } else if (dynamic_cast<const GoToNearestRailroadCard*>(&card) != nullptr ||
+               dynamic_cast<const MoveCard*>(&card) != nullptr) {
+        effect = CardEffect::MoveToGo;
+        accent = toolkit.theme().getGold();
+    } else if (dynamic_cast<const TeleportCard*>(&card) != nullptr) {
+        effect = CardEffect::TeleportAnywhere;
+        accent = SKYBLUE;
+    } else if (dynamic_cast<const ShieldCard*>(&card) != nullptr) {
+        effect = CardEffect::ActivateShield;
+        accent = DARKBLUE;
+    } else if (dynamic_cast<const DiscountCard*>(&card) != nullptr) {
+        effect = CardEffect::ActivateDiscount;
+        accent = toolkit.theme().getGold();
+    } else if (dynamic_cast<const LassoCard*>(&card) != nullptr ||
+               dynamic_cast<const DemolitionCard*>(&card) != nullptr) {
+        effect = CardEffect::ActivateShield;
+        accent = toolkit.theme().getCoral();
+    }
+
+    return {card.getName(), card.getDescription(), kind, effect, magnitude, accent};
+}
+
+LogItem GUIGameController::makeLogItemFromBackend(const LogManager::LogEntry& entry) const {
+    return {entry.getTurnNumber(), entry.getUsername(), entry.getActionType(), entry.getDetail()};
+}
+
+int GUIGameController::moveBackendPlayer(Player& player, int steps) {
+    const int boardSize = backendGame_.getBoard().getBoardSize();
+    if (boardSize <= 0) {
+        player.moveTo(player.getPosition() + steps);
+        return player.getPosition();
+    }
+
+    const int oldPosition = normalizedBackendTileIndex(player.getPosition());
+    const int rawPosition = oldPosition + steps;
+    const int newPosition = normalizedBackendTileIndex(rawPosition);
+    if (rawPosition > boardSize) {
+        int salary = backendGame_.getConfigManager().getGoSalary();
+        std::shared_ptr<Tile> goTile = backendGame_.getBoard().getTile(1);
+        GoTile* go = dynamic_cast<GoTile*>(goTile.get());
+        if (go != nullptr) {
+            salary = go->getSalary();
+        }
+        player += salary;
+        addLog(player.getUsername(), "GO", "Melewati GO dan menerima M" + std::to_string(salary) + ".");
+        addToast("Melewati GO: +" + std::to_string(salary) + ".", toolkit.theme().getGold());
+    }
+
+    player.moveTo(newPosition);
+    return newPosition;
+}
+
+void GUIGameController::resolveBackendLanding(int backendTileIndex, bool fromMovement) {
+    if (!backendGame_.isGameRunning() || backendGame_.getPlayers().empty()) {
         return;
     }
 
-    if (scenarioIndex == 0) {
-        game.setTurn(7);
-    } else if (scenarioIndex == 1) {
-        game.setTurn(15);
-        game.getPlayers().at(0).setJailed(true);
-        game.getPlayers().at(0).setPosition(6);
+    const int normalizedIndex = normalizedBackendTileIndex(backendTileIndex);
+    appState_.getGame().setSelectedTile(uiTileIndexFromBackend(normalizedIndex));
+    Tile* tile = backendGame_.getBoard().getTile(normalizedIndex).get();
+    if (tile == nullptr) {
+        syncViewFromBackend();
+        return;
+    }
+
+    Player& player = backendGame_.getCurrentPlayer();
+    OverlayType overlayToOpen = OverlayType::None;
+    int overlayTile = uiTileIndexFromBackend(normalizedIndex);
+
+    try {
+        switch (tile->onLand()) {
+            case Tile::TileType::Street: {
+                StreetTile& street = static_cast<StreetTile&>(*tile);
+                Player* owner = street.getOwner();
+                if (owner == nullptr || street.getOwnershipStatus() == OwnershipStatus::BANK) {
+                    overlayToOpen = OverlayType::Purchase;
+                    break;
+                }
+                if (owner == &player) {
+                    addToast("Mendarat di properti sendiri.", groupAccent(street.getColorGroup()));
+                    break;
+                }
+                if (street.isMortgaged()) {
+                    addToast("Properti tergadai, tidak menarik sewa.", groupAccent(street.getColorGroup()));
+                    break;
+                }
+                RentContext rentContext = backendGame_.getPropertyManager().createRentContext(
+                    backendGame_.getBoard(),
+                    backendGame_.getConfigManager(),
+                    backendGame_.getDice(),
+                    street
+                );
+                const int rent = street.calculateRent(rentContext);
+                if (player.isShieldActive()) {
+                    player.setShieldActive(false);
+                    addToast("Shield menahan sewa.", playerAccent(currentBackendPlayerIndex()));
+                    break;
+                }
+                if (player.getMoney() < player.effectiveCost(rent)) {
+                    backendGame_.getBankruptcyManager().beginBankruptcySession(player, owner, rent, false);
+                    addLog(player.getUsername(), "SEWA", "Dana kurang untuk membayar M" + std::to_string(rent) + " ke " + owner->getUsername() + ".");
+                    addToast("Dana kurang untuk membayar rent.", RED);
+                    break;
+                }
+                player -= rent;
+                *owner += player.effectiveCost(rent);
+                addLog(player.getUsername(), "SEWA", "Membayar M" + std::to_string(rent) + " ke " + owner->getUsername() + ".");
+                addToast("Bayar rent " + std::to_string(rent) + ".", groupAccent(street.getColorGroup()));
+                break;
+            }
+            case Tile::TileType::Railroad:
+            case Tile::TileType::Utility: {
+                OwnableTile& property = static_cast<OwnableTile&>(*tile);
+                Player* owner = property.getOwner();
+                if (owner == nullptr || property.getOwnershipStatus() == OwnershipStatus::BANK) {
+                    property.setOwner(&player);
+                    property.setOwnershipStatus(OwnershipStatus::OWNED);
+                    addLog(player.getUsername(), "AKUISISI", property.getName() + " menjadi milik pemain.");
+                    addToast(property.getName() + " menjadi milikmu.", kindAccent(toGuiTileKind(property), ""));
+                    break;
+                }
+                if (owner == &player) {
+                    addToast("Mendarat di properti sendiri.", kindAccent(toGuiTileKind(property), ""));
+                    break;
+                }
+                if (property.isMortgaged()) {
+                    addToast("Properti tergadai, tidak menarik sewa.", kindAccent(toGuiTileKind(property), ""));
+                    break;
+                }
+                RentContext rentContext = backendGame_.getPropertyManager().createRentContext(
+                    backendGame_.getBoard(),
+                    backendGame_.getConfigManager(),
+                    backendGame_.getDice(),
+                    property
+                );
+                const int rent = property.calculateRent(rentContext);
+                if (player.isShieldActive()) {
+                    player.setShieldActive(false);
+                    addToast("Shield menahan sewa.", playerAccent(currentBackendPlayerIndex()));
+                    break;
+                }
+                if (player.getMoney() < player.effectiveCost(rent)) {
+                    backendGame_.getBankruptcyManager().beginBankruptcySession(player, owner, rent, false);
+                    addLog(player.getUsername(), "SEWA", "Dana kurang untuk membayar M" + std::to_string(rent) + " ke " + owner->getUsername() + ".");
+                    addToast("Dana kurang untuk membayar rent.", RED);
+                    break;
+                }
+                player -= rent;
+                *owner += player.effectiveCost(rent);
+                addLog(player.getUsername(), "SEWA", "Membayar M" + std::to_string(rent) + " ke " + owner->getUsername() + ".");
+                addToast("Bayar rent " + std::to_string(rent) + ".", kindAccent(toGuiTileKind(property), ""));
+                break;
+            }
+            case Tile::TileType::Chance:
+                syncViewFromBackend();
+                openRandomCardDraw(kChanceDeckKey);
+                return;
+            case Tile::TileType::CommunityChest:
+                syncViewFromBackend();
+                openRandomCardDraw(kCommunityDeckKey);
+                return;
+            case Tile::TileType::IncomeTax:
+                overlayToOpen = OverlayType::IncomeTax;
+                break;
+            case Tile::TileType::LuxuryTax:
+                overlayToOpen = OverlayType::LuxuryTax;
+                break;
+            case Tile::TileType::Festival:
+                overlayToOpen = OverlayType::Festival;
+                break;
+            case Tile::TileType::GoToJail:
+                if (player.isShieldActive()) {
+                    player.setShieldActive(false);
+                    addToast("Shield menahan efek jail.", playerAccent(currentBackendPlayerIndex()));
+                    break;
+                }
+                backendGame_.getJailManager().sendToJail(player);
+                player.moveTo(backendTileIndexFromUi(findJailIndex()));
+                addLog(player.getUsername(), "JAIL", fromMovement ? "Efek kartu/perpindahan." : "Mendarat di Go To Jail.");
+                overlayToOpen = OverlayType::Jail;
+                overlayTile = findJailIndex();
+                break;
+            case Tile::TileType::Go:
+                addToast("Mendarat di GO.", toolkit.theme().getGold());
+                break;
+            case Tile::TileType::Jail:
+                addToast(player.isJailed() ? "Masih berada di jail." : "Hanya berkunjung ke jail.", toolkit.theme().getDanger());
+                break;
+            case Tile::TileType::FreeParking:
+                addToast("Istirahat sejenak di Free Parking.", toolkit.theme().getPaper());
+                break;
+        }
+    } catch (const std::exception& exception) {
+        addToast(exception.what(), RED);
+    }
+
+    syncViewFromBackend();
+    if (overlayToOpen == OverlayType::Purchase) {
+        openPurchase(overlayTile);
+    } else if (overlayToOpen == OverlayType::IncomeTax) {
+        openIncomeTax();
+    } else if (overlayToOpen == OverlayType::LuxuryTax) {
+        openLuxuryTax();
+    } else if (overlayToOpen == OverlayType::Festival) {
+        openFestival();
+    } else if (overlayToOpen == OverlayType::Jail) {
+        openJail();
     } else {
-        game.setTurn(28);
-        if (game.getPlayers().size() > 1) {
-            game.getPlayers().resize(2);
+        maybeOpenLiquidation();
+    }
+}
+
+void GUIGameController::closeCardDrawOverlay(bool discardPendingCard) {
+    if (appState_.getOverlay().getType() == OverlayType::CardDraw) {
+        clearPendingDrawnCard(discardPendingCard);
+    }
+}
+
+void GUIGameController::clearPendingDrawnCard(bool discardPendingCard) {
+    if (discardPendingCard && pendingChanceCard_ != nullptr) {
+        backendGame_.getCardManager().discardChanceCard(pendingChanceCard_);
+    }
+    if (discardPendingCard && pendingCommunityChestCard_ != nullptr) {
+        backendGame_.getCardManager().discardCommunityChestCard(pendingCommunityChestCard_);
+    }
+    pendingChanceCard_.reset();
+    pendingCommunityChestCard_.reset();
+}
+
+void GUIGameController::discardAllCards(Player& player) {
+    while (player.countCards() > 0) {
+        backendGame_.getCardManager().dropHandCard(player, 0);
+    }
+}
+
+void GUIGameController::configureSelectedHandCard(Player& player, int cardIndex) {
+    std::vector<std::shared_ptr<HandCard>> cards = backendGame_.getCardManager().getHandCards(player);
+    if (cardIndex < 0 || cardIndex >= static_cast<int>(cards.size()) || cards.at(cardIndex) == nullptr) {
+        return;
+    }
+
+    if (std::shared_ptr<TeleportCard> teleport = std::dynamic_pointer_cast<TeleportCard>(cards.at(cardIndex))) {
+        teleport->setTargetTileIndex(backendTileIndexFromUi(appState_.getGame().getSelectedTile()));
+        return;
+    }
+
+    if (std::shared_ptr<LassoCard> lasso = std::dynamic_pointer_cast<LassoCard>(cards.at(cardIndex))) {
+        for (Player& candidate : backendGame_.getPlayers()) {
+            if (&candidate != &player && !candidate.isBankrupt()) {
+                lasso->setTargetPlayer(&candidate);
+                return;
+            }
+        }
+    }
+
+    if (std::shared_ptr<DemolitionCard> demolition = std::dynamic_pointer_cast<DemolitionCard>(cards.at(cardIndex))) {
+        StreetTile* selectedStreet = streetFromUi(appState_.getGame().getSelectedTile());
+        if (selectedStreet != nullptr &&
+            selectedStreet->getOwner() != nullptr &&
+            selectedStreet->getOwner() != &player &&
+            selectedStreet->getBuildingLevel() > 0) {
+            demolition->setTargetStreet(selectedStreet);
+            return;
+        }
+
+        for (const std::shared_ptr<Tile>& tile : backendGame_.getBoard().getTiles()) {
+            StreetTile* street = dynamic_cast<StreetTile*>(tile.get());
+            if (street != nullptr &&
+                street->getOwner() != nullptr &&
+                street->getOwner() != &player &&
+                street->getBuildingLevel() > 0) {
+                demolition->setTargetStreet(street);
+                return;
+            }
         }
     }
 }
 
-std::vector<TileInfo> GUIGameController::createBoard() const {
-    return {
-        {0, "GO", "GO", "Mulai perjalananmu di sini.", "", TileKind::Go, toolkit.theme().getGold(), 0, 0, 0, 0, 0, -1, 0, 0, false},
-        {1, "MTR", "Menteng", "Street awal dengan harga terjangkau.", "Amber", TileKind::Street, toolkit.colorForGroup("Amber"), 100, 50, 8, 50, 100, -1, 0, 0, false},
-        {2, "CC1", "Dana Umum", "Ambil kartu komunitas.", "", TileKind::CommunityChest, toolkit.theme().getSage(), 0, 0, 0, 0, 0, -1, 0, 0, false},
-        {3, "SNT", "Senen", "Street awal lain untuk membuka set pertama.", "Amber", TileKind::Street, toolkit.colorForGroup("Amber"), 120, 60, 10, 50, 100, -1, 0, 0, false},
-        {4, "PPH", "PPh", "Bayar pajak penghasilan.", "", TileKind::IncomeTax, toolkit.theme().getCoral(), 0, 0, 0, 0, 0, -1, 0, 0, false},
-        {5, "KRL", "KRL", "Railroad pertama di board.", "", TileKind::Railroad, toolkit.theme().getNavy(), 200, 100, 25, 0, 0, -1, 0, 0, false},
-        {6, "JIL", "Jail", "Tempat singgah atau hukuman.", "", TileKind::Jail, toolkit.theme().getDanger(), 0, 0, 0, 0, 0, -1, 0, 0, false},
-        {7, "CHA", "Chance", "Ambil kartu chance.", "", TileKind::Chance, toolkit.theme().getTeal(), 0, 0, 0, 0, 0, -1, 0, 0, false},
-        {8, "BDG", "Bandung", "Street menengah dengan potensi sewa yang naik.", "Cyan", TileKind::Street, toolkit.colorForGroup("Cyan"), 140, 70, 12, 50, 100, -1, 0, 0, false},
-        {9, "PLM", "Palmerah", "Street menengah pelengkap set cyan.", "Cyan", TileKind::Street, toolkit.colorForGroup("Cyan"), 160, 80, 14, 50, 100, -1, 0, 0, false},
-        {10, "PLN", "PLN", "Utility pertama.", "", TileKind::Utility, toolkit.theme().getTeal(), 150, 75, 40, 0, 0, -1, 0, 0, false},
-        {11, "FES", "Festival", "Pilih properti untuk boost festival.", "", TileKind::Festival, toolkit.theme().getCoral(), 0, 0, 0, 0, 0, -1, 0, 0, false},
-        {12, "PRA", "Pramuka", "Street transisi menuju mid board.", "Jade", TileKind::Street, toolkit.colorForGroup("Jade"), 180, 90, 16, 100, 200, -1, 0, 0, false},
-        {13, "CC2", "Dana Umum", "Ambil kartu komunitas lain.", "", TileKind::CommunityChest, toolkit.theme().getSage(), 0, 0, 0, 0, 0, -1, 0, 0, false},
-        {14, "TMN", "Taman", "Street jade kedua.", "Jade", TileKind::Street, toolkit.colorForGroup("Jade"), 200, 100, 18, 100, 200, -1, 0, 0, false},
-        {15, "PBM", "PBM", "Bayar pajak barang mewah.", "", TileKind::LuxuryTax, toolkit.theme().getCoral(), 0, 0, 0, 0, 0, -1, 0, 0, false},
-        {16, "KAI", "KAI", "Railroad kedua.", "", TileKind::Railroad, toolkit.theme().getNavy(), 200, 100, 25, 0, 0, -1, 0, 0, false},
-        {17, "GJL", "Go To Jail", "Langsung ke jail jika mendarat di sini.", "", TileKind::GoToJail, toolkit.theme().getDanger(), 0, 0, 0, 0, 0, -1, 0, 0, false},
-        {18, "CH2", "Chance", "Chance kedua.", "", TileKind::Chance, toolkit.theme().getTeal(), 0, 0, 0, 0, 0, -1, 0, 0, false},
-        {19, "KNN", "Kuningan", "Street premium pertama.", "Scarlet", TileKind::Street, toolkit.colorForGroup("Scarlet"), 320, 160, 34, 120, 240, -1, 0, 0, false},
-        {20, "DU2", "Dana Sosial", "Komunitas lain dengan efek kejutan.", "", TileKind::CommunityChest, toolkit.theme().getSage(), 0, 0, 0, 0, 0, -1, 0, 0, false},
-        {21, "THM", "Thamrin", "Street premium kedua.", "Scarlet", TileKind::Street, toolkit.colorForGroup("Scarlet"), 340, 170, 38, 120, 240, -1, 0, 0, false},
-        {22, "PAM", "PAM", "Utility kedua.", "", TileKind::Utility, toolkit.theme().getTeal(), 150, 75, 40, 0, 0, -1, 0, 0, false},
-        {23, "PRK", "Free Parking", "Tempat istirahat sementara.", "", TileKind::FreeParking, toolkit.theme().getPaper(), 0, 0, 0, 0, 0, -1, 0, 0, false},
-    };
-}
-
 std::vector<SaveSlot> GUIGameController::createInitialSaveSlots() const {
     return {
-        {"Save 1", "Permainan tengah dengan aset tersebar", 7, 4, toolkit.theme().getCoral()},
-        {"Save 2", "Pemain berada di jail dan aset tergadai", 15, 3, toolkit.theme().getTeal()},
-        {"Save 3", "Duel akhir menjelang batas turn", 28, 2, toolkit.theme().getGold()},
+        {"save-1.txt", "File save lokal", 1, kMinPlayers, toolkit.theme().getCoral()},
+        {"save-2.txt", "File save lokal", 1, kMinPlayers, toolkit.theme().getTeal()},
+        {"save-3.txt", "File save lokal", 1, kMinPlayers, toolkit.theme().getGold()},
     };
 }

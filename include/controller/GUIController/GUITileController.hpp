@@ -2,7 +2,6 @@
 
 #include "view/raylib/GuiTypes.hpp"
 
-#include <string>
 #include <vector>
 
 class GUIGameController;
@@ -64,16 +63,4 @@ public:
 
 private:
     GUIGameController& controller_;
-
-    int countOwnedByKind(int ownerIndex, view::raylibgui::TileKind kind) const;
-    int computeStreetRent(const view::raylibgui::TileInfo& tile) const;
-    void removePropertyReference(view::raylibgui::PlayerInfo& player, int tileIndex);
-    void assignTileToPlayer(int tileIndex, int playerIndex);
-    void releaseTile(int tileIndex);
-
-    int findFirstTile(view::raylibgui::TileKind kind) const;
-    int findFirstEligiblePurchaseTile() const;
-    void tickFestivalEffects();
-    void giveGoBonus(int playerIndex);
-    void sendCurrentPlayerToJail(const std::string& reason);
 };
