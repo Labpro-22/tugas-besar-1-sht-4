@@ -69,6 +69,7 @@ public:
     void openGameOver() const;
     void openJail() const;
     void endTurn() const;
+    void finishTurnAfterDiceIfReady() const;
     int moveBackendPlayer(Player& player, int steps) const;
     void resolveBackendLanding(int backendTileIndex, bool fromMovement = false) const;
     void closeCardDrawOverlay(bool discardPendingCard) const;
@@ -82,6 +83,7 @@ public:
     std::function<void()> openGameOverCallback;
     std::function<void()> openJailCallback;
     std::function<void()> endTurnCallback;
+    std::function<void()> finishTurnAfterDiceIfReadyCallback;
     std::function<int(Player&, int)> moveBackendPlayerCallback;
     std::function<void(int, bool)> resolveBackendLandingCallback;
     std::function<void(bool)> closeCardDrawOverlayCallback;

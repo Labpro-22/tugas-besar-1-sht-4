@@ -84,6 +84,7 @@ void GUICardController::useSelectedHandCard() {
             controller_.resolveBackendLanding(normalizedPosition, true);
         } else {
             controller_.syncViewFromBackend();
+            controller_.finishTurnAfterDiceIfReady();
         }
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
@@ -122,6 +123,7 @@ void GUICardController::applyDrawnCard() {
         } else {
             controller_.syncViewFromBackend();
             controller_.maybeOpenLiquidation();
+            controller_.finishTurnAfterDiceIfReady();
         }
     } catch (const std::exception& exception) {
         clearPendingDrawnCard(true);
@@ -151,6 +153,7 @@ void GUICardController::dropSelectedHandCard() {
         controller_.syncViewFromBackend();
         if (!controller_.backendGame_.getCardManager().needsForceDrop(player)) {
             controller_.closeOverlay();
+            controller_.finishTurnAfterDiceIfReady();
         }
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
@@ -181,6 +184,7 @@ void GUICardController::useJailCard() {
         controller_.addToast("Keluar dari jail dengan kartu.", SKYBLUE);
         controller_.closeOverlay();
         controller_.syncViewFromBackend();
+        controller_.finishTurnAfterDiceIfReady();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
         controller_.syncViewFromBackend();

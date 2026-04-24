@@ -25,6 +25,7 @@ public:
     void rollDice();
     void applyManualDice();
     void endTurn();
+    void finishTurnAfterDiceIfReady();
     bool canSaveNow() const;
     void adjustManualDie(int dieIndex, int delta);
     void saveSession();

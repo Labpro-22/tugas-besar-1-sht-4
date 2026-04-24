@@ -144,6 +144,12 @@ void GUIControllerContext::endTurn() const {
     }
 }
 
+void GUIControllerContext::finishTurnAfterDiceIfReady() const {
+    if (finishTurnAfterDiceIfReadyCallback) {
+        finishTurnAfterDiceIfReadyCallback();
+    }
+}
+
 int GUIControllerContext::moveBackendPlayer(Player& player, int steps) const {
     if (moveBackendPlayerCallback) {
         return moveBackendPlayerCallback(player, steps);

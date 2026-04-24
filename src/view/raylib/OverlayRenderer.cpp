@@ -258,13 +258,18 @@ void OverlayRenderer::drawJail(GUIGameController& session, const UiToolkit& tool
     DrawTextEx(font, ("Denda keluar: " + toolkit.formatMoney(fine)).c_str(), {choices.x + 18.0f, choices.y + 18.0f}, 21.0f, 1.0f, toolkit.theme().getInk());
     DrawTextEx(font, "Pilih cara keluar dari jail pada giliran ini.", {choices.x + 18.0f, choices.y + 58.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
 
-    if (toolkit.drawButton("Bayar Denda", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 150.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), player.isJailed() && player.getMoney() >= fine, 20.0f)) {
+    if (toolkit.drawButton("Bayar Denda", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 150.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), player.isJailed(), 20.0f)) {
         session.payJailFine();
     }
     if (toolkit.drawButton("Pakai Kartu", {modal.x + 194.0f, modal.y + modal.height - 64.0f, 156.0f, 42.0f}, toolkit.mix(toolkit.theme().getGold(), WHITE, 0.14f), toolkit.theme().getInk(), player.isJailed() && !player.getHandCards().empty(), 20.0f)) {
         session.useJailCard();
     }
-    if (toolkit.drawButton("Tetap Di Sini", {modal.x + modal.width - 160.0f, modal.y + modal.height - 64.0f, 132.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), true, 20.0f)) {
+    if (player.isJailed()) {
+        const bool canAttemptRoll = player.getFailedJailRolls() < 3;
+        if (toolkit.drawButton("Roll Double", {modal.x + modal.width - 160.0f, modal.y + modal.height - 64.0f, 132.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), canAttemptRoll, 20.0f)) {
+            session.attemptJailRoll();
+        }
+    } else if (toolkit.drawButton("Tutup", {modal.x + modal.width - 160.0f, modal.y + modal.height - 64.0f, 132.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), true, 20.0f)) {
         session.closeOverlay();
     }
 }
@@ -511,7 +516,7 @@ void OverlayRenderer::drawSetDice(GUIGameController& session, const UiToolkit& t
     const bool canApply = state.getGame().isTurnStarted() && !state.getGame().isRolledThisTurn();
     const std::string status = canApply
         ? "Nilai ini akan dipakai sebagai hasil lempar dadu."
-        : (state.getGame().isRolledThisTurn() ? "Dadu sudah dilempar pada turn ini." : "Mulai turn dulu sebelum mengatur dadu.");
+        : (state.getGame().isRolledThisTurn() ? "Dadu sudah dilempar pada turn ini." : "Turn belum siap untuk mengatur dadu.");
     toolkit.drawWrappedText(status, {modal.x + 28.0f, modal.y + 334.0f, modal.width - 56.0f, 44.0f}, 18.0f, canApply ? toolkit.theme().getInkMuted() : toolkit.theme().getCoral());
 
     if (toolkit.drawButton("Roll Dadu", {modal.x + 28.0f, modal.y + modal.height - 66.0f, 180.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), canApply, 20.0f)) {
@@ -534,10 +539,10 @@ void OverlayRenderer::drawHelp(GUIGameController& session, const UiToolkit& tool
     toolkit.drawPanel(list, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getTeal(), 0.05f), toolkit.withAlpha(toolkit.theme().getInkMuted(), 0.10f), 0.0f);
 
     const std::vector<std::string> lines = {
-        "Start Turn: mulai giliran pemain aktif.",
+        "Turn dimulai otomatis untuk pemain aktif.",
         "Roll Dice: lempar dadu acak dan gerakkan pion.",
         "Atur Dadu: pilih nilai dadu manual 1-6 untuk giliran ini.",
-        "End Turn: akhiri giliran dan pindah ke pemain berikutnya.",
+        "Turn selesai otomatis setelah Roll Dice atau Atur Dadu selesai diproses.",
         "Detail Tile: buka akta atau detail petak yang dipilih.",
         "Portfolio: lihat saldo, aset, dan jumlah kartu pemain aktif.",
         "Cards: gunakan kartu yang sedang ada di tangan pemain.",

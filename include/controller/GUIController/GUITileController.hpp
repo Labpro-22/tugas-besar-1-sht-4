@@ -51,6 +51,7 @@ public:
 
     void activateFestivalOnSelectedTile();
     void payJailFine();
+    void attemptJailRoll();
 
     void buildOnSelectedTile();
     void mortgageSelectedTile();

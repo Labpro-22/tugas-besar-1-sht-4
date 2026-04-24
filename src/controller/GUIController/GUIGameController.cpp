@@ -294,6 +294,7 @@ void GUIGameController::startFreshSession() {
         diceRolledThisTurn_ = false;
         appState_.setScreen(Screen::Gameplay);
         syncViewFromBackend();
+        commandController_.startTurn();
     } catch (const std::exception& exception) {
         addToast(exception.what(), RED);
     }
@@ -362,6 +363,8 @@ void GUIGameController::payLuxuryTax() { tileController_.payLuxuryTax(); }
 void GUIGameController::activateFestivalOnSelectedTile() { tileController_.activateFestivalOnSelectedTile(); }
 
 void GUIGameController::payJailFine() { tileController_.payJailFine(); }
+
+void GUIGameController::attemptJailRoll() { tileController_.attemptJailRoll(); }
 
 void GUIGameController::useJailCard() { cardController_.useJailCard(); }
 

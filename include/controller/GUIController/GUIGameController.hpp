@@ -98,6 +98,7 @@ public:
 
     void activateFestivalOnSelectedTile();
     void payJailFine();
+    void attemptJailRoll();
     void useJailCard();
 
     void useSelectedHandCard();

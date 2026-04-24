@@ -313,6 +313,7 @@ void GUITileController::buySelectedProperty() {
         controller_.addToast("Properti dibeli.", kindAccent(controller_.toGuiTileKind(*ownable), ""));
         controller_.closeOverlay();
         controller_.syncViewFromBackend();
+        controller_.finishTurnAfterDiceIfReady();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
         controller_.syncViewFromBackend();
@@ -415,6 +416,7 @@ void GUITileController::finalizeAuction() {
 
     controller_.closeOverlay();
     controller_.syncViewFromBackend();
+    controller_.finishTurnAfterDiceIfReady();
 }
 
 int GUITileController::flatIncomeTax() const {
@@ -447,6 +449,7 @@ void GUITileController::payIncomeTax(bool useFlatTax) {
         controller_.closeOverlay();
         controller_.syncViewFromBackend();
         controller_.maybeOpenLiquidation();
+        controller_.finishTurnAfterDiceIfReady();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
         controller_.syncViewFromBackend();
@@ -475,6 +478,7 @@ void GUITileController::payLuxuryTax() {
         controller_.closeOverlay();
         controller_.syncViewFromBackend();
         controller_.maybeOpenLiquidation();
+        controller_.finishTurnAfterDiceIfReady();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
         controller_.syncViewFromBackend();
@@ -502,6 +506,7 @@ void GUITileController::activateFestivalOnSelectedTile() {
         controller_.addToast("Festival aktif di " + street->getName() + ".", groupAccent(street->getColorGroup()));
         controller_.closeOverlay();
         controller_.syncViewFromBackend();
+        controller_.finishTurnAfterDiceIfReady();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
         controller_.syncViewFromBackend();
@@ -525,6 +530,57 @@ void GUITileController::payJailFine() {
         controller_.addToast("Denda jail dibayar.", SKYBLUE);
         controller_.closeOverlay();
         controller_.syncViewFromBackend();
+        controller_.finishTurnAfterDiceIfReady();
+    } catch (const std::exception& exception) {
+        controller_.addToast(exception.what(), RED);
+        controller_.syncViewFromBackend();
+    }
+}
+
+void GUITileController::attemptJailRoll() {
+    try {
+        Player& player = controller_.backendGame_.getCurrentPlayer();
+        if (!player.isJailed()) {
+            controller_.closeOverlay();
+            controller_.syncViewFromBackend();
+            return;
+        }
+        if (player.getFailedJailRolls() >= 3) {
+            controller_.addToast("Sudah gagal 3 kali. Wajib bayar denda jail.", RED);
+            return;
+        }
+
+        const bool released = controller_.backendGame_.getJailManager().tryRollForRelease(controller_.backendGame_.getDice(), player);
+        const int dieOne = controller_.backendGame_.getDice().getDie1();
+        const int dieTwo = controller_.backendGame_.getDice().getDie2();
+        const int total = controller_.backendGame_.getDice().getTotal();
+        controller_.backendGame_.getTurnManager().setRolledThisTurn(true);
+        controller_.diceRolledThisTurn_ = true;
+
+        if (!released) {
+            player.setFailedJailRolls(std::min(3, player.getFailedJailRolls() + 1));
+            controller_.addLog(
+                player.getUsername(),
+                "JAIL",
+                "Gagal keluar jail dengan dadu " + std::to_string(dieOne) + "+" + std::to_string(dieTwo) + "."
+            );
+            controller_.addToast("Belum double. Tetap di jail.", RED);
+            controller_.closeOverlay();
+            controller_.syncViewFromBackend();
+            controller_.finishTurnAfterDiceIfReady();
+            return;
+        }
+
+        const int destination = moveBackendPlayer(player, total);
+        controller_.addLog(
+            player.getUsername(),
+            "JAIL",
+            "Double " + std::to_string(dieOne) + "+" + std::to_string(dieTwo) + ", keluar jail."
+        );
+        controller_.addToast("Double! Keluar dari jail.", SKYBLUE);
+        controller_.closeOverlay();
+        resolveBackendLanding(destination, false);
+        controller_.finishTurnAfterDiceIfReady();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
         controller_.syncViewFromBackend();
@@ -557,6 +613,7 @@ void GUITileController::buildOnSelectedTile() {
         controller_.addToast("Bangunan ditambahkan.", groupAccent(street->getColorGroup()));
         controller_.closeOverlay();
         controller_.syncViewFromBackend();
+        controller_.finishTurnAfterDiceIfReady();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
         controller_.syncViewFromBackend();
@@ -584,6 +641,7 @@ void GUITileController::mortgageSelectedTile() {
         controller_.addToast("Aset digadai.", kindAccent(controller_.toGuiTileKind(*property), ""));
         controller_.closeOverlay();
         controller_.syncViewFromBackend();
+        controller_.finishTurnAfterDiceIfReady();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
         controller_.syncViewFromBackend();
@@ -615,6 +673,7 @@ void GUITileController::redeemSelectedTile() {
         controller_.addToast("Aset berhasil ditebus.", kindAccent(controller_.toGuiTileKind(*property), ""));
         controller_.closeOverlay();
         controller_.syncViewFromBackend();
+        controller_.finishTurnAfterDiceIfReady();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
         controller_.syncViewFromBackend();
@@ -643,6 +702,7 @@ void GUITileController::liquidateSelectedTile() {
         controller_.syncViewFromBackend();
         if (!controller_.backendGame_.getBankruptcyManager().isBankruptcyActive()) {
             controller_.closeOverlay();
+            controller_.finishTurnAfterDiceIfReady();
         }
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
@@ -929,5 +989,6 @@ void GUITileController::resolveBackendLanding(int backendTileIndex, bool fromMov
         openJail();
     } else {
         controller_.maybeOpenLiquidation();
+        controller_.finishTurnAfterDiceIfReady();
     }
 }

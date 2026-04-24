@@ -261,10 +261,8 @@ void GameplayScreenRenderer::drawActionPanel(
     const float startY = rect.y + 58.0f;
 
     const std::vector<std::string> labels = {
-        "Start Turn",
         "Roll Dice",
         "Atur Dadu",
-        "End Turn",
         "Detail Tile",
         "Portfolio",
         "Cards",
@@ -278,22 +276,15 @@ void GameplayScreenRenderer::drawActionPanel(
         const float y = startY + (index / 2) * (buttonHeight + buttonGap);
         const Rectangle button = {x, y, buttonWidth, buttonHeight};
 
-        if (labels.at(index) == "Start Turn") {
-            if (toolkit.drawButton(labels.at(index), button, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), interactive, 15.0f)) {
-                session.startTurn();
-            }
-        } else if (labels.at(index) == "Roll Dice") {
-            if (toolkit.drawButton(labels.at(index), button, toolkit.theme().getCoral(), toolkit.theme().getPaperSoft(), interactive, 15.0f)) {
+        if (labels.at(index) == "Roll Dice") {
+            const bool canRollDice = interactive && state.getGame().isTurnStarted() && !state.getGame().isRolledThisTurn();
+            if (toolkit.drawButton(labels.at(index), button, toolkit.theme().getCoral(), toolkit.theme().getPaperSoft(), canRollDice, 15.0f)) {
                 session.rollDice();
             }
         } else if (labels.at(index) == "Atur Dadu") {
             const bool canSetDice = interactive && state.getGame().isTurnStarted() && !state.getGame().isRolledThisTurn();
             if (toolkit.drawButton(labels.at(index), button, toolkit.mix(toolkit.theme().getGold(), WHITE, 0.18f), toolkit.theme().getInk(), canSetDice, 15.0f)) {
                 session.openSetDice();
-            }
-        } else if (labels.at(index) == "End Turn") {
-            if (toolkit.drawButton(labels.at(index), button, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.08f), toolkit.theme().getPaperSoft(), interactive, 15.0f)) {
-                session.endTurn();
             }
         } else if (labels.at(index) == "Detail Tile") {
             if (toolkit.drawButton(labels.at(index), button, toolkit.mix(toolkit.theme().getGold(), WHITE, 0.16f), toolkit.theme().getInk(), interactive, 15.0f)) {

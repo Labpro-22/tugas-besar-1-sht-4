@@ -63,6 +63,7 @@ GUICommandController::GUICommandController(GUIControllerContext& controller)
     controller_.openForceDropCallback = [this]() { openForceDrop(); };
     controller_.openGameOverCallback = [this]() { openGameOver(); };
     controller_.endTurnCallback = [this]() { endTurn(); };
+    controller_.finishTurnAfterDiceIfReadyCallback = [this]() { finishTurnAfterDiceIfReady(); };
 }
 
 void GUICommandController::tick(float deltaTime) {
@@ -85,14 +86,10 @@ void GUICommandController::handleGlobalShortcuts() {
         return;
     }
 
-    if (IsKeyPressed(KEY_S)) {
-        startTurn();
-    } else if (IsKeyPressed(KEY_R)) {
+    if (IsKeyPressed(KEY_R)) {
         rollDice();
     } else if (IsKeyPressed(KEY_D)) {
         openSetDice();
-    } else if (IsKeyPressed(KEY_E)) {
-        endTurn();
     } else if (IsKeyPressed(KEY_P)) {
         openPortfolio();
     } else if (IsKeyPressed(KEY_C)) {
@@ -201,7 +198,7 @@ void GUICommandController::rollDice() {
         return;
     }
     if (!controller_.guiTurnStarted_) {
-        controller_.addToast("Mulai turn dulu sebelum melempar dadu.", RED);
+        controller_.addToast("Turn belum siap untuk melempar dadu.", RED);
         return;
     }
     if (controller_.backendGame_.getTurnManager().isRolledThisTurn()) {
@@ -244,6 +241,7 @@ void GUICommandController::rollDice() {
             playerAccent(controller_.currentBackendPlayerIndex())
         );
         controller_.resolveBackendLanding(destination, false);
+        finishTurnAfterDiceIfReady();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
         controller_.syncViewFromBackend();
@@ -257,7 +255,7 @@ void GUICommandController::applyManualDice() {
         return;
     }
     if (!controller_.guiTurnStarted_) {
-        controller_.addToast("Mulai turn dulu sebelum mengatur dadu.", RED);
+        controller_.addToast("Turn belum siap untuk mengatur dadu.", RED);
         return;
     }
     if (controller_.backendGame_.getTurnManager().isRolledThisTurn()) {
@@ -297,6 +295,7 @@ void GUICommandController::applyManualDice() {
         );
         controller_.addToast("Dadu manual diterapkan.", playerAccent(controller_.currentBackendPlayerIndex()));
         controller_.resolveBackendLanding(destination, false);
+        finishTurnAfterDiceIfReady();
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
         controller_.syncViewFromBackend();
@@ -336,11 +335,31 @@ void GUICommandController::endTurn() {
         controller_.syncViewFromBackend();
         if (controller_.backendGame_.isGameOver()) {
             openGameOver();
+        } else {
+            startTurn();
         }
     } catch (const std::exception& exception) {
         controller_.addToast(exception.what(), RED);
         controller_.syncViewFromBackend();
     }
+}
+
+void GUICommandController::finishTurnAfterDiceIfReady() {
+    if (!controller_.backendGame_.isGameRunning() ||
+        controller_.backendGame_.getPlayers().empty() ||
+        !controller_.guiTurnStarted_ ||
+        !controller_.backendGame_.getTurnManager().isRolledThisTurn()) {
+        return;
+    }
+    if (controller_.appState_.getOverlay().getType() != OverlayType::None) {
+        return;
+    }
+    if (controller_.backendGame_.getBankruptcyManager().isBankruptcyActive() ||
+        controller_.backendGame_.getCurrentPlayer().getMoney() < 0) {
+        controller_.maybeOpenLiquidation();
+        return;
+    }
+    endTurn();
 }
 
 bool GUICommandController::canSaveNow() const {

@@ -216,11 +216,11 @@ void MenuScreenRenderer::drawNewGame(GUIGameController& session, const UiToolkit
     toolkit.drawPanel(note, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getGold(), 0.08f), toolkit.withAlpha(toolkit.theme().getInkMuted(), 0.10f), 0.0f);
     DrawTextEx(font, "Alur Giliran", {note.x + 18.0f, note.y + 18.0f}, 24.0f, 1.0f, toolkit.theme().getInk());
     const std::vector<std::string> flow = {
-        "1. Mulai turn pemain aktif",
+        "1. Turn pemain aktif dimulai otomatis",
         "2. Lempar dadu dan pindahkan pion",
         "3. Selesaikan efek petak",
         "4. Kelola aset dan kartu bila tersedia",
-        "5. Akhiri turn untuk pemain berikutnya",
+        "5. Turn berganti otomatis setelah dadu diproses",
     };
 
     float flowY = note.y + 58.0f;
