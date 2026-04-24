@@ -354,7 +354,10 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
         case Tile::TileType::GoToJail:
             uiManager.printMessage("Kamu mendarat di Petak Pergi ke Penjara!");
             game.getJailManager().sendToJail(player);
-            player.moveTo(11);
+            {
+                const int jailIndex = game.getBoard().getTileIndex("PEN");
+                player.moveTo(jailIndex >= 0 ? jailIndex : 11);
+            }
             game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "JAIL", "Masuk penjara");
             break;
         case Tile::TileType::Go:
