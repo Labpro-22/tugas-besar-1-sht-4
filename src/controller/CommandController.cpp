@@ -507,7 +507,10 @@ bool CommandController::handleTripleDoubleJail(Player& player) const {
 
     uiManager.printMessage("Dadu double tiga kali berturut-turut! Kamu masuk penjara.");
     game.getJailManager().sendToJail(player);
-    player.moveTo(11);
+    {
+        const int jailIndex = game.getBoard().getTileIndex("PEN");
+        player.moveTo(jailIndex >= 0 ? jailIndex : 11);
+    }
     game.getLogManager().addLog(
         game.getCurrentTurn(),
         player.getUsername(),

@@ -2,6 +2,7 @@
 
 #include "controller/CommandController.hpp"
 #include "controller/TileController.hpp"
+#include "model/ComputerDecisionMaker.hpp"
 #include "model/Game.hpp"
 #include "model/Player.hpp"
 #include "model/managers/PropertyManager.hpp"
@@ -37,6 +38,16 @@ bool GameController::isTurnEndingCommand(const string& input) const {
     const string command = firstToken(input);
     return command == "LEMPAR_DADU" ||
            command == "ATUR_DADU";
+}
+
+bool GameController::isPlayerActionCommand(const string& input) const {
+    const string command = firstToken(input);
+    return command == "LEMPAR_DADU" ||
+           command == "ATUR_DADU" ||
+           command == "GADAI" ||
+           command == "TEBUS" ||
+           command == "BANGUN" ||
+           command == "GUNAKAN_KEMAMPUAN";
 }
 
 size_t GameController::activePlayerCount(const Game& game) const {
@@ -140,6 +151,24 @@ void GameController::runTurn() {
         return;
     }
 
+    if (player.isComputerPlayer()) {
+        if (!player.hasUsedHandCardThisTurn() && player.countCards() > 0
+                && ComputerDecisionMaker::rollThreshold(50)) {
+            uiManager.printMessage("[COM " + player.getUsername() + "] Mencoba menggunakan kartu kemampuan.");
+            const bool ok = commandController->processCommand("GUNAKAN_KEMAMPUAN");
+            if (ok && isPlayerActionCommand("GUNAKAN_KEMAMPUAN")) {
+                game.getTurnManager().registerAction();
+            }
+        }
+        if (!rolledThisTurn && ComputerDecisionMaker::rollThreshold(60)) {
+            uiManager.printMessage("[COM " + player.getUsername() + "] Mencoba membangun properti.");
+            const bool ok = commandController->processCommand("BANGUN");
+            if (ok && isPlayerActionCommand("BANGUN")) {
+                game.getTurnManager().registerAction();
+            }
+        }
+    }
+
     while (game.isGameRunning() && !rolledThisTurn) {
         string input = uiManager.readCommand();
         if (input.empty()) {
@@ -156,6 +185,10 @@ void GameController::runTurn() {
         }
 
         const bool commandSucceeded = commandController->processCommand(input);
+
+        if (commandSucceeded && isPlayerActionCommand(input)) {
+            game.getTurnManager().registerAction();
+        }
 
         if (commandSucceeded && isTurnEndingCommand(input)) {
             diceRolledThisTurn = true;
@@ -187,9 +220,12 @@ void GameController::handleStartTurn(bool resumeExistingTurn) {
         game.getTurnManager().startTurn(game.getGameContext());
     } else {
         game.getTurnManager().setRolledThisTurn(false);
+        game.getTurnManager().setActionTakenThisTurn(false);
     }
 
     Player& player = game.getCurrentPlayer();
+    uiManager.setCurrentActor(&player);
+
     if (player.isBankrupt()) {
         return;
     }
@@ -254,7 +290,7 @@ void GameController::handleEndTurn() {
 }
 
 bool GameController::canSaveNow() const {
-    return !diceRolledThisTurn;
+    return !game.getTurnManager().hasActionTakenThisTurn();
 }
 
 bool GameController::isCommandValidThisTurn(const string& input) const {

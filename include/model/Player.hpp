@@ -27,6 +27,7 @@ private:
     bool shieldActive;
     int discountPercent;
     int discountDuration;
+    bool computerPlayer;
 
 public:
     Player();
@@ -83,4 +84,7 @@ public:
     void decrementDiscountDuration();
 
     bool hasUsedHandCardThisTurn() const;
+
+    bool isComputerPlayer() const;
+    void setComputerPlayer(bool val);
 };

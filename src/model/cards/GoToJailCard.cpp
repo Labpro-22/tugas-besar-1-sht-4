@@ -24,5 +24,6 @@ GoToJailCard& GoToJailCard::operator=(const GoToJailCard& other) {
 
 void GoToJailCard::apply(Game& game, Player& player) {
     game.getJailManager().sendToJail(player);
-    player.moveTo(11);
+    const int jailIndex = game.getBoard().getTileIndex("PEN");
+    player.moveTo(jailIndex >= 0 ? jailIndex : 11);
 }

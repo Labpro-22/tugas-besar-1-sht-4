@@ -5,11 +5,14 @@
 
 using namespace std;
 
+class Player;
+
 class UIManager {
 private:
     static const int CELL_WIDTH = 10;
     static const int CELL_HEIGHT = 3;
     static const int CENTER_WIDTH = CELL_WIDTH * 9 + 8;
+    const Player* currentActor = nullptr;
 
     string repeatChar(char ch, int count) const;
     string trim(const string& value) const;
@@ -41,9 +44,12 @@ public:
     ~UIManager();
     UIManager& operator=(const UIManager& other);
 
+    void setCurrentActor(const Player* player);
+
     void showMainMenu() const;
     int readMainMenuChoice() const;
     int readPlayerCount() const;
+    int readComputerPlayerCount(int maxCount) const;
     vector<string> readUsernames(int playerCount) const;
     string readCommand() const;
     void printMessage(const string& msg) const;
@@ -62,7 +68,7 @@ public:
     bool readYesNo() const;
     void printRailroadAcquired(const string& playerName, const string& tileName, const string& tileCode) const;
     void printUtilityAcquired(const string& playerName, const string& tileName, const string& tileCode) const;
-    void printRentPayment(const string& payerName, int payerMoney, const string& ownerName, int ownerMoney, const string& tileName, const string& tileCode, const string& condition, const string& festivalStatus, int rent) const;
+    void printRentPayment(const string& payerName, int payerMoney, const string& ownerName, int ownerMoney, const string& tileName, const string& tileCode, const string& condition, const string& festivalStatus, int paidRent) const;
     void printMortgagedNoRent(const string& tileName, const string& tileCode, const string& ownerName) const;
     void printIncomeTaxState(const string& playerName, int playerMoney, int flatTax, int percentTax) const;
     int readIncomeTaxChoice() const;
@@ -73,7 +79,7 @@ public:
     void printFestivalActivated(const string& tileName, const string& tileCode, int oldRent, int newRent, int duration) const;
     void printFestivalMaxed(const string& tileName, const string& tileCode, int duration) const;
     void printAuctionState(const string& tileName, const string& tileCode, int currentBid, const string& highestBidderName, const string& currentPlayerName) const;
-    string readAuctionAction() const;
+    string readAuctionAction(int minimumBid, int playerMoney, bool forcedBid = false) const;
     void printAuctionWinner(const string& tileName, const string& tileCode, const string& winnerName, int finalBid) const;
     void printLiquidationState(const string& playerName, int playerMoney, int requiredAmount, int estimatedLiquidationValue) const;
     int readLiquidationChoice(int maxIndex) const;

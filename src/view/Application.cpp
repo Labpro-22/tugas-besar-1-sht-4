@@ -74,10 +74,29 @@ void Application::handleNewGame() {
     if (playerCount < 2) {
         return;
     }
-    vector<string> usernames = uiManager.readUsernames(playerCount);
-    if (static_cast<int>(usernames.size()) != playerCount) {
-        return;
+
+    int comCount = uiManager.readComputerPlayerCount(playerCount);
+    int humanCount = playerCount - comCount;
+
+    vector<string> humanUsernames;
+    if (humanCount > 0) {
+        humanUsernames = uiManager.readUsernames(humanCount);
+        if (static_cast<int>(humanUsernames.size()) != humanCount) {
+            return;
+        }
     }
+
+    vector<string> allUsernames = humanUsernames;
+    int comSuffix = 1;
+    for (int i = 0; i < comCount; i++) {
+        string comName = (comSuffix == 1) ? "ProfessorRayapSunggal" : "ProfessorRayapSunggal" + to_string(comSuffix);
+        comSuffix++;
+        while (find(allUsernames.begin(), allUsernames.end(), comName) != allUsernames.end()) {
+            comName = "ProfessorRayapSunggal" + to_string(comSuffix++);
+        }
+        allUsernames.push_back(comName);
+    }
+
     vector<Player>& players = game.getPlayers();
     players.clear();
 
@@ -85,9 +104,9 @@ void Application::handleNewGame() {
     int initialBalance = 1500;
     if (game.getConfigManager().getInitialBalance() > 0) initialBalance = game.getConfigManager().getInitialBalance();
 
-    for (const string& username : usernames) {
-        players.push_back(Player(
-            username,
+    for (int i = 0; i < static_cast<int>(allUsernames.size()); i++) {
+        Player p(
+            allUsernames[static_cast<size_t>(i)],
             initialBalance,
             1,
             PlayerStatus::ACTIVE,
@@ -96,8 +115,13 @@ void Application::handleNewGame() {
             false,
             0,
             0
-        ));
+        );
+        if (i >= humanCount) {
+            p.setComputerPlayer(true);
+        }
+        players.push_back(p);
     }
+
     random_device device;
     mt19937 generator(device());
     shuffle(players.begin(), players.end(), generator);

@@ -43,7 +43,7 @@ directories:
 
 # Link object files to create executable
 $(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ -static-libgcc -static-libstdc++
 	@echo "Build successful! Executable is at $(TARGET)"
 
 # Compile source files into object files

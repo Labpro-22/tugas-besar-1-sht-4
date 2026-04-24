@@ -1,6 +1,7 @@
 #include "controller/CardController.hpp"
 
 #include "controller/TileController.hpp"
+#include "model/ComputerDecisionMaker.hpp"
 #include "model/Game.hpp"
 #include "model/Player.hpp"
 #include "model/Board.hpp"
@@ -92,25 +93,55 @@ void CardController::useHandCard(Player& player, int cardIndex) {
     if (auto teleport = dynamic_cast<TeleportCard*>(targetCard.get())) {
         Board& board = game.getBoard();
         int boardSize = board.getBoardSize();
+        vector<int> availableIndices;
+        vector<string> availableCodes;
+
         uiManager.printMessage("Daftar petak yang tersedia:");
-        for (int i = 0; i < boardSize; i++) {
+        for (int i = 1; i <= boardSize; i++) {
             auto tile = board.getTile(i);
             if (tile) {
+                availableIndices.push_back(i);
+                availableCodes.push_back(tile->getCode());
                 uiManager.printMessage("  [" + tile->getCode() + "] " + tile->getName());
             }
         }
 
         string targetCode;
         int targetIndex = -1;
-        while (targetIndex < 0) {
-            targetCode = uiManager.readPropertyCode();
-            targetIndex = board.getTileIndex(targetCode);
-            if (targetIndex < 0) {
-                uiManager.printError("Kode petak tidak valid. Coba lagi.");
+        while (true) {
+            if (player.isComputerPlayer()) {
+                if (availableIndices.empty()) {
+                    uiManager.printError("Tidak ada petak valid untuk TeleportCard.");
+                    return;
+                }
+                const int pickedOffset = ComputerDecisionMaker::randomInt(
+                    0,
+                    static_cast<int>(availableIndices.size()) - 1
+                );
+                targetIndex = availableIndices[static_cast<size_t>(pickedOffset)];
+                targetCode = availableCodes[static_cast<size_t>(pickedOffset)];
+                uiManager.printMessage(
+                    "[COM " + player.getUsername() + "] memilih target teleport: " + targetCode
+                );
+            } else {
+                targetCode = uiManager.readPropertyCode();
+                targetIndex = board.getTileIndex(targetCode);
             }
+
+            auto targetTile = board.getTile(targetIndex);
+            if (targetIndex <= 0 || targetTile == nullptr) {
+                if (!player.isComputerPlayer()) {
+                    uiManager.printError("Kode petak tidak valid. Coba lagi.");
+                }
+                continue;
+            }
+
+            uiManager.printMessage(
+                "Bidak dipindahkan ke " + targetTile->getName() + " (" + targetCode + ")."
+            );
+            teleport->setTargetTileIndex(targetIndex);
+            break;
         }
-        uiManager.printMessage("Bidak dipindahkan ke " + board.getTile(targetIndex)->getName() + " (" + targetCode + ").");
-        teleport->setTargetTileIndex(targetIndex);
     } 
     else if (auto lasso = dynamic_cast<LassoCard*>(targetCard.get())) {
         int myPos = player.getPosition();
@@ -120,6 +151,7 @@ void CardController::useHandCard(Player& player, int cardIndex) {
         for (Player& other : game.getPlayers()) {
             if (other.getUsername() == player.getUsername()) continue;
             if (other.isBankrupt()) continue;
+            if (other.isJailed()) continue;
 
             int otherPos = other.getPosition();
             bool isAhead = (otherPos > myPos) ||

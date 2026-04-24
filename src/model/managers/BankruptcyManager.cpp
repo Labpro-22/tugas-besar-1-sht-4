@@ -77,7 +77,39 @@ bool BankruptcyManager::hasLiquidationOptions(const Player& player) const {
 }
 
 bool BankruptcyManager::isBankruptcyActive() const {
-    return bankruptcyActive;
+    return !sessionQueue.empty();
+}
+
+int BankruptcyManager::getPendingAmount() const {
+    if (sessionQueue.empty()) return 0;
+    return sessionQueue.front().amount;
+}
+
+Player* BankruptcyManager::getPendingCreditor() const {
+    if (sessionQueue.empty()) return nullptr;
+    return sessionQueue.front().creditor;
+}
+
+Player* BankruptcyManager::getPendingDebtor() const {
+    if (sessionQueue.empty()) return nullptr;
+    return sessionQueue.front().debtor;
+}
+
+bool BankruptcyManager::isPendingDebtToBank() const {
+    if (sessionQueue.empty()) return true;
+    return sessionQueue.front().debtToBank;
+}
+
+void BankruptcyManager::clearSession() {
+    if (!sessionQueue.empty()) {
+        sessionQueue.erase(sessionQueue.begin());
+    }
+    if (sessionQueue.empty()) {
+        bankruptcyActive = false;
+        requiredAmount = 0;
+        creditor = nullptr;
+        debtor = nullptr;
+    }
 }
 
 void BankruptcyManager::settleDebt(Player& debtor) {
@@ -103,6 +135,7 @@ void BankruptcyManager::declareBankrupt(Player& debtor, Player* creditor) {
 }
 
 void BankruptcyManager::beginBankruptcySession(Player& player, Player* creditor, int amount, bool debtToBank) {
+    sessionQueue.push_back({&player, creditor, amount, debtToBank});
     this->debtor = &player;
     this->creditor = creditor;
     this->requiredAmount = amount;

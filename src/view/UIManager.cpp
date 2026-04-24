@@ -1,5 +1,8 @@
 #include "view/UIManager.hpp"
 
+#include "model/Player.hpp"
+#include "model/ComputerDecisionMaker.hpp"
+
 #include <algorithm>
 #include <cctype>
 #include <iomanip>
@@ -334,8 +337,21 @@ UIManager::~UIManager() {}
 
 UIManager& UIManager::operator=(const UIManager& other) {
     if (this != &other) {
+        currentActor = nullptr;
     }
     return *this;
+}
+
+void UIManager::setCurrentActor(const Player* player) {
+    currentActor = player;
+}
+
+int UIManager::readComputerPlayerCount(int maxCount) const {
+    if (maxCount <= 0) return 0;
+    return readIntInRange(
+        "Masukkan jumlah pemain COM (0-" + to_string(maxCount) + "): ",
+        0, maxCount, true
+    );
 }
 
 void UIManager::showMainMenu() const {
@@ -389,6 +405,11 @@ vector<string> UIManager::readUsernames(int playerCount) const {
 }
 
 string UIManager::readCommand() const {
+    if (currentActor && currentActor->isComputerPlayer()) {
+        string cmd = ComputerDecisionMaker::decideCommand();
+        cout << "[COM " << currentActor->getUsername() << "] > " << cmd << "\n";
+        return cmd;
+    }
     string command;
     cout << "> ";
     getline(cin, command);
@@ -417,7 +438,7 @@ void UIManager::printHelp() const {
     cout << "GUNAKAN_KEMAMPUAN            : Menggunakan satu kartu kemampuan dari tangan.\n";
     cout << "CETAK_LOG                    : Menampilkan seluruh log transaksi.\n";
     cout << "CETAK_LOG <N>                : Menampilkan N log transaksi terakhir.\n";
-    cout << "SIMPAN <nama_file>           : Menyimpan permainan sebelum melempar dadu.\n";
+    cout << "SIMPAN <nama_file>           : Menyimpan permainan hanya di awal giliran sebelum ada aksi.\n";
 }
 
 string UIManager::readPropertyCode() const {
@@ -699,6 +720,11 @@ void UIManager::printStreetPurchasePrompt(
 }
 
 bool UIManager::readYesNo() const {
+    if (currentActor && currentActor->isComputerPlayer()) {
+        bool decision = ComputerDecisionMaker::decideToBuy();
+        cout << "[COM " << currentActor->getUsername() << "] Memilih: " << (decision ? "Ya" : "Tidak") << "\n";
+        return decision;
+    }
     string answer;
     while (true) {
         getline(cin, answer);
@@ -752,7 +778,7 @@ void UIManager::printRentPayment(
     const string& tileCode,
     const string& condition,
     const string& festivalStatus,
-    int rent
+    int paidRent
 ) const {
     cout << payerName << " mendarat di " << tileName << " (" << tileCode
          << "), milik " << ownerName << "!\n\n";
@@ -764,11 +790,11 @@ void UIManager::printRentPayment(
         cout << "Festival     : " << festivalStatus << '\n';
     }
 
-    cout << "Sewa         : " << formatMoney(rent) << "\n\n";
+    cout << "Sewa         : " << formatMoney(paidRent) << "\n\n";
     cout << "Uang " << payerName << " : " << formatMoney(payerMoney)
-         << " -> " << formatMoney(payerMoney - rent) << '\n';
+         << " -> " << formatMoney(payerMoney - paidRent) << '\n';
     cout << "Uang " << ownerName << " : " << formatMoney(ownerMoney)
-         << " -> " << formatMoney(ownerMoney + rent) << '\n';
+         << " -> " << formatMoney(ownerMoney + paidRent) << '\n';
 }
 
 void UIManager::printMortgagedNoRent(
@@ -796,6 +822,11 @@ void UIManager::printIncomeTaxState(
 }
 
 int UIManager::readIncomeTaxChoice() const {
+    if (currentActor && currentActor->isComputerPlayer()) {
+        int decision = ComputerDecisionMaker::decideIncomeTax();
+        cout << "[COM " << currentActor->getUsername() << "] Memilih pajak opsi: " << decision << "\n";
+        return decision;
+    }
     return readIntInRange("Pilihan (1/2): ", 1, 2, true);
 }
 
@@ -855,6 +886,11 @@ void UIManager::printFestivalState(
 }
 
 int UIManager::readFestivalPropertyChoice(int maxIndex) const {
+    if (currentActor && currentActor->isComputerPlayer()) {
+        int decision = ComputerDecisionMaker::decideFestival(maxIndex);
+        cout << "[COM " << currentActor->getUsername() << "] Memilih properti festival: " << decision << "\n";
+        return decision;
+    }
     return readIntInRange(
         "Pilih properti festival (0 untuk batal): ",
         0,
@@ -904,7 +940,15 @@ void UIManager::printAuctionState(
     cout << "Aksi (PASS / BID <jumlah>)\n> ";
 }
 
-string UIManager::readAuctionAction() const {
+string UIManager::readAuctionAction(int minimumBid, int playerMoney, bool forcedBid) const {
+    if (currentActor && currentActor->isComputerPlayer()) {
+        string decision = ComputerDecisionMaker::decideAuctionAction(minimumBid, playerMoney, forcedBid);
+        cout << "[COM " << currentActor->getUsername() << "] " << decision << "\n";
+        return decision;
+    }
+    (void) minimumBid;
+    (void) playerMoney;
+    (void) forcedBid;
     string action;
     while (true) {
         getline(cin, action);
@@ -948,6 +992,11 @@ void UIManager::printLiquidationState(
 }
 
 int UIManager::readLiquidationChoice(int maxIndex) const {
+    if (currentActor && currentActor->isComputerPlayer()) {
+        int decision = ComputerDecisionMaker::decideLiquidation(maxIndex);
+        cout << "[COM " << currentActor->getUsername() << "] Melikuidasi aset pilihan: " << decision << "\n";
+        return decision;
+    }
     return readIntInRange(
         "Pilih aksi (0 jika sudah cukup): ",
         0,
@@ -970,6 +1019,11 @@ void UIManager::printForceDropState(
 }
 
 int UIManager::readForceDropChoice(int maxIndex) const {
+    if (currentActor && currentActor->isComputerPlayer()) {
+        int decision = ComputerDecisionMaker::decideForceDropChoice(maxIndex);
+        cout << "[COM " << currentActor->getUsername() << "] Membuang kartu: " << decision << "\n";
+        return decision;
+    }
     return readIntInRange(
         "Pilih nomor kartu yang ingin dibuang (1-" + to_string(maxIndex) + "): ",
         1,
@@ -995,6 +1049,11 @@ void UIManager::printAbilityCardOptions(
 }
 
 int UIManager::readAbilityCardChoice(int maxIndex) const {
+    if (currentActor && currentActor->isComputerPlayer()) {
+        int decision = ComputerDecisionMaker::decideAbilityCard(maxIndex);
+        cout << "[COM " << currentActor->getUsername() << "] Menggunakan kartu: " << decision << "\n";
+        return decision;
+    }
     return readIntInRange(
         "Pilih kartu yang ingin digunakan (0-" + to_string(maxIndex) + "): ",
         0,
@@ -1018,6 +1077,11 @@ void UIManager::printBuildOptions(int playerMoney, const vector<string>& eligibl
 }
 
 int UIManager::readBuildGroupChoice(int maxIndex) const {
+    if (currentActor && currentActor->isComputerPlayer()) {
+        int decision = ComputerDecisionMaker::decideBuildGroup(maxIndex);
+        cout << "[COM " << currentActor->getUsername() << "] Memilih color group: " << decision << "\n";
+        return decision;
+    }
     return readIntInRange(
         "Pilih nomor color group (0 untuk batal): ",
         0,
@@ -1055,6 +1119,11 @@ void UIManager::printBuildableTiles(
 }
 
 int UIManager::readBuildTileChoice(int maxIndex) const {
+    if (currentActor && currentActor->isComputerPlayer()) {
+        int decision = ComputerDecisionMaker::decideBuildTile(maxIndex);
+        cout << "[COM " << currentActor->getUsername() << "] Memilih petak bangun: " << decision << "\n";
+        return decision;
+    }
     return readIntInRange(
         "Pilih petak (0 untuk batal): ",
         0,
@@ -1103,6 +1172,11 @@ void UIManager::printRedeemOptions(
 }
 
 int UIManager::readRedeemChoice(int maxIndex) const {
+    if (currentActor && currentActor->isComputerPlayer()) {
+        int decision = ComputerDecisionMaker::decideRedeemChoice(maxIndex);
+        cout << "[COM " << currentActor->getUsername() << "] Menebus properti: " << decision << "\n";
+        return decision;
+    }
     return readIntInRange(
         "Pilih nomor properti (0 untuk batal): ",
         0,
@@ -1151,6 +1225,11 @@ void UIManager::printMortgageOptions(
 }
 
 int UIManager::readMortgageChoice(int maxIndex) const {
+    if (currentActor && currentActor->isComputerPlayer()) {
+        int decision = ComputerDecisionMaker::decideMortgageChoice(maxIndex);
+        cout << "[COM " << currentActor->getUsername() << "] Menggadaikan properti: " << decision << "\n";
+        return decision;
+    }
     return readIntInRange(
         "Pilih nomor properti (0 untuk batal): ",
         0,
@@ -1172,11 +1251,15 @@ void UIManager::printJailOptions(
     cout << "Gagal double : " << failedRolls << " kali\n\n";
     cout << "1. Bayar denda\n";
     cout << "2. Coba lempar double\n";
-    cout << "0. Batal\n";
 }
 
 int UIManager::readJailChoice() const {
-    return readIntInRange("Pilihan (0-2): ", 0, 2, true);
+    if (currentActor && currentActor->isComputerPlayer()) {
+        int decision = ComputerDecisionMaker::decideJailChoice();
+        cout << "[COM " << currentActor->getUsername() << "] Pilihan penjara: " << decision << "\n";
+        return decision;
+    }
+    return readIntInRange("Pilihan (1-2): ", 1, 2, true);
 }
 
 string UIManager::readFilename() const {
@@ -1254,6 +1337,11 @@ int UIManager::readLassoTarget(const vector<string>& names, const vector<int>& p
         cout << i + 1 << ". " << names[i] << " (petak ke-" << positions[i] << ")" << endl;
     }
     cout << "0. Batal" << endl;
+    if (currentActor && currentActor->isComputerPlayer()) {
+        int decision = ComputerDecisionMaker::decideLassoTarget(static_cast<int>(names.size()));
+        cout << "[COM " << currentActor->getUsername() << "] Memilih target lasso: " << decision << "\n";
+        return decision;
+    }
     return readIntInRange("Pilihan (0-" + to_string(names.size()) + "): ", 0, names.size(), true);
 }
 
@@ -1264,5 +1352,10 @@ int UIManager::readDemolitionTarget(const vector<string>& names, const vector<st
              << " (milik " << owners[i] << ", " << buildings[i] << ")" << endl;
     }
     cout << "0. Batal" << endl;
+    if (currentActor && currentActor->isComputerPlayer()) {
+        int decision = ComputerDecisionMaker::decideDemolitionTarget(static_cast<int>(names.size()));
+        cout << "[COM " << currentActor->getUsername() << "] Memilih target demolisi: " << decision << "\n";
+        return decision;
+    }
     return readIntInRange("Pilihan (0-" + to_string(names.size()) + "): ", 0, names.size(), true);
 }

@@ -10,12 +10,21 @@ using namespace std;
 #include "model/tiles/OwnableTile.hpp"
 
 class BankruptcyManager {
+public:
+    struct DebtSession {
+        Player* debtor;
+        Player* creditor;
+        int amount;
+        bool debtToBank;
+    };
+
 private:
     int requiredAmount;
     Player* creditor;
     bool debtToBank;
     bool bankruptcyActive;
     Player* debtor;
+    vector<DebtSession> sessionQueue;
 
 public:
     BankruptcyManager();
@@ -37,6 +46,11 @@ public:
     bool isDebtCovered(const Player& player) const;
     bool hasLiquidationOptions(const Player& player) const;
     bool isBankruptcyActive() const;
+    int getPendingAmount() const;
+    Player* getPendingCreditor() const;
+    Player* getPendingDebtor() const;
+    bool isPendingDebtToBank() const;
+    void clearSession();
     void settleDebt(Player& debtor);
     void declareBankrupt(Player& debtor, Player* creditor);
     void beginBankruptcySession(Player& player, Player* creditor, int amount, bool debtToBank);

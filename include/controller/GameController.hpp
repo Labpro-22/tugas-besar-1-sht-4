@@ -23,6 +23,7 @@ private:
     string toUpperCopy(string value) const;
     string firstToken(const string& input) const;
     bool isTurnEndingCommand(const string& input) const;
+    bool isPlayerActionCommand(const string& input) const;
     size_t activePlayerCount(const Game& game) const;
 
 public:
