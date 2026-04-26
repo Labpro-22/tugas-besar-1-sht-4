@@ -144,7 +144,6 @@ void OverlayRenderer::drawPurchase(GUIGameController& session, const UiToolkit& 
     const OverlayState& overlay = state.getOverlay();
     const GameState& game = state.getGame();
     const Rectangle modal = toolkit.drawModalShell(overlay.getAnim(), 0.56f, 0.60f);
-    toolkit.drawCloseHint(modal);
     const Font font = toolkit.font();
     const TileInfo& tile = game.getBoard().at(overlay.getTileIndex());
     const PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
@@ -171,9 +170,6 @@ void OverlayRenderer::drawPurchase(GUIGameController& session, const UiToolkit& 
     if (toolkit.drawButton("Auction", {modal.x + 186.0f, modal.y + modal.height - 72.0f, 150.0f, 46.0f}, toolkit.theme().getGold(), toolkit.theme().getInk(), true, 22.0f)) {
         session.openAuctionForTile(tile.getIndex());
     }
-    if (toolkit.drawButton("Lewati", {modal.x + modal.width - 146.0f, modal.y + modal.height - 72.0f, 118.0f, 46.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), true, 22.0f)) {
-        session.skipSelectedPurchase();
-    }
 }
 
 void OverlayRenderer::drawAuction(GUIGameController& session, const UiToolkit& toolkit) const {
@@ -181,7 +177,6 @@ void OverlayRenderer::drawAuction(GUIGameController& session, const UiToolkit& t
     OverlayState& overlay = state.getOverlay();
     const GameState& game = state.getGame();
     const Rectangle modal = toolkit.drawModalShell(overlay.getAnim(), 0.62f, 0.70f);
-    toolkit.drawCloseHint(modal);
     const Font font = toolkit.font();
     const TileInfo& tile = game.getBoard().at(overlay.getAuction().getTileIndex());
     AuctionState& auction = overlay.getAuction();
@@ -271,9 +266,6 @@ void OverlayRenderer::drawAuction(GUIGameController& session, const UiToolkit& t
         auction.setBidError("");
         auction.setBidInput("");
         session.auctionPass();
-    }
-    if (toolkit.drawButton("Selesaikan", {modal.x + modal.width - 184.0f, bidButtonY, 156.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), true, 20.0f)) {
-        session.finalizeAuction();
     }
 }
 
@@ -727,8 +719,10 @@ void OverlayRenderer::drawForceDrop(GUIGameController& session, const UiToolkit&
     if (toolkit.drawButton("Buang Kartu", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 150.0f, 42.0f}, toolkit.theme().getCoral(), toolkit.theme().getPaperSoft(), cardCount > 3, 20.0f)) {
         session.dropSelectedHandCard();
     }
-    if (toolkit.drawButton("Tutup", {modal.x + modal.width - 120.0f, modal.y + modal.height - 64.0f, 92.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), cardCount <= 3, 20.0f)) {
-        session.closeOverlay();
+    if (cardCount <= 3) {
+        if (toolkit.drawButton("Tutup", {modal.x + modal.width - 120.0f, modal.y + modal.height - 64.0f, 92.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), true, 20.0f)) {
+            session.closeOverlay();
+        }
     }
 }
 
@@ -808,7 +802,6 @@ void OverlayRenderer::drawCardDraw(GUIGameController& session, const UiToolkit& 
             session.applyDrawnCard();
         }
     }
-    toolkit.drawButton("Wajib", {modal.x + modal.width - 120.0f, modal.y + modal.height - 64.0f, 92.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), false, 20.0f);
 }
 
 void OverlayRenderer::drawGameOver(GUIGameController& session, const UiToolkit& toolkit) const {
