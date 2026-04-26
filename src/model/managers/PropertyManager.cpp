@@ -75,11 +75,12 @@ void PropertyManager::payRent(
 
     RentContext rentContext = createRentContext(board, configManager, dice, tile);
     int rentAmount = tile.calculateRent(rentContext);
-    if (rentAmount > player.getMoney()) {
-        throw InsufficientFundsException(rentAmount, player.getMoney());
+    const int effectiveRent = player.effectiveCost(rentAmount);
+    if (effectiveRent > player.getMoney()) {
+        throw InsufficientFundsException(effectiveRent, player.getMoney());
     }
     player -= rentAmount;
-    *owner += rentAmount;
+    *owner += effectiveRent;
 }
 
 void PropertyManager::mortgageProperty(Player& player, OwnableTile& tile) {

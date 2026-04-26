@@ -159,7 +159,17 @@ int GUITileController::getMortgageValue(const TileInfo& tile) const {
 
 int GUITileController::getRedeemCost(const TileInfo& tile) const {
     const OwnableTile* ownable = controller_.ownableFromUi(tile.getIndex());
-    return ownable != nullptr ? controller_.backendGame_.getPropertyManager().getRedeemCost(*ownable) : getMortgageValue(tile);
+    if (ownable == nullptr) {
+        return getMortgageValue(tile);
+    }
+
+    const int playerIndex = controller_.currentBackendPlayerIndex();
+    if (playerIndex < 0 || playerIndex >= static_cast<int>(controller_.backendGame_.getPlayers().size())) {
+        return controller_.backendGame_.getPropertyManager().getRedeemCost(*ownable);
+    }
+
+    const Player& player = controller_.backendGame_.getPlayers().at(playerIndex);
+    return player.effectiveCost(controller_.backendGame_.getPropertyManager().getRedeemCost(*ownable));
 }
 
 int GUITileController::getSellToBankValue(const TileInfo& tile) const {
@@ -462,7 +472,7 @@ void GUITileController::auctionPlaceBid(int targetBid) {
     }
 
     Player& bidder = controller_.backendGame_.getPlayers().at(bidderIndex);
-    if (bidder.getMoney() < targetBid) {
+    if (bidder.getMoney() < bidder.effectiveCost(targetBid)) {
         controller_.addToast("Bidder tidak punya uang cukup.", RED);
         return;
     }
@@ -483,7 +493,7 @@ void GUITileController::auctionPlaceBid(int targetBid) {
     }
     auction.setSelectedBidder(nextActive);
     overlay.setAuction(auction);
-    controller_.addLog(bidder.getUsername(), "BID", "Menawar M" + std::to_string(targetBid) + ".");
+    controller_.addLog(bidder.getUsername(), "BID", "Menawar M" + std::to_string(bidder.effectiveCost(targetBid)) + ".");
     controller_.syncViewFromBackend();
     finalizeAuction();
 }
@@ -533,10 +543,11 @@ void GUITileController::finalizeAuction() {
         const int winnerIndex = auction.getHighestBidder();
         if (winnerIndex >= 0 && winnerIndex < static_cast<int>(controller_.backendGame_.getPlayers().size())) {
             Player& winner = controller_.backendGame_.getPlayers().at(winnerIndex);
+            const int finalPayment = winner.effectiveCost(auction.getHighestBid());
             winner -= auction.getHighestBid();
             ownable->setOwner(&winner);
             ownable->setOwnershipStatus(OwnershipStatus::OWNED);
-            controller_.addLog(winner.getUsername(), "MENANG_LELANG", "Menang " + ownable->getName() + " seharga M" + std::to_string(auction.getHighestBid()) + ".");
+            controller_.addLog(winner.getUsername(), "MENANG_LELANG", "Menang " + ownable->getName() + " seharga M" + std::to_string(finalPayment) + ".");
             controller_.addToast("Lelang dimenangkan " + winner.getUsername() + ".", kindAccent(controller_.toGuiTileKind(*ownable), ""));
         }
     } else if (ownable != nullptr) {
@@ -667,6 +678,7 @@ void GUITileController::payJailFine() {
     try {
         Player& player = controller_.backendGame_.getCurrentPlayer();
         const int fine = jailFineAmount();
+        const int actualFine = player.effectiveCost(fine);
         if (player.getMoney() < player.effectiveCost(fine)) {
             controller_.backendGame_.getJailManager().releaseFromJail(player);
             controller_.backendGame_.getBankruptcyManager().beginBankruptcySession(player, nullptr, fine, true);
@@ -679,7 +691,7 @@ void GUITileController::payJailFine() {
 
         controller_.backendGame_.getJailManager().payJailFine(player, fine);
         controller_.backendGame_.getJailManager().releaseFromJail(player);
-        controller_.addLog(player.getUsername(), "JAIL", "Membayar denda jail M" + std::to_string(fine) + ".");
+        controller_.addLog(player.getUsername(), "JAIL", "Membayar denda jail M" + std::to_string(actualFine) + ".");
         controller_.addToast("Denda jail dibayar.", SKYBLUE);
         controller_.closeOverlay();
         controller_.syncViewFromBackend();
@@ -841,9 +853,10 @@ void GUITileController::redeemSelectedTile() {
             controller_.addToast("Uang tidak cukup untuk menebus.", RED);
             return;
         }
+        const int redeemCost = player.effectiveCost(controller_.backendGame_.getPropertyManager().getRedeemCost(*property));
         controller_.backendGame_.getPropertyManager().redeemProperty(player, *property);
         controller_.backendGame_.getTurnManager().registerAction();
-        controller_.addLog(player.getUsername(), "TEBUS", "Menebus " + property->getName() + ".");
+        controller_.addLog(player.getUsername(), "TEBUS", "Menebus " + property->getName() + " seharga M" + std::to_string(redeemCost) + ".");
         controller_.addToast("Aset berhasil ditebus.", kindAccent(controller_.toGuiTileKind(*property), ""));
         controller_.closeOverlay();
         controller_.syncViewFromBackend();

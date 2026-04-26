@@ -8,6 +8,16 @@
 #include <vector>
 
 namespace view::raylibgui {
+namespace {
+int effectiveMoneyFor(const PlayerInfo& player, int amount) {
+    const int discount = player.getDiscountPercent();
+    if (discount <= 0) {
+        return amount;
+    }
+    return std::max(0, amount * (100 - discount) / 100);
+}
+}
+
 void OverlayRenderer::draw(GUIGameController& session, const UiToolkit& toolkit) const {
     if (!session.isOverlayOpen()) {
         return;
@@ -46,6 +56,7 @@ void OverlayRenderer::drawTileDetail(GUIGameController& session, const UiToolkit
     toolkit.drawCloseHint(modal);
     const Font font = toolkit.font();
     const TileInfo& tile = game.getBoard().at(overlay.getTileIndex() >= 0 ? overlay.getTileIndex() : game.getSelectedTile());
+    const PlayerInfo& currentPlayer = game.getPlayers().at(game.getCurrentPlayer());
 
     DrawTextEx(font, tile.getName().c_str(), {modal.x + 28.0f, modal.y + 26.0f}, 34.0f, 1.0f, toolkit.theme().getInk());
     DrawTextEx(font, toolkit.tileKindLabel(tile.getKind()).c_str(), {modal.x + 28.0f, modal.y + 64.0f}, 18.0f, 1.0f, tile.getAccent());
@@ -56,12 +67,12 @@ void OverlayRenderer::drawTileDetail(GUIGameController& session, const UiToolkit
 
     DrawTextEx(font, ("Kode: " + tile.getCode()).c_str(), {deed.x + 18.0f, deed.y + 18.0f}, 20.0f, 1.0f, toolkit.theme().getInk());
     if (toolkit.tileIsOwnable(tile)) {
-        DrawTextEx(font, ("Harga beli: " + toolkit.formatMoney(tile.getPrice())).c_str(), {deed.x + 18.0f, deed.y + 58.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
+        DrawTextEx(font, ("Harga beli: " + toolkit.formatMoney(effectiveMoneyFor(currentPlayer, tile.getPrice()))).c_str(), {deed.x + 18.0f, deed.y + 58.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
         DrawTextEx(font, ("Nilai gadai: " + toolkit.formatMoney(session.getMortgageValue(tile))).c_str(), {deed.x + 18.0f, deed.y + 88.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
-        DrawTextEx(font, ("Sewa: " + toolkit.formatMoney(session.computeRent(tile))).c_str(), {deed.x + 18.0f, deed.y + 118.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
+        DrawTextEx(font, ("Sewa: " + toolkit.formatMoney(effectiveMoneyFor(currentPlayer, session.computeRent(tile)))).c_str(), {deed.x + 18.0f, deed.y + 118.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
         if (toolkit.tileIsStreet(tile)) {
-            DrawTextEx(font, ("Biaya rumah: " + toolkit.formatMoney(tile.getHouseCost())).c_str(), {deed.x + 18.0f, deed.y + 148.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
-            DrawTextEx(font, ("Biaya hotel: " + toolkit.formatMoney(tile.getHotelCost())).c_str(), {deed.x + 18.0f, deed.y + 178.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
+            DrawTextEx(font, ("Biaya rumah: " + toolkit.formatMoney(effectiveMoneyFor(currentPlayer, tile.getHouseCost()))).c_str(), {deed.x + 18.0f, deed.y + 148.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
+            DrawTextEx(font, ("Biaya hotel: " + toolkit.formatMoney(effectiveMoneyFor(currentPlayer, tile.getHotelCost()))).c_str(), {deed.x + 18.0f, deed.y + 178.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
             DrawTextEx(font, ("Bangunan aktif: " + std::to_string(tile.getBuildings())).c_str(), {deed.x + 18.0f, deed.y + 208.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
         }
     } else {
@@ -125,7 +136,11 @@ void OverlayRenderer::drawAuction(GUIGameController& session, const UiToolkit& t
 
     DrawTextEx(font, "Lelang", {modal.x + 28.0f, modal.y + 28.0f}, 34.0f, 1.0f, toolkit.theme().getInk());
     DrawTextEx(font, tile.getName().c_str(), {modal.x + 28.0f, modal.y + 68.0f}, 24.0f, 1.0f, tile.getAccent());
-    DrawTextEx(font, ("Bid tertinggi: " + toolkit.formatMoney(auction.getHighestBid())).c_str(), {modal.x + 28.0f, modal.y + 104.0f}, 22.0f, 1.0f, toolkit.theme().getInk());
+    int highestBid = auction.getHighestBid();
+    if (auction.getHighestBidder() >= 0) {
+        highestBid = effectiveMoneyFor(game.getPlayers().at(auction.getHighestBidder()), highestBid);
+    }
+    DrawTextEx(font, ("Bid tertinggi: " + toolkit.formatMoney(highestBid)).c_str(), {modal.x + 28.0f, modal.y + 104.0f}, 22.0f, 1.0f, toolkit.theme().getInk());
 
     const std::string leader = auction.getHighestBidder() >= 0 ? game.getPlayers().at(auction.getHighestBidder()).getName() : "Belum ada";
     DrawTextEx(font, ("Leader: " + leader).c_str(), {modal.x + 300.0f, modal.y + 104.0f}, 22.0f, 1.0f, toolkit.theme().getInkMuted());
@@ -223,13 +238,12 @@ void OverlayRenderer::drawIncomeTax(GUIGameController& session, const UiToolkit&
     toolkit.drawPanel(flatRect, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getCoral(), 0.10f), toolkit.withAlpha(toolkit.theme().getCoral(), 0.24f), 0.0f);
     toolkit.drawPanel(percentRect, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getTeal(), 0.10f), toolkit.withAlpha(toolkit.theme().getTeal(), 0.24f), 0.0f);
     DrawTextEx(font, "Flat", {flatRect.x + 18.0f, flatRect.y + 16.0f}, 24.0f, 1.0f, toolkit.theme().getInk());
-    DrawTextEx(font, toolkit.formatMoney(flatTax).c_str(), {flatRect.x + 18.0f, flatRect.y + 56.0f}, 30.0f, 1.0f, toolkit.theme().getCoral());
+    DrawTextEx(font, toolkit.formatMoney(effectiveMoneyFor(player, flatTax)).c_str(), {flatRect.x + 18.0f, flatRect.y + 56.0f}, 30.0f, 1.0f, toolkit.theme().getCoral());
     DrawTextEx(font, "Tetap, cepat, aman untuk wealth besar.", {flatRect.x + 18.0f, flatRect.y + 96.0f}, 17.0f, 1.0f, toolkit.theme().getInkMuted());
     DrawTextEx(font, "Persentase", {percentRect.x + 18.0f, percentRect.y + 16.0f}, 24.0f, 1.0f, toolkit.theme().getInk());
-    DrawTextEx(font, toolkit.formatMoney(percentageTax).c_str(), {percentRect.x + 18.0f, percentRect.y + 56.0f}, 30.0f, 1.0f, toolkit.theme().getTeal());
+    DrawTextEx(font, toolkit.formatMoney(effectiveMoneyFor(player, percentageTax)).c_str(), {percentRect.x + 18.0f, percentRect.y + 56.0f}, 30.0f, 1.0f, toolkit.theme().getTeal());
     DrawTextEx(font, "10% dari total kekayaan saat ini.", {percentRect.x + 18.0f, percentRect.y + 96.0f}, 17.0f, 1.0f, toolkit.theme().getInkMuted());
 
-    (void) player;
     if (toolkit.drawButton("Bayar Flat", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 220.0f, 42.0f}, toolkit.theme().getCoral(), toolkit.theme().getPaperSoft(), true, 20.0f)) {
         session.payIncomeTax(true);
     }
@@ -248,9 +262,8 @@ void OverlayRenderer::drawLuxuryTax(GUIGameController& session, const UiToolkit&
 
     DrawTextEx(font, "PBM", {modal.x + 28.0f, modal.y + 28.0f}, 34.0f, 1.0f, toolkit.theme().getInk());
     toolkit.drawWrappedText("Petak ini menarik pajak barang mewah dari pemain aktif.", {modal.x + 28.0f, modal.y + 76.0f, modal.width - 56.0f, 54.0f}, 20.0f, toolkit.theme().getInkMuted());
-    DrawTextEx(font, toolkit.formatMoney(tax).c_str(), {modal.x + 28.0f, modal.y + 146.0f}, 38.0f, 1.0f, toolkit.theme().getDanger());
+    DrawTextEx(font, toolkit.formatMoney(effectiveMoneyFor(player, tax)).c_str(), {modal.x + 28.0f, modal.y + 146.0f}, 38.0f, 1.0f, toolkit.theme().getDanger());
 
-    (void) player;
     if (toolkit.drawButton("Bayar", {modal.x + 28.0f, modal.y + modal.height - 64.0f, modal.width - 56.0f, 42.0f}, toolkit.theme().getCoral(), toolkit.theme().getPaperSoft(), true, 20.0f)) {
         session.payLuxuryTax();
     }
@@ -296,6 +309,7 @@ void OverlayRenderer::drawJail(GUIGameController& session, const UiToolkit& tool
     const Font font = toolkit.font();
     const PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
     const int fine = session.jailFineAmount();
+    const int effectiveFine = effectiveMoneyFor(player, fine);
 
     DrawTextEx(font, "Jail", {modal.x + 28.0f, modal.y + 28.0f}, 34.0f, 1.0f, toolkit.theme().getInk());
     DrawTextEx(font, player.isJailed() ? "Pemain aktif sedang ditahan." : "Pemain hanya sedang berkunjung.", {modal.x + 28.0f, modal.y + 68.0f}, 19.0f, 1.0f, toolkit.theme().getInkMuted());
@@ -303,7 +317,7 @@ void OverlayRenderer::drawJail(GUIGameController& session, const UiToolkit& tool
 
     const Rectangle choices = {modal.x + 28.0f, modal.y + 146.0f, modal.width - 56.0f, 120.0f};
     toolkit.drawPanel(choices, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getNavy(), 0.08f), toolkit.withAlpha(toolkit.theme().getInkMuted(), 0.10f), 0.0f);
-    DrawTextEx(font, ("Denda keluar: " + toolkit.formatMoney(fine)).c_str(), {choices.x + 18.0f, choices.y + 18.0f}, 21.0f, 1.0f, toolkit.theme().getInk());
+    DrawTextEx(font, ("Denda keluar: " + toolkit.formatMoney(effectiveFine)).c_str(), {choices.x + 18.0f, choices.y + 18.0f}, 21.0f, 1.0f, toolkit.theme().getInk());
     DrawTextEx(font, "Pilih cara keluar dari jail pada giliran ini.", {choices.x + 18.0f, choices.y + 58.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
 
     if (toolkit.drawButton("Bayar Denda", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 150.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), player.isJailed(), 20.0f)) {

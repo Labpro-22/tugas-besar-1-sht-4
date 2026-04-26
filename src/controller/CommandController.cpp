@@ -334,6 +334,12 @@ void CommandController::printDeedFromTile(UIManager& uiManager, const OwnableTil
         ownerName
     );
 
+    const Player& player = game.getCurrentPlayer();
+    purchasePrice = player.effectiveCost(purchasePrice);
+    for (int& value : moneyRowValues) {
+        value = player.effectiveCost(value);
+    }
+
     uiManager.printDeed(
         title,
         purchasePrice,
@@ -462,6 +468,8 @@ bool CommandController::processCommand(const string& input) {
             handlePrintDeed();
         } else if (command == "CETAK_PROPERTI") {
             handlePrintProperties();
+        } else if (command == "CEK_UANG") {
+            handleCheckMoney();
         } else if (command == "GADAI") {
             handleMortgage();
         } else if (command == "TEBUS") {
@@ -719,6 +727,17 @@ void CommandController::handlePrintProperties() {
     );
 }
 
+void CommandController::handleCheckMoney() {
+    const Player& player = game.getCurrentPlayer();
+    uiManager.printMessage("Uang " + player.getUsername() + " saat ini: " + formatMoney(player.getMoney()));
+    if (player.getDiscountPercent() > 0 && player.getDiscountDuration() > 0) {
+        uiManager.printMessage(
+            "Diskon aktif: " + to_string(player.getDiscountPercent()) +
+            "% (" + to_string(player.getDiscountDuration()) + " giliran tersisa)."
+        );
+    }
+}
+
 void CommandController::handleMortgage() {
     Player& player = game.getCurrentPlayer();
     vector<OwnableTile*> properties = game.getPropertyManager().getMortgageableProperties(game, player);
@@ -819,7 +838,7 @@ void CommandController::handleRedeem() {
         names.push_back(property->getName());
         codes.push_back(property->getCode());
         valueLabels.push_back("Harga Tebus");
-        values.push_back(game.getPropertyManager().getRedeemCost(*property));
+        values.push_back(player.effectiveCost(game.getPropertyManager().getRedeemCost(*property)));
         statuses.push_back(ownershipStatusText(property->getOwnershipStatus()));
     }
 
@@ -839,8 +858,9 @@ void CommandController::handleRedeem() {
     }
 
     OwnableTile* property = properties[static_cast<size_t>(choice - 1)];
-    const int redeemCost = property->getPurchasePrice();
-    if (player.getMoney() < player.effectiveCost(redeemCost)) {
+    const int baseRedeemCost = game.getPropertyManager().getRedeemCost(*property);
+    const int redeemCost = player.effectiveCost(baseRedeemCost);
+    if (player.getMoney() < redeemCost) {
         uiManager.printError("Uang kamu tidak cukup untuk menebus " + property->getName() + ".");
         uiManager.printError(
             "Harga tebus: " + formatMoney(redeemCost) +

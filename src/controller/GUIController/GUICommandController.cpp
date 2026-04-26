@@ -206,10 +206,11 @@ void GUICommandController::startTurn() {
                     controller_.syncViewFromBackend();
                     controller_.maybeOpenLiquidation();
                 } else {
+                    const int actualFine = player.effectiveCost(fine);
                     controller_.backendGame_.getJailManager().payJailFine(player, fine);
                     controller_.backendGame_.getJailManager().releaseFromJail(player);
-                    controller_.addLog(player.getUsername(), "JAIL", "Wajib bayar denda setelah 3 kali gagal double.");
-                    controller_.addToast("Denda jail wajib dibayar M" + std::to_string(fine) + ".", SKYBLUE);
+                    controller_.addLog(player.getUsername(), "JAIL", "Wajib bayar denda setelah 3 kali gagal double sebesar M" + std::to_string(actualFine) + ".");
+                    controller_.addToast("Denda jail wajib dibayar M" + std::to_string(actualFine) + ".", SKYBLUE);
                     controller_.syncViewFromBackend();
                 }
             } else {

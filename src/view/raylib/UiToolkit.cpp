@@ -122,13 +122,26 @@ bool UiToolkit::isHovered(Rectangle rect) const {
 }
 
 std::string UiToolkit::formatMoney(int value) const {
-    std::ostringstream stream;
-    if (value < 0) {
-        stream << "M-" << -value;
-    } else {
-        stream << "M" << value;
+    const bool negative = value < 0;
+    long long amount = value;
+    if (negative) {
+        amount *= -1;
     }
-    return stream.str();
+
+    std::string digits = std::to_string(amount);
+    std::string formatted;
+    int count = 0;
+    for (int i = static_cast<int>(digits.size()) - 1; i >= 0; i--) {
+        if (count == 3) {
+            formatted.push_back('.');
+            count = 0;
+        }
+        formatted.push_back(digits[static_cast<size_t>(i)]);
+        count++;
+    }
+    std::reverse(formatted.begin(), formatted.end());
+
+    return std::string("M") + (negative ? "-" : "") + formatted;
 }
 
 std::string UiToolkit::tileKindLabel(TileKind kind) const {

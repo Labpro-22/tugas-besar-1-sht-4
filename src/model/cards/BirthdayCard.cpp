@@ -29,23 +29,24 @@ void BirthdayCard::apply(Game& game, Player& player) {
         if (other.getUsername() == player.getUsername()) continue;
         if (other.isBankrupt()) continue;
 
-        if (other.getMoney() >= amount) {
+        const int effectiveAmount = other.effectiveCost(amount);
+        if (other.getMoney() >= effectiveAmount) {
             other -= amount;
-            player += amount;
-            totalReceived += amount;
+            player += effectiveAmount;
+            totalReceived += effectiveAmount;
 
             game.getLogManager().addLog(
                 game.getCurrentTurn(),
                 other.getUsername(),
                 "KARTU",
-                "Membayar ulang tahun M" + to_string(amount) + " ke " + player.getUsername()
+                "Membayar ulang tahun M" + to_string(effectiveAmount) + " ke " + player.getUsername()
             );
         } else {
             game.getLogManager().addLog(
                 game.getCurrentTurn(),
                 other.getUsername(),
                 "BANGKRUT",
-                "Tidak mampu membayar ulang tahun M" + to_string(amount) + " ke " + player.getUsername()
+                "Tidak mampu membayar ulang tahun M" + to_string(effectiveAmount) + " ke " + player.getUsername()
             );
             game.getBankruptcyManager().beginBankruptcySession(other, &player, amount, false);
         }

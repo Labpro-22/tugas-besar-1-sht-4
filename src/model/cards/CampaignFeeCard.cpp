@@ -31,13 +31,14 @@ void CampaignFeeCard::apply(Game& game, Player& player) {
         activeOthers++;
     }
     int totalOwed = amountPerPlayer * activeOthers;
+    int effectiveTotalOwed = player.effectiveCost(amountPerPlayer) * activeOthers;
 
-    if (player.getMoney() < totalOwed) {
+    if (player.getMoney() < effectiveTotalOwed) {
         game.getLogManager().addLog(
             game.getCurrentTurn(),
             player.getUsername(),
             "BANGKRUT",
-            "Tidak mampu membayar biaya kampanye M" + to_string(totalOwed)
+            "Tidak mampu membayar biaya kampanye M" + to_string(effectiveTotalOwed)
         );
 
         game.getBankruptcyManager().beginBankruptcySession(player, nullptr, totalOwed, true);
@@ -48,14 +49,15 @@ void CampaignFeeCard::apply(Game& game, Player& player) {
         if (other.getUsername() == player.getUsername()) continue;
         if (other.isBankrupt()) continue;
 
+        const int effectiveAmount = player.effectiveCost(amountPerPlayer);
         player -= amountPerPlayer;
-        other += amountPerPlayer;
+        other += effectiveAmount;
 
         game.getLogManager().addLog(
             game.getCurrentTurn(),
             player.getUsername(),
             "KARTU",
-            "Membayar biaya kampanye M" + to_string(amountPerPlayer) + " ke " + other.getUsername()
+            "Membayar biaya kampanye M" + to_string(effectiveAmount) + " ke " + other.getUsername()
         );
     }
 }

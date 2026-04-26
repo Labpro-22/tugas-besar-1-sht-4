@@ -34,6 +34,32 @@ string TileController::toUpperCopy(string value) const {
     return value;
 }
 
+string TileController::formatMoney(int amount) const {
+    const bool negative = amount < 0;
+    long long value = amount;
+    if (negative) {
+        value *= -1;
+    }
+
+    string digits = to_string(value);
+    string formatted;
+    int count = 0;
+    for (int i = static_cast<int>(digits.size()) - 1; i >= 0; i--) {
+        if (count == 3) {
+            formatted.push_back('.');
+            count = 0;
+        }
+        formatted.push_back(digits[static_cast<size_t>(i)]);
+        count++;
+    }
+
+    reverse(formatted.begin(), formatted.end());
+
+    string prefix = "M";
+    if (negative) prefix += "-";
+    return prefix + formatted;
+}
+
 string TileController::ownershipStatusText(OwnershipStatus status) const {
     if (status == OwnershipStatus::BANK) return "BANK";
     if (status == OwnershipStatus::OWNED) return "OWNED";
@@ -271,11 +297,11 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
             const int rent = property.calculateRent(rentContext);
             const int actualRent = player.effectiveCost(rent);
             if (player.isShieldActive()) {
-                uiManager.printMessage("[SHIELD ACTIVE]: Tagihan sewa M" + to_string(rent) + " dibatalkan.");
+                uiManager.printMessage("[SHIELD ACTIVE]: Tagihan sewa " + formatMoney(actualRent) + " dibatalkan.");
                 return;
             }
             if (player.getMoney() < actualRent) {
-                uiManager.printError("Kamu tidak mampu membayar sewa penuh! (M" + to_string(actualRent) + ")");
+                uiManager.printError("Kamu tidak mampu membayar sewa penuh! (" + formatMoney(actualRent) + ")");
                 pendingDebtAmount = rent;
                 pendingCreditor = owner;
                 pendingDebtToBank = false;
@@ -303,7 +329,7 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
                 game.getCurrentTurn(),
                 player.getUsername(),
                 "SEWA",
-                "Membayar sewa M" + to_string(actualRent) + " untuk " + tile.getName() +
+                "Membayar sewa " + formatMoney(actualRent) + " untuk " + tile.getName() +
                 " (" + tile.getCode() + ") kepada " + owner->getUsername()
             );
             break;
@@ -402,6 +428,9 @@ void TileController::handleStreetPurchase(StreetTile& tile) {
         );
 
         purchasePrice = player.effectiveCost(tile.getPurchasePrice());
+        for (int& value : moneyRowValues) {
+            value = player.effectiveCost(value);
+        }
 
         uiManager.printStreetPurchasePrompt(
             player.getUsername(),
@@ -421,12 +450,12 @@ void TileController::handleStreetPurchase(StreetTile& tile) {
         if (wantsToBuy && player.getMoney() >= player.effectiveCost(tile.getPurchasePrice())) {
             acquireProperty(player, tile, tile.getPurchasePrice());
             uiManager.printMessage(tile.getName() + " kini menjadi milikmu!");
-            uiManager.printMessage("Uang tersisa: M" + to_string(player.getMoney()));
+            uiManager.printMessage("Uang tersisa: " + formatMoney(player.getMoney()));
             game.getLogManager().addLog(
                 game.getCurrentTurn(),
                 player.getUsername(),
                 "BELI",
-                "Membeli " + tile.getName() + " (" + tile.getCode() + ") seharga M" + to_string(purchasePrice)
+                "Membeli " + tile.getName() + " (" + tile.getCode() + ") seharga " + formatMoney(purchasePrice)
             );
             return;
         }
@@ -455,11 +484,11 @@ void TileController::handleStreetPurchase(StreetTile& tile) {
     const int rent = tile.calculateRent(rentContext);
     const int actualRent = player.effectiveCost(rent);
     if (player.isShieldActive()) {
-        uiManager.printMessage("[SHIELD ACTIVE]: Tagihan sewa M" + to_string(rent) + " dibatalkan.");
+        uiManager.printMessage("[SHIELD ACTIVE]: Tagihan sewa " + formatMoney(actualRent) + " dibatalkan.");
         return;
     }
     if (player.getMoney() < actualRent) {
-        uiManager.printError("Kamu tidak mampu membayar sewa penuh! (M" + to_string(actualRent) + ")");
+        uiManager.printError("Kamu tidak mampu membayar sewa penuh! (" + formatMoney(actualRent) + ")");
         pendingDebtAmount = rent;
         pendingCreditor = owner;
         pendingDebtToBank = false;
@@ -484,7 +513,7 @@ void TileController::handleStreetPurchase(StreetTile& tile) {
         game.getCurrentTurn(),
         player.getUsername(),
         "SEWA",
-        "Membayar sewa M" + to_string(actualRent) + " untuk " + tile.getName() +
+        "Membayar sewa " + formatMoney(actualRent) + " untuk " + tile.getName() +
         " (" + tile.getCode() + ") kepada " + owner->getUsername()
     );
 }
@@ -568,10 +597,11 @@ void TileController::handleAuction(OwnableTile& tile, Player* triggerPlayer) {
         string highestBidderName = "";
         if (highestBidder != nullptr) highestBidderName = highestBidder->getUsername();
 
+        const int displayedBid = highestBidder != nullptr ? highestBidder->effectiveCost(currentBid) : currentBid;
         uiManager.printAuctionState(
             tile.getName(),
             tile.getCode(),
-            currentBid,
+            displayedBid,
             highestBidderName,
             currentPlayer->getUsername()
         );
@@ -589,10 +619,10 @@ void TileController::handleAuction(OwnableTile& tile, Player* triggerPlayer) {
             }
 
             if (amount < minimumBid) {
-                uiManager.printError("Bid minimal saat ini adalah M" + to_string(minimumBid) + ".");
+                uiManager.printError("Bid minimal saat ini adalah " + formatMoney(minimumBid) + ".");
                 continue;
             }
-            if (currentPlayer->getMoney() < amount) {
+            if (currentPlayer->getMoney() < currentPlayer->effectiveCost(amount)) {
                 uiManager.printError("Bid tidak boleh melebihi uang pemain.");
                 continue;
             }
@@ -601,12 +631,16 @@ void TileController::handleAuction(OwnableTile& tile, Player* triggerPlayer) {
             highestBidder = currentPlayer;
             passesAfterBid = 0;
             totalPassesWithoutBid = 0;
-            uiManager.printMessage("Penawaran tertinggi: M" + to_string(currentBid) + " (" + currentPlayer->getUsername() + ")");
+            uiManager.printMessage(
+                "Penawaran tertinggi: " + formatMoney(currentPlayer->effectiveCost(currentBid)) +
+                " (" + currentPlayer->getUsername() + ")"
+            );
             game.getLogManager().addLog(
                 game.getCurrentTurn(),
                 currentPlayer->getUsername(),
                 "BID",
-                "Menawar M" + to_string(currentBid) + " untuk " + tile.getName() + " (" + tile.getCode() + ")"
+                "Menawar " + formatMoney(currentPlayer->effectiveCost(currentBid)) + " untuk " +
+                tile.getName() + " (" + tile.getCode() + ")"
             );
         } else {
             if (highestBidder == nullptr) {
@@ -637,16 +671,17 @@ void TileController::handleAuction(OwnableTile& tile, Player* triggerPlayer) {
         return;
     }
 
+    const int finalPayment = highestBidder->effectiveCost(currentBid);
     *highestBidder -= currentBid;
     tile.setOwner(highestBidder);
     tile.setOwnershipStatus(OwnershipStatus::OWNED);
 
-    uiManager.printAuctionWinner(tile.getName(), tile.getCode(), highestBidder->getUsername(), currentBid);
+    uiManager.printAuctionWinner(tile.getName(), tile.getCode(), highestBidder->getUsername(), finalPayment);
     game.getLogManager().addLog(
         game.getCurrentTurn(),
         highestBidder->getUsername(),
         "LELANG",
-        "Menang " + tile.getName() + " (" + tile.getCode() + ") seharga M" + to_string(currentBid)
+        "Menang " + tile.getName() + " (" + tile.getCode() + ") seharga " + formatMoney(finalPayment)
     );
 }
 
@@ -655,7 +690,7 @@ void TileController::handleIncomeTax(IncomeTaxTile& tile) {
     uiManager.printIncomeTaxState(
         player.getUsername(),
         player.getMoney(),
-        tile.getFlatTax(),
+        player.effectiveCost(tile.getFlatTax()),
         tile.getPercentageTax()
     );
 
@@ -688,12 +723,12 @@ void TileController::handleIncomeTax(IncomeTaxTile& tile) {
     }
 
     if (player.isShieldActive()) {
-        uiManager.printMessage("[SHIELD ACTIVE]: Pajak M" + to_string(taxAmount) + " dibatalkan.");
+        uiManager.printMessage("[SHIELD ACTIVE]: Pajak " + formatMoney(actualTaxAmount) + " dibatalkan.");
         return;
     }
 
     if (player.getMoney() < actualTaxAmount) {
-        uiManager.printError("Kamu tidak mampu membayar pajak! Uang kamu saat ini: M" + to_string(player.getMoney()));
+        uiManager.printError("Kamu tidak mampu membayar pajak! Uang kamu saat ini: " + formatMoney(player.getMoney()));
         pendingDebtAmount = taxAmount;
         pendingCreditor = nullptr;
         pendingDebtToBank = true;
@@ -706,7 +741,7 @@ void TileController::handleIncomeTax(IncomeTaxTile& tile) {
         game.getCurrentTurn(),
         player.getUsername(),
         "PAJAK",
-        "Membayar pajak M" + to_string(actualTaxAmount) + " di " + tile.getName() + " (" + tile.getCode() + ")"
+        "Membayar pajak " + formatMoney(actualTaxAmount) + " di " + tile.getName() + " (" + tile.getCode() + ")"
     );
 }
 
@@ -717,12 +752,12 @@ void TileController::handleLuxuryTax(LuxuryTaxTile& tile) {
     uiManager.printLuxuryTaxState(player.getMoney(), actualTaxAmount);
 
     if (player.isShieldActive()) {
-        uiManager.printMessage("[SHIELD ACTIVE]: Pajak M" + to_string(taxAmount) + " dibatalkan.");
+        uiManager.printMessage("[SHIELD ACTIVE]: Pajak " + formatMoney(actualTaxAmount) + " dibatalkan.");
         return;
     }
 
     if (player.getMoney() < actualTaxAmount) {
-        uiManager.printError("Kamu tidak mampu membayar pajak! Uang kamu saat ini: M" + to_string(player.getMoney()));
+        uiManager.printError("Kamu tidak mampu membayar pajak! Uang kamu saat ini: " + formatMoney(player.getMoney()));
         pendingDebtAmount = taxAmount;
         pendingCreditor = nullptr;
         pendingDebtToBank = true;
@@ -735,7 +770,7 @@ void TileController::handleLuxuryTax(LuxuryTaxTile& tile) {
         game.getCurrentTurn(),
         player.getUsername(),
         "PAJAK",
-        "Membayar pajak M" + to_string(actualTaxAmount) + " di " + tile.getName() + " (" + tile.getCode() + ")"
+        "Membayar pajak " + formatMoney(actualTaxAmount) + " di " + tile.getName() + " (" + tile.getCode() + ")"
     );
 }
 
@@ -801,7 +836,7 @@ void TileController::handleFestival(FestivalTile& tile) {
         "FESTIVAL",
         festivalAction + " festival di " + selected->getName() + " (" + selected->getCode() +
         "), x" + to_string(oldMultiplier) + " -> x" + to_string(newMultiplier) +
-        ", sewa M" + to_string(oldRent) + " -> M" + to_string(newRent) +
+        ", sewa " + formatMoney(oldRent) + " -> " + formatMoney(newRent) +
         ", durasi " + to_string(selected->getFestivalDuration()) + " giliran"
     );
 }
@@ -826,11 +861,12 @@ void TileController::handleForceDrop(Player& player) {
 
 bool TileController::handleJailTurn(Player& player) {
     const int jailFine = game.getConfigManager().getJailFine();
-    uiManager.printJailOptions(player.getUsername(), player.getMoney(), jailFine, player.getFailedJailRolls());
+    const int actualJailFine = player.effectiveCost(jailFine);
+    uiManager.printJailOptions(player.getUsername(), player.getMoney(), actualJailFine, player.getFailedJailRolls());
 
     if (player.getFailedJailRolls() >= 3) {
         uiManager.printMessage("Kamu sudah gagal double 3 kali dan wajib membayar denda penjara.");
-        if (player.getMoney() < jailFine) {
+        if (player.getMoney() < actualJailFine) {
             pendingDebtAmount = jailFine;
             pendingCreditor = nullptr;
             pendingDebtToBank = true;
@@ -851,7 +887,7 @@ bool TileController::handleJailTurn(Player& player) {
     const int choice = uiManager.readJailChoice();
 
     if (choice == 1) {
-        if (player.getMoney() < player.effectiveCost(jailFine)) {
+        if (player.getMoney() < actualJailFine) {
             pendingDebtAmount = jailFine;
             pendingCreditor = nullptr;
             pendingDebtToBank = true;
@@ -926,15 +962,16 @@ void TileController::triggerBankruptcy(Player& player, int amount, Player* credi
 void TileController::handleBankruptcy(Player& player) {
     uiManager.setCurrentActor(&player);
     const int liquidation = liquidationValue(game, player);
+    const int actualDebtPayment = player.effectiveCost(pendingDebtAmount);
     uiManager.printLiquidationState(
         player.getUsername(),
         player.getMoney(),
-        pendingDebtAmount,
+        actualDebtPayment,
         liquidation
     );
 
-    if (player.getMoney() + liquidation >= pendingDebtAmount) {
-        while (player.getMoney() < pendingDebtAmount) {
+    if (player.getMoney() + liquidation >= actualDebtPayment) {
+        while (player.getMoney() < actualDebtPayment) {
             vector<OwnableTile*> properties = ownedProperties(game, player);
             vector<OwnableTile*> actions;
             vector<string> actionTypes;
@@ -948,8 +985,8 @@ void TileController::handleBankruptcy(Player& player) {
                 if (property->isOwned()) {
                     uiManager.printMessage(
                         to_string(option) + ". Jual " + property->getName() +
-                        " (" + property->getCode() + ") ke Bank: M" +
-                        to_string(property->getSelltoBankValue())
+                        " (" + property->getCode() + ") ke Bank: " +
+                        formatMoney(property->getSelltoBankValue())
                     );
                     actions.push_back(property);
                     actionTypes.push_back("SELL");
@@ -958,8 +995,8 @@ void TileController::handleBankruptcy(Player& player) {
                     if (!property->isMortgaged()) {
                         uiManager.printMessage(
                             to_string(option) + ". Gadaikan " + property->getName() +
-                            " (" + property->getCode() + "): M" +
-                            to_string(property->getMortgageValue())
+                            " (" + property->getCode() + "): " +
+                            formatMoney(property->getMortgageValue())
                         );
                         actions.push_back(property);
                         actionTypes.push_back("MORTGAGE");
@@ -987,29 +1024,28 @@ void TileController::handleBankruptcy(Player& player) {
             if (actionType == "SELL") {
                 const int sellValue = selected->getSelltoBankValue();
                 player += sellValue;
-                uiManager.printMessage(selected->getName() + " terjual ke Bank. Kamu menerima M" + to_string(sellValue) + ".");
+                uiManager.printMessage(selected->getName() + " terjual ke Bank. Kamu menerima " + formatMoney(sellValue) + ".");
                 game.getLogManager().addLog(
                     game.getCurrentTurn(),
                     player.getUsername(),
                     "JUAL",
-                    "Menjual " + selected->getName() + " (" + selected->getCode() + ") ke Bank seharga M" + to_string(sellValue)
+                    "Menjual " + selected->getName() + " (" + selected->getCode() + ") ke Bank seharga " + formatMoney(sellValue)
                 );
                 returnPropertyToBank(*selected);
             } else {
                 const int mortgageValue = selected->getMortgageValue();
                 game.getPropertyManager().mortgageProperty(player, *selected);
-                uiManager.printMessage(selected->getName() + " digadaikan. Kamu menerima M" + to_string(mortgageValue) + ".");
+                uiManager.printMessage(selected->getName() + " digadaikan. Kamu menerima " + formatMoney(mortgageValue) + ".");
                 game.getLogManager().addLog(
                     game.getCurrentTurn(),
                     player.getUsername(),
                     "GADAI",
-                    "Menggadaikan " + selected->getName() + " (" + selected->getCode() + ") senilai M" + to_string(mortgageValue)
+                    "Menggadaikan " + selected->getName() + " (" + selected->getCode() + ") senilai " + formatMoney(mortgageValue)
                 );
             }
-            uiManager.printMessage("Uang kamu sekarang: M" + to_string(player.getMoney()));
+            uiManager.printMessage("Uang kamu sekarang: " + formatMoney(player.getMoney()));
         }
 
-        const int actualDebtPayment = player.effectiveCost(pendingDebtAmount);
         if (player.getMoney() >= actualDebtPayment) {
             if (!pendingDebtToBank && pendingCreditor != nullptr) {
                 player -= pendingDebtAmount;
@@ -1017,7 +1053,7 @@ void TileController::handleBankruptcy(Player& player) {
             } else {
                 player -= pendingDebtAmount;
             }
-            uiManager.printMessage("Kewajiban M" + to_string(actualDebtPayment) + " terpenuhi.");
+            uiManager.printMessage("Kewajiban " + formatMoney(actualDebtPayment) + " terpenuhi.");
             return;
         }
     }

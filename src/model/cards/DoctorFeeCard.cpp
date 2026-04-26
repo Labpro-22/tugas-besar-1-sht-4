@@ -24,21 +24,22 @@ DoctorFeeCard& DoctorFeeCard::operator=(const DoctorFeeCard& other) {
 }
 
 void DoctorFeeCard::apply(Game& game, Player& player) {
-    if (player.getMoney() >= fee) {
+    const int effectiveFee = player.effectiveCost(fee);
+    if (player.getMoney() >= effectiveFee) {
         player -= fee;
 
         game.getLogManager().addLog(
             game.getCurrentTurn(),
             player.getUsername(),
             "KARTU",
-            "Membayar biaya dokter M" + to_string(fee) + " ke Bank"
+            "Membayar biaya dokter M" + to_string(effectiveFee) + " ke Bank"
         );
     } else {
         game.getLogManager().addLog(
             game.getCurrentTurn(),
             player.getUsername(),
             "BANGKRUT",
-            "Tidak mampu membayar biaya dokter M" + to_string(fee)
+            "Tidak mampu membayar biaya dokter M" + to_string(effectiveFee)
         );
 
         game.getBankruptcyManager().beginBankruptcySession(player, nullptr, fee, true);

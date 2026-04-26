@@ -5,6 +5,16 @@
 #include <vector>
 
 namespace view::raylibgui {
+namespace {
+int effectiveMoneyFor(const PlayerInfo& player, int amount) {
+    const int discount = player.getDiscountPercent();
+    if (discount <= 0) {
+        return amount;
+    }
+    return std::max(0, amount * (100 - discount) / 100);
+}
+}
+
 void GameplayScreenRenderer::draw(GUIGameController& session, const UiToolkit& toolkit) const {
     AppState& state = session.state();
     toolkit.drawHeader(state.getGame());
@@ -208,8 +218,9 @@ void GameplayScreenRenderer::drawBoardPanel(
     const std::string ownerText = tile.getOwnerIndex() >= 0 ? "Owner: " + state.getGame().getPlayers().at(tile.getOwnerIndex()).getName() : "Owner: belum dimiliki";
     detailLines.emplace_back(ownerText, 18.0f, toolkit.theme().getInk(), 8.0f);
     if (toolkit.tileIsOwnable(tile)) {
-        detailLines.emplace_back("Harga: " + toolkit.formatMoney(tile.getPrice()), 18.0f, toolkit.theme().getInkMuted(), 6.0f);
-        detailLines.emplace_back("Sewa: " + toolkit.formatMoney(session.computeRent(tile)), 18.0f, toolkit.theme().getInkMuted(), 6.0f);
+        const PlayerInfo& currentPlayer = state.getGame().getPlayers().at(state.getGame().getCurrentPlayer());
+        detailLines.emplace_back("Harga: " + toolkit.formatMoney(effectiveMoneyFor(currentPlayer, tile.getPrice())), 18.0f, toolkit.theme().getInkMuted(), 6.0f);
+        detailLines.emplace_back("Sewa: " + toolkit.formatMoney(effectiveMoneyFor(currentPlayer, session.computeRent(tile))), 18.0f, toolkit.theme().getInkMuted(), 6.0f);
         if (toolkit.tileIsStreet(tile)) {
             detailLines.emplace_back("Bangunan: " + std::to_string(tile.getBuildings()), 18.0f, toolkit.theme().getInkMuted(), 0.0f);
         }

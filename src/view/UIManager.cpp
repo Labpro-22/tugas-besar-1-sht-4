@@ -447,6 +447,7 @@ void UIManager::printHelp() const {
     cout << "ATUR_DADU <X> <Y>            : Mengatur hasil dadu manual, X dan Y bernilai 1-6.\n";
     cout << "CETAK_AKTA                   : Menampilkan akta properti berdasarkan kode petak.\n";
     cout << "CETAK_PROPERTI               : Menampilkan daftar properti pemain aktif.\n";
+    cout << "CEK_UANG                     : Menampilkan uang pemain aktif saat ini.\n";
     cout << "GADAI                        : Menggadaikan properti yang memenuhi syarat.\n";
     cout << "TEBUS                        : Menebus properti yang sedang digadaikan.\n";
     cout << "BANGUN                       : Membangun rumah atau hotel pada properti yang memenuhi syarat.\n";

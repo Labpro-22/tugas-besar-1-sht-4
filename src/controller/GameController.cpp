@@ -323,6 +323,7 @@ bool GameController::isCommandValidThisTurn(const string& input) const {
            command == "ATUR_DADU" ||
            command == "CETAK_AKTA" ||
            command == "CETAK_PROPERTI" ||
+           command == "CEK_UANG" ||
            command == "GADAI" ||
            command == "TEBUS" ||
            command == "BANGUN" ||

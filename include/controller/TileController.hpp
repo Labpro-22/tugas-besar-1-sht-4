@@ -26,6 +26,7 @@ private:
     bool pendingDebtToBank;
 
     string toUpperCopy(string value) const;
+    string formatMoney(int amount) const;
     string ownershipStatusText(OwnershipStatus status) const;
     string normalizeColorKey(string value) const;
     string colorDisplayName(const string& colorGroup) const;

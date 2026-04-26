@@ -54,6 +54,7 @@ public:
     void handlePrintBoard();
     void handlePrintDeed();
     void handlePrintProperties();
+    void handleCheckMoney();
     void handleMortgage();
     void handleRedeem();
     void handleBuild();

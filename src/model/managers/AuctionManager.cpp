@@ -91,7 +91,7 @@ Player* AuctionManager::getCurrentAuctionPlayer() const {
 }
 
 bool AuctionManager::canBid(const Player& player, int amount) const {
-    if (player.getMoney() >= amount && amount > currentBid) return true;
+    if (player.getMoney() >= player.effectiveCost(amount) && amount > currentBid) return true;
     return false;
 }
 

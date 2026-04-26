@@ -43,7 +43,7 @@ BankruptcyManager& BankruptcyManager::operator=(const BankruptcyManager& other) 
 }
 
 bool BankruptcyManager::canCoverDebt(const Player& player, int amount) const {
-    if (player.getMoney() >= amount) {
+    if (player.getMoney() >= player.effectiveCost(amount)) {
         return true;
     }
     return false;
@@ -54,16 +54,17 @@ int BankruptcyManager::estimateLiquidationValue(const Player& player) const {
 }
 
 void BankruptcyManager::processDebtToPlayer(Player& debtor, Player& creditor, int amount) {
-    if (debtor.getMoney() >= amount) {
+    const int effectiveAmount = debtor.effectiveCost(amount);
+    if (debtor.getMoney() >= effectiveAmount) {
         debtor -= amount;
-        creditor += amount;
+        creditor += effectiveAmount;
         return;
     }
     beginBankruptcySession(debtor, &creditor, amount, false);
 }
 
 void BankruptcyManager::processDebtToBank(Player& debtor, int amount) {
-    if (debtor.getMoney() >= amount) {
+    if (debtor.getMoney() >= debtor.effectiveCost(amount)) {
         debtor -= amount;
         return;
     }
