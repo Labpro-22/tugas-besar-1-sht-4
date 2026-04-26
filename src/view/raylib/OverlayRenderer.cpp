@@ -52,35 +52,84 @@ void OverlayRenderer::drawTileDetail(GUIGameController& session, const UiToolkit
     AppState& state = session.state();
     const OverlayState& overlay = state.getOverlay();
     const GameState& game = state.getGame();
-    const Rectangle modal = toolkit.drawModalShell(overlay.getAnim(), 0.58f, 0.66f);
+    const Rectangle modal = toolkit.drawModalShell(overlay.getAnim(), 0.62f, 0.78f);
     toolkit.drawCloseHint(modal);
     const Font font = toolkit.font();
     const TileInfo& tile = game.getBoard().at(overlay.getTileIndex() >= 0 ? overlay.getTileIndex() : game.getSelectedTile());
-    const PlayerInfo& currentPlayer = game.getPlayers().at(game.getCurrentPlayer());
 
     DrawTextEx(font, tile.getName().c_str(), {modal.x + 28.0f, modal.y + 26.0f}, 34.0f, 1.0f, toolkit.theme().getInk());
     DrawTextEx(font, toolkit.tileKindLabel(tile.getKind()).c_str(), {modal.x + 28.0f, modal.y + 64.0f}, 18.0f, 1.0f, tile.getAccent());
-    toolkit.drawWrappedText(tile.getFlavor(), {modal.x + 28.0f, modal.y + 98.0f, modal.width - 56.0f, 60.0f}, 20.0f, toolkit.theme().getInkMuted());
+    toolkit.drawWrappedText(tile.getFlavor(), {modal.x + 28.0f, modal.y + 94.0f, modal.width - 56.0f, 46.0f}, 18.0f, toolkit.theme().getInkMuted());
 
-    const Rectangle deed = {modal.x + 28.0f, modal.y + 178.0f, modal.width - 56.0f, 238.0f};
-    toolkit.drawPanel(deed, toolkit.mix(toolkit.theme().getPaper(), tile.getAccent(), 0.12f), toolkit.withAlpha(tile.getAccent(), 0.24f), 0.0f);
+    const Rectangle deedRect = {modal.x + 28.0f, modal.y + 148.0f, modal.width - 56.0f, modal.height - 230.0f};
+    toolkit.drawPanel(deedRect, toolkit.mix(toolkit.theme().getPaper(), tile.getAccent(), 0.12f), toolkit.withAlpha(tile.getAccent(), 0.24f), 0.0f);
 
-    DrawTextEx(font, ("Kode: " + tile.getCode()).c_str(), {deed.x + 18.0f, deed.y + 18.0f}, 20.0f, 1.0f, toolkit.theme().getInk());
-    if (toolkit.tileIsOwnable(tile)) {
-        DrawTextEx(font, ("Harga beli: " + toolkit.formatMoney(effectiveMoneyFor(currentPlayer, tile.getPrice()))).c_str(), {deed.x + 18.0f, deed.y + 58.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
-        DrawTextEx(font, ("Nilai gadai: " + toolkit.formatMoney(session.getMortgageValue(tile))).c_str(), {deed.x + 18.0f, deed.y + 88.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
-        DrawTextEx(font, ("Sewa: " + toolkit.formatMoney(effectiveMoneyFor(currentPlayer, session.computeRent(tile)))).c_str(), {deed.x + 18.0f, deed.y + 118.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
-        if (toolkit.tileIsStreet(tile)) {
-            DrawTextEx(font, ("Biaya rumah: " + toolkit.formatMoney(effectiveMoneyFor(currentPlayer, tile.getHouseCost()))).c_str(), {deed.x + 18.0f, deed.y + 148.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
-            DrawTextEx(font, ("Biaya hotel: " + toolkit.formatMoney(effectiveMoneyFor(currentPlayer, tile.getHotelCost()))).c_str(), {deed.x + 18.0f, deed.y + 178.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
-            DrawTextEx(font, ("Bangunan aktif: " + std::to_string(tile.getBuildings())).c_str(), {deed.x + 18.0f, deed.y + 208.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
+    const TileDeedInfo deed = session.deedInfoForTile(tile);
+    if (deed.isValid()) {
+        auto drawCentered = [&](const std::string& text, float y, float size, Color color) {
+            const Vector2 measured = MeasureTextEx(font, text.c_str(), size, 1.0f);
+            DrawTextEx(font, text.c_str(), {deedRect.x + (deedRect.width - measured.x) * 0.5f, y}, size, 1.0f, color);
+        };
+        auto drawSeparator = [&](float& y, Color color) {
+            DrawLineEx({deedRect.x + 18.0f, y}, {deedRect.x + deedRect.width - 18.0f, y}, 1.6f, color);
+            y += 10.0f;
+        };
+        auto drawRow = [&](const std::string& label, const std::string& value, float& y, Color valueColor) {
+            DrawTextEx(font, (label + " :").c_str(), {deedRect.x + 22.0f, y}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
+            DrawTextEx(font, value.c_str(), {deedRect.x + deedRect.width - 178.0f, y}, 18.0f, 1.0f, valueColor);
+            y += 27.0f;
+        };
+
+        drawCentered("AKTA KEPEMILIKAN", deedRect.y + 18.0f, 22.0f, toolkit.theme().getInk());
+        drawCentered(deed.getTitle(), deedRect.y + 48.0f, 18.0f, tile.getAccent());
+
+        float y = deedRect.y + 82.0f;
+        drawSeparator(y, toolkit.withAlpha(tile.getAccent(), 0.48f));
+        drawRow("Harga Beli", toolkit.formatMoney(deed.getPurchasePrice()), y, toolkit.theme().getInk());
+        drawRow("Nilai Gadai", toolkit.formatMoney(deed.getMortgageValue()), y, toolkit.theme().getInk());
+
+        const std::vector<std::string>& moneyLabels = deed.getMoneyRowLabels();
+        const std::vector<int>& moneyValues = deed.getMoneyRowValues();
+        const size_t moneyRows = std::min(moneyLabels.size(), moneyValues.size());
+        if (moneyRows > 0) {
+            drawSeparator(y, toolkit.withAlpha(toolkit.theme().getInkMuted(), 0.28f));
+            for (size_t index = 0; index < moneyRows; index++) {
+                if (index > 0 && moneyLabels.at(index) == "Harga Rumah") {
+                    drawSeparator(y, toolkit.withAlpha(toolkit.theme().getInkMuted(), 0.28f));
+                }
+                drawRow(moneyLabels.at(index), toolkit.formatMoney(moneyValues.at(index)), y, toolkit.theme().getInk());
+            }
         }
-    } else {
-        DrawTextEx(font, "Petak ini memiliki efek khusus saat pemain mendarat.", {deed.x + 18.0f, deed.y + 58.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
-    }
 
-    const std::string owner = tile.getOwnerIndex() >= 0 ? game.getPlayers().at(tile.getOwnerIndex()).getName() : "Belum dimiliki";
-    DrawTextEx(font, ("Owner: " + owner).c_str(), {modal.x + 28.0f, modal.y + 442.0f}, 20.0f, 1.0f, toolkit.theme().getInk());
+        const std::vector<std::string>& detailLabels = deed.getDetailRowLabels();
+        const std::vector<std::string>& detailValues = deed.getDetailRowValues();
+        const size_t detailRows = std::min(detailLabels.size(), detailValues.size());
+        bool hasDetail = false;
+        for (size_t index = 0; index < detailRows; index++) {
+            if (!(detailLabels.at(index) == "Bangunan" && detailValues.at(index) == "-")) {
+                hasDetail = true;
+            }
+        }
+        if (hasDetail) {
+            drawSeparator(y, toolkit.withAlpha(toolkit.theme().getInkMuted(), 0.28f));
+            for (size_t index = 0; index < detailRows; index++) {
+                if (detailLabels.at(index) == "Bangunan" && detailValues.at(index) == "-") {
+                    continue;
+                }
+                drawRow(detailLabels.at(index), detailValues.at(index), y, toolkit.theme().getInk());
+            }
+        }
+
+        drawSeparator(y, toolkit.withAlpha(tile.getAccent(), 0.48f));
+        std::string status = deed.getOwnershipStatus();
+        if (!deed.getOwnerName().empty() && deed.getOwnerName() != "BANK") {
+            status += " (" + deed.getOwnerName() + ")";
+        }
+        drawRow("Status", status, y, toolkit.theme().getInk());
+    } else {
+        DrawTextEx(font, ("Kode: " + tile.getCode()).c_str(), {deedRect.x + 18.0f, deedRect.y + 18.0f}, 20.0f, 1.0f, toolkit.theme().getInk());
+        DrawTextEx(font, "Petak ini memiliki efek khusus saat pemain mendarat.", {deedRect.x + 18.0f, deedRect.y + 58.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
+    }
 
     if (toolkit.drawButton("Tutup", {modal.x + modal.width - 144.0f, modal.y + modal.height - 62.0f, 116.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), true, 20.0f)) {
         session.closeOverlay();

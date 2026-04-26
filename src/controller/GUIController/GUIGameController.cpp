@@ -220,6 +220,8 @@ int GUIGameController::getRedeemCost(const TileInfo& tile) const { return tileCo
 
 int GUIGameController::getSellToBankValue(const TileInfo& tile) const { return tileController_.getSellToBankValue(tile); }
 
+TileDeedInfo GUIGameController::deedInfoForTile(const TileInfo& tile) const { return tileController_.deedInfoForTile(tile); }
+
 int GUIGameController::findJailIndex() const { return tileController_.findJailIndex(); }
 
 int GUIGameController::computeRent(const TileInfo& tile) const { return tileController_.computeRent(tile); }

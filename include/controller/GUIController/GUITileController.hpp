@@ -13,6 +13,7 @@ public:
     int getMortgageValue(const view::raylibgui::TileInfo& tile) const;
     int getRedeemCost(const view::raylibgui::TileInfo& tile) const;
     int getSellToBankValue(const view::raylibgui::TileInfo& tile) const;
+    view::raylibgui::TileDeedInfo deedInfoForTile(const view::raylibgui::TileInfo& tile) const;
     int findJailIndex() const;
     int computeRent(const view::raylibgui::TileInfo& tile) const;
     int computeTileAssetValue(const view::raylibgui::TileInfo& tile) const;

@@ -42,6 +42,13 @@ std::string normalizeKey(std::string value) {
     return normalized;
 }
 
+std::string upperCopy(std::string value) {
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
+        return static_cast<char>(std::toupper(ch));
+    });
+    return value;
+}
+
 Color groupAccent(const std::string& group) {
     const std::string key = normalizeKey(group);
     if (key == "COKLAT" || key == "BROWN") return {142, 96, 70, 255};
@@ -54,6 +61,37 @@ Color groupAccent(const std::string& group) {
     if (key == "BIRUTUA" || key == "NAVY" || key == "DARKBLUE") return {58, 73, 111, 255};
     if (key == "ABUABU" || key == "UTILITY") return tileToolkit.theme().getTeal();
     return tileToolkit.colorForGroup(group);
+}
+
+std::string colorDisplayName(const std::string& group) {
+    const std::string key = normalizeKey(group);
+    if (key == "COKLAT" || key == "BROWN") return "COKLAT";
+    if (key == "BIRUMUDA" || key == "LIGHTBLUE") return "BIRU MUDA";
+    if (key == "PINK") return "PINK";
+    if (key == "ORANGE" || key == "ORANYE") return "ORANGE";
+    if (key == "MERAH" || key == "RED") return "MERAH";
+    if (key == "KUNING" || key == "YELLOW") return "KUNING";
+    if (key == "HIJAU" || key == "GREEN") return "HIJAU";
+    if (key == "BIRUTUA" || key == "NAVY" || key == "DARKBLUE") return "BIRU TUA";
+    if (key == "STASIUN" || key == "RAILROAD") return "STASIUN";
+    if (key == "UTILITAS" || key == "UTILITY" || key == "AB") return "UTILITAS";
+    return "AKSI";
+}
+
+std::string ownershipStatusText(OwnershipStatus status) {
+    if (status == OwnershipStatus::BANK) return "BANK";
+    if (status == OwnershipStatus::OWNED) return "OWNED";
+    return "MORTGAGED";
+}
+
+std::string buildingText(const StreetTile& tile) {
+    if (tile.hasHotel()) {
+        return "Hotel";
+    }
+    if (tile.getBuildingLevel() <= 0) {
+        return "Tanpa bangunan";
+    }
+    return std::to_string(tile.getBuildingLevel()) + " rumah";
 }
 
 Color kindAccent(TileKind kind, const std::string& group) {
@@ -175,6 +213,84 @@ int GUITileController::getRedeemCost(const TileInfo& tile) const {
 int GUITileController::getSellToBankValue(const TileInfo& tile) const {
     const OwnableTile* ownable = controller_.ownableFromUi(tile.getIndex());
     return ownable != nullptr ? controller_.backendGame_.getPropertyManager().calculateSellToBankValue(*ownable) : 0;
+}
+
+TileDeedInfo GUITileController::deedInfoForTile(const TileInfo& tile) const {
+    const OwnableTile* ownable = controller_.ownableFromUi(tile.getIndex());
+    if (ownable == nullptr) {
+        return {};
+    }
+
+    std::string title = "[PROPERTI] " + upperCopy(ownable->getName()) + " (" + ownable->getCode() + ")";
+    std::vector<std::string> moneyRowLabels;
+    std::vector<int> moneyRowValues;
+    std::vector<std::string> detailRowLabels;
+    std::vector<std::string> detailRowValues;
+
+    if (const StreetTile* street = dynamic_cast<const StreetTile*>(ownable)) {
+        title = "[" + colorDisplayName(street->getColorGroup()) + "] " +
+                upperCopy(ownable->getName()) + " (" + ownable->getCode() + ")";
+        const std::vector<std::string> labels = {
+            "Sewa (unimproved)",
+            "Sewa (1 rumah)",
+            "Sewa (2 rumah)",
+            "Sewa (3 rumah)",
+            "Sewa (4 rumah)",
+            "Sewa (hotel)"
+        };
+        const std::vector<int>& rents = street->getRentLevels();
+        for (size_t index = 0; index < labels.size() && index < rents.size(); index++) {
+            moneyRowLabels.push_back(labels.at(index));
+            moneyRowValues.push_back(rents.at(index));
+        }
+        moneyRowLabels.push_back("Harga Rumah");
+        moneyRowValues.push_back(street->getHouseBuildCost());
+        moneyRowLabels.push_back("Harga Hotel");
+        moneyRowValues.push_back(street->getHotelBuildCost());
+
+        detailRowLabels.push_back("Bangunan");
+        detailRowValues.push_back(buildingText(*street));
+        if (street->getFestivalDuration() > 0 && street->getFestivalMultiplier() > 1) {
+            detailRowLabels.push_back("Festival");
+            detailRowValues.push_back(
+                "x" + std::to_string(street->getFestivalMultiplier()) +
+                ", " + std::to_string(street->getFestivalDuration()) + " giliran"
+            );
+        }
+    } else if (dynamic_cast<const RailroadTile*>(ownable) != nullptr) {
+        title = "[STASIUN] " + upperCopy(ownable->getName()) + " (" + ownable->getCode() + ")";
+        detailRowLabels.push_back("Sewa");
+        detailRowValues.push_back("Jumlah stasiun");
+    } else if (dynamic_cast<const UtilityTile*>(ownable) != nullptr) {
+        title = "[UTILITAS] " + upperCopy(ownable->getName()) + " (" + ownable->getCode() + ")";
+        detailRowLabels.push_back("Sewa");
+        detailRowValues.push_back("Dadu x util");
+    }
+
+    int purchasePrice = ownable->getPurchasePrice();
+    const int playerIndex = controller_.currentBackendPlayerIndex();
+    if (playerIndex >= 0 && playerIndex < static_cast<int>(controller_.backendGame_.getPlayers().size())) {
+        const Player& player = controller_.backendGame_.getPlayers().at(playerIndex);
+        purchasePrice = player.effectiveCost(purchasePrice);
+        for (int& value : moneyRowValues) {
+            value = player.effectiveCost(value);
+        }
+    }
+
+    const Player* owner = ownable->getOwner();
+    const std::string ownerName = owner != nullptr ? owner->getUsername() : "BANK";
+    return TileDeedInfo(
+        true,
+        title,
+        purchasePrice,
+        ownable->getMortgageValue(),
+        moneyRowLabels,
+        moneyRowValues,
+        detailRowLabels,
+        detailRowValues,
+        ownershipStatusText(ownable->getOwnershipStatus()),
+        ownerName
+    );
 }
 
 int GUITileController::findJailIndex() const {

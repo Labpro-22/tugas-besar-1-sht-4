@@ -285,6 +285,66 @@ private:
     bool mortgaged_ = false;
 };
 
+class TileDeedInfo {
+public:
+    TileDeedInfo() = default;
+    TileDeedInfo(
+        bool valid,
+        std::string title,
+        int purchasePrice = 0,
+        int mortgageValue = 0,
+        std::vector<std::string> moneyRowLabels = {},
+        std::vector<int> moneyRowValues = {},
+        std::vector<std::string> detailRowLabels = {},
+        std::vector<std::string> detailRowValues = {},
+        std::string ownershipStatus = {},
+        std::string ownerName = {}
+    )
+        : valid_(valid),
+          title_(std::move(title)),
+          purchasePrice_(purchasePrice),
+          mortgageValue_(mortgageValue),
+          moneyRowLabels_(std::move(moneyRowLabels)),
+          moneyRowValues_(std::move(moneyRowValues)),
+          detailRowLabels_(std::move(detailRowLabels)),
+          detailRowValues_(std::move(detailRowValues)),
+          ownershipStatus_(std::move(ownershipStatus)),
+          ownerName_(std::move(ownerName)) {}
+
+    bool isValid() const { return valid_; }
+    void setValid(bool value) { valid_ = value; }
+    const std::string& getTitle() const { return title_; }
+    void setTitle(std::string value) { title_ = std::move(value); }
+    int getPurchasePrice() const { return purchasePrice_; }
+    void setPurchasePrice(int value) { purchasePrice_ = value; }
+    int getMortgageValue() const { return mortgageValue_; }
+    void setMortgageValue(int value) { mortgageValue_ = value; }
+    const std::vector<std::string>& getMoneyRowLabels() const { return moneyRowLabels_; }
+    void setMoneyRowLabels(std::vector<std::string> value) { moneyRowLabels_ = std::move(value); }
+    const std::vector<int>& getMoneyRowValues() const { return moneyRowValues_; }
+    void setMoneyRowValues(std::vector<int> value) { moneyRowValues_ = std::move(value); }
+    const std::vector<std::string>& getDetailRowLabels() const { return detailRowLabels_; }
+    void setDetailRowLabels(std::vector<std::string> value) { detailRowLabels_ = std::move(value); }
+    const std::vector<std::string>& getDetailRowValues() const { return detailRowValues_; }
+    void setDetailRowValues(std::vector<std::string> value) { detailRowValues_ = std::move(value); }
+    const std::string& getOwnershipStatus() const { return ownershipStatus_; }
+    void setOwnershipStatus(std::string value) { ownershipStatus_ = std::move(value); }
+    const std::string& getOwnerName() const { return ownerName_; }
+    void setOwnerName(std::string value) { ownerName_ = std::move(value); }
+
+private:
+    bool valid_ = false;
+    std::string title_;
+    int purchasePrice_ = 0;
+    int mortgageValue_ = 0;
+    std::vector<std::string> moneyRowLabels_;
+    std::vector<int> moneyRowValues_;
+    std::vector<std::string> detailRowLabels_;
+    std::vector<std::string> detailRowValues_;
+    std::string ownershipStatus_;
+    std::string ownerName_;
+};
+
 class PlayerInfo {
 public:
     PlayerInfo() = default;
