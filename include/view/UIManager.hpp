@@ -11,7 +11,6 @@ class UIManager {
 private:
     static const int CELL_WIDTH = 10;
     static const int CELL_HEIGHT = 3;
-    static const int CENTER_WIDTH = CELL_WIDTH * 9 + 8;
     const Player* currentActor = nullptr;
 
     string repeatChar(char ch, int count) const;
@@ -30,9 +29,9 @@ private:
     string boardCellLine(const vector<int>& cellIndices, const vector<vector<string>>& cellLines, int index, int lineIndex) const;
     string colorizeCellLine(const string& colorCodeValue, const string& line) const;
     string horizontalBorder(int cellCount) const;
-    string sideBorder() const;
+    string sideBorder(int centerWidth) const;
     void printTileRow(const vector<int>& cellIndices, const vector<string>& cellColorCodes, const vector<vector<string>>& cellLines, const vector<int>& rowIndices) const;
-    vector<string> boardCenterLines(int currentTurn, int maxTurn, const string& currentPlayerLabel) const;
+    vector<string> boardCenterLines(int currentTurn, int maxTurn, const string& currentPlayerLabel, int lineCount) const;
     int readIntInRange(const string& prompt, int minimum, int maximum, bool hasMaximum) const;
     size_t propertyOptionCount(const vector<string>& propertyGroups, const vector<string>& propertyNames, const vector<string>& propertyCodes, const vector<string>& valueLabels, const vector<int>& values, const vector<string>& propertyStatuses) const;
     void printShortPropertyLine(int index, const string& propertyGroup, const string& propertyName, const string& propertyCode, const string& valueLabel, int value, const string& propertyStatus) const;

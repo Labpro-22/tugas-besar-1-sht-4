@@ -178,9 +178,6 @@ string UIManager::boardCellLine(
         return cellLines[static_cast<size_t>(offset)][static_cast<size_t>(lineIndex)];
     }
 
-    if (lineIndex == 0) {
-        return "[DF] ???";
-    }
     return "";
 }
 
@@ -196,9 +193,9 @@ string UIManager::horizontalBorder(int cellCount) const {
     return border;
 }
 
-string UIManager::sideBorder() const {
+string UIManager::sideBorder(int centerWidth) const {
     return "+" + repeatChar('-', CELL_WIDTH) + "+" +
-           repeatChar(' ', CENTER_WIDTH) +
+           repeatChar(' ', centerWidth) +
            "+" + repeatChar('-', CELL_WIDTH) + "+";
 }
 
@@ -219,32 +216,50 @@ void UIManager::printTileRow(
     }
 }
 
-vector<string> UIManager::boardCenterLines(int currentTurn, int maxTurn, const string& currentPlayerLabel) const {
-    vector<string> lines(27, "");
+vector<string> UIManager::boardCenterLines(int currentTurn, int maxTurn, const string& currentPlayerLabel, int lineCount) const {
+    vector<string> result(lineCount, "");
+    if (lineCount <= 0) return result;
+
     const string maxTurnText = maxTurn > 0 ? to_string(maxTurn) : "TANPA BATAS";
-    lines[2] = "==================================";
-    lines[3] = "||          NIMONSPOLI          ||";
-    lines[4] = "==================================";
-    lines[6] = "TURN " + to_string(currentTurn) + " / " + maxTurnText;
-    lines[9] = "----------------------------------";
-    lines[10] = "LEGENDA KEPEMILIKAN & STATUS";
-    lines[11] = "P1-P4 : Properti milik Pemain 1-4";
-    lines[12] = "^     : Rumah Level 1";
-    lines[13] = "^^    : Rumah Level 2";
-    lines[14] = "^^^   : Rumah Level 3";
-    lines[15] = "* : Hotel (Maksimal)";
-    lines[16] = "(1)-(4): Bidak (IN=Tahanan, V=Mampir)";
-    string currentPlayerText = currentPlayerLabel;
-    if (currentPlayerText.empty()) currentPlayerText = "-";
-    lines[17] = "Giliran: " + currentPlayerText;
-    lines[19] = "----------------------------------";
-    lines[20] = "KODE WARNA:";
-    lines[21] = "[CK]=Coklat    [MR]=Merah";
-    lines[22] = "[BM]=Biru Muda [KN]=Kuning";
-    lines[23] = "[PK]=Pink      [HJ]=Hijau";
-    lines[24] = "[OR]=Orange    [BT]=Biru Tua";
-    lines[25] = "[DF]=Aksi      [AB]=Utilitas";
-    return lines;
+    const string currentPlayerText = currentPlayerLabel.empty() ? "-" : currentPlayerLabel;
+
+    vector<string> items;
+
+    if (lineCount >= 5) {
+        items.push_back("==================================");
+        items.push_back("||          NIMONSPOLI          ||");
+        items.push_back("==================================");
+        items.push_back("");
+    }
+
+    items.push_back("TURN " + to_string(currentTurn) + " / " + maxTurnText);
+    items.push_back("Giliran: " + currentPlayerText);
+
+    if (lineCount >= 15) {
+        items.push_back("");
+        items.push_back("----------------------------------");
+        items.push_back("LEGENDA KEPEMILIKAN & STATUS");
+        items.push_back("P1-P4: Milik Pemain 1-4");
+        items.push_back("^/^^/^^^: Rumah  *: Hotel  [M]: Gadai");
+        items.push_back("(N): Bidak  IN: Tahanan  V: Mampir");
+    }
+
+    if (lineCount >= 24) {
+        items.push_back("");
+        items.push_back("----------------------------------");
+        items.push_back("KODE WARNA:");
+        items.push_back("[CK]=Coklat    [MR]=Merah");
+        items.push_back("[BM]=Biru Muda [KN]=Kuning");
+        items.push_back("[PK]=Pink      [HJ]=Hijau");
+        items.push_back("[OR]=Orange    [BT]=Biru Tua");
+        items.push_back("[DF]=Aksi      [AB]=Utilitas");
+    }
+
+    for (size_t i = 0; i < items.size() && i < static_cast<size_t>(lineCount); i++) {
+        result[i] = items[i];
+    }
+
+    return result;
 }
 
 int UIManager::readIntInRange(const string& prompt, int minimum, int maximum, bool hasMaximum) const {
@@ -470,43 +485,34 @@ void UIManager::printBoard(
         return;
     }
 
-    if (cellIndices.size() < 40) {
-        cout << "=== Papan NIMONSPOLI ===\n";
-        vector<int> sortedOffsets;
-        for (size_t i = 0; i < cellIndices.size(); i++) {
-            sortedOffsets.push_back(static_cast<int>(i));
-        }
+    const int boardSize = static_cast<int>(cellIndices.size());
 
-        sort(sortedOffsets.begin(), sortedOffsets.end(), [&](int first, int second) {
-            return cellIndices[static_cast<size_t>(first)] < cellIndices[static_cast<size_t>(second)];
-        });
-
-        for (int offset : sortedOffsets) {
-            const int index = cellIndices[static_cast<size_t>(offset)];
-            cout << setw(2) << index << ". "
-                 << boardCellLine(cellIndices, cellLines, index, 0) << " | "
-                 << boardCellLine(cellIndices, cellLines, index, 1) << " | "
-                 << boardCellLine(cellIndices, cellLines, index, 2) << '\n';
-        }
+    if (boardSize < 4) {
+        cout << "Papan terlalu kecil untuk ditampilkan.\n";
         return;
     }
 
+    // Ceiling division: smallest sideLength such that 4*sideLength-4 >= boardSize
+    const int sideLength = (boardSize + 7) / 4;
+    const int centerWidth = CELL_WIDTH * (sideLength - 2) + (sideLength - 3);
+    const int centerLineCount = (sideLength - 2) * CELL_HEIGHT;
+
     vector<int> top;
-    for (int index = 21; index <= 31; index++) top.push_back(index);
+    for (int index = (2 * sideLength - 1); index <= (3 * sideLength - 2); index++) top.push_back(index);
 
     vector<int> bottom;
-    for (int index = 11; index >= 1; index--) bottom.push_back(index);
+    for (int index = sideLength; index >= 1; index--) bottom.push_back(index);
 
-    const vector<string> centerLines = boardCenterLines(currentTurn, maxTurn, currentPlayerLabel);
+    const vector<string> centerLines = boardCenterLines(currentTurn, maxTurn, currentPlayerLabel, centerLineCount);
     int centerLineIndex = 0;
 
-    cout << horizontalBorder(11) << '\n';
+    cout << horizontalBorder(sideLength) << '\n';
     printTileRow(cellIndices, cellColorCodes, cellLines, top);
-    cout << horizontalBorder(11) << '\n';
+    cout << horizontalBorder(sideLength) << '\n';
 
-    for (int row = 0; row < 9; row++) {
-        const int leftIndex = 20 - row;
-        const int rightIndex = 32 + row;
+    for (int row = 0; row < sideLength - 2; row++) {
+        const int leftIndex = (2 * sideLength - 2) - row;
+        const int rightIndex = (3 * sideLength - 1) + row;
 
         for (int line = 0; line < CELL_HEIGHT; line++) {
             const string leftLine = boardCellLine(cellIndices, cellLines, leftIndex, line);
@@ -517,16 +523,16 @@ void UIManager::printBoard(
             cout << "|"
                  << colorizeCellLine(leftColor, padRight(leftLine, CELL_WIDTH))
                  << "|"
-                 << centerText(centerLines[static_cast<size_t>(centerLineIndex++)], CENTER_WIDTH)
+                 << centerText(centerLines[static_cast<size_t>(centerLineIndex++)], centerWidth)
                  << "|"
                  << colorizeCellLine(rightColor, padRight(rightLine, CELL_WIDTH))
                  << "|\n";
         }
-        cout << sideBorder() << '\n';
+        cout << sideBorder(centerWidth) << '\n';
     }
 
     printTileRow(cellIndices, cellColorCodes, cellLines, bottom);
-    cout << horizontalBorder(11) << '\n';
+    cout << horizontalBorder(sideLength) << '\n';
 }
 
 void UIManager::printDeed(

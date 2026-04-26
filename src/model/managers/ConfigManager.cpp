@@ -427,6 +427,7 @@ ConfigManager::ConfigManager(
 
 ConfigManager::ConfigManager(const ConfigManager& other)
     : actionTileConfigs(other.actionTileConfigs),
+      actionTileConfigsByCode(other.actionTileConfigsByCode),
       propertyConfigs(other.propertyConfigs),
       propertyCodeById(other.propertyCodeById),
       railroadRentTable(other.railroadRentTable),
@@ -445,6 +446,7 @@ ConfigManager::~ConfigManager() {}
 ConfigManager& ConfigManager::operator=(const ConfigManager& other) {
     if (this != &other) {
         actionTileConfigs = other.actionTileConfigs;
+        actionTileConfigsByCode = other.actionTileConfigsByCode;
         propertyConfigs = other.propertyConfigs;
         propertyCodeById = other.propertyCodeById;
         railroadRentTable = other.railroadRentTable;
@@ -462,6 +464,7 @@ ConfigManager& ConfigManager::operator=(const ConfigManager& other) {
 
 void ConfigManager::loadAllConfigs() {
     actionTileConfigs.clear();
+    actionTileConfigsByCode.clear();
     propertyConfigs.clear();
     propertyCodeById.clear();
     railroadRentTable.clear();
@@ -481,6 +484,8 @@ void ConfigManager::loadAllConfigs() {
     loadActionTileConfig(ACTION_CONFIG_PATH);
     loadSpecialConfig(SPECIAL_CONFIG_PATH);
     loadMiscConfig(MISC_CONFIG_PATH);
+
+    validateDefaultBoardLayout();
 }
 
 void ConfigManager::loadPropertyConfig(const string& filename) {
@@ -489,10 +494,6 @@ void ConfigManager::loadPropertyConfig(const string& filename) {
         "ID", "KODE", "NAMA", "JENIS", "WARNA", "HARGA_LAHAN",
         "NILAI_GADAI", "UPG_RUMAH", "UPG_HT",
         "RENT_L0", "RENT_L1", "RENT_L2", "RENT_L3", "RENT_L4", "RENT_L5"
-    };
-    const vector<int> requiredPropertyIds = {
-        2, 4, 6, 7, 9, 10, 12, 13, 14, 15, 16, 17, 19, 20,
-        22, 24, 25, 26, 27, 28, 29, 30, 32, 33, 35, 36, 38, 40
     };
 
     requireExactHeader(rows[0], expectedHeader, filename);
@@ -566,22 +567,6 @@ void ConfigManager::loadPropertyConfig(const string& filename) {
 
     if (parsedRowCount == 0) {
         throw FileException("Tidak ada data properti valid pada file " + filename);
-    }
-
-    if (propertyCodeById.size() != requiredPropertyIds.size()) {
-        throw FileException(
-            "Jumlah data properti pada file " + filename +
-            " harus " + to_string(requiredPropertyIds.size()) + " baris."
-        );
-    }
-
-    for (int requiredId : requiredPropertyIds) {
-        if (propertyCodeById.find(requiredId) == propertyCodeById.end()) {
-            throw FileException(
-                "ID properti wajib tidak ditemukan pada file " +
-                filename + ": " + to_string(requiredId)
-            );
-        }
     }
 }
 
@@ -681,7 +666,6 @@ void ConfigManager::loadTaxConfig(const string& filename) {
 void ConfigManager::loadActionTileConfig(const string& filename) {
     const vector<vector<string>> rows = readTokenRows(filename);
     const vector<string> expectedHeader = {"ID", "KODE", "NAMA", "JENIS_PETAK", "WARNA"};
-    const vector<int> requiredActionIds = {1, 3, 5, 8, 11, 18, 21, 23, 31, 34, 37, 39};
 
     requireExactHeader(rows[0], expectedHeader, filename);
 
@@ -722,27 +706,14 @@ void ConfigManager::loadActionTileConfig(const string& filename) {
         }
 
         actionTileConfigs[id] = ActionTileConfig(id, code, name, tileType, color);
+        if (actionTileConfigsByCode.find(code) == actionTileConfigsByCode.end()) {
+            actionTileConfigsByCode[code] = ActionTileConfig(id, code, name, tileType, color);
+        }
         parsedRowCount++;
     }
 
     if (parsedRowCount == 0) {
         throw FileException("Tidak ada data petak aksi valid pada file " + filename);
-    }
-
-    if (actionTileConfigs.size() != requiredActionIds.size()) {
-        throw FileException(
-            "Jumlah data petak aksi pada file " + filename +
-            " harus " + to_string(requiredActionIds.size()) + " baris."
-        );
-    }
-
-    for (int requiredId : requiredActionIds) {
-        if (actionTileConfigs.find(requiredId) == actionTileConfigs.end()) {
-            throw FileException(
-                "ID petak aksi wajib tidak ditemukan pada file " +
-                filename + ": " + to_string(requiredId)
-            );
-        }
     }
 }
 
@@ -844,4 +815,68 @@ int ConfigManager::getMaxTurn() const {
 
 int ConfigManager::getInitialBalance() const {
     return initialBalance;
+}
+
+void ConfigManager::validateDefaultBoardLayout() const {
+    int maxTileId = 0;
+    for (const auto& entry : propertyCodeById) {
+        maxTileId = max(maxTileId, entry.first);
+    }
+    for (const auto& entry : actionTileConfigs) {
+        maxTileId = max(maxTileId, entry.first);
+    }
+
+    if (maxTileId < 20 || maxTileId > 60) {
+        throw FileException(
+            "Jumlah petak papan harus antara 20 dan 60. "
+            "Ditemukan ID terbesar: " + to_string(maxTileId)
+        );
+    }
+
+    for (int id = 1; id <= maxTileId; id++) {
+        const bool hasProperty = propertyCodeById.find(id) != propertyCodeById.end();
+        const bool hasAction = actionTileConfigs.find(id) != actionTileConfigs.end();
+        if (!hasProperty && !hasAction) {
+            throw FileException(
+                "Posisi " + to_string(id) + " tidak terdefinisi di property.txt maupun aksi.txt. "
+                "Setiap posisi 1 hingga " + to_string(maxTileId) + " harus terisi."
+            );
+        }
+        if (hasProperty && hasAction) {
+            throw FileException(
+                "ID " + to_string(id) + " didefinisikan di property.txt sekaligus aksi.txt."
+            );
+        }
+    }
+
+    int goCount = 0;
+    int penCount = 0;
+    for (const auto& entry : actionTileConfigs) {
+        const string code = toUpperCopy(entry.second.getCode());
+        if (code == "GO") goCount++;
+        if (code == "PEN") penCount++;
+    }
+
+    if (goCount != 1) {
+        throw FileException(
+            "Papan harus memiliki tepat 1 petak GO/Start di aksi.txt. Ditemukan: " + to_string(goCount)
+        );
+    }
+    if (penCount != 1) {
+        throw FileException(
+            "Papan harus memiliki tepat 1 petak PEN (Penjara) di aksi.txt. Ditemukan: " + to_string(penCount)
+        );
+    }
+}
+
+bool ConfigManager::hasPropertyCode(const string& code) const {
+    return propertyConfigs.find(code) != propertyConfigs.end();
+}
+
+bool ConfigManager::hasActionTileCode(const string& code) const {
+    return actionTileConfigsByCode.find(code) != actionTileConfigsByCode.end();
+}
+
+const ConfigManager::ActionTileConfig& ConfigManager::getActionTileConfigByCode(const string& code) const {
+    return actionTileConfigsByCode.at(code);
 }
