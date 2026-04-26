@@ -378,7 +378,6 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
             break;
         }
         case Tile::TileType::GoToJail:
-            uiManager.printMessage("Kamu mendarat di Petak Pergi ke Penjara!");
             game.getJailManager().sendToJail(player);
             {
                 const int previousPosition = player.getPosition();
@@ -396,7 +395,13 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
                         (jailTile != nullptr ? jailTile->getCode() : to_string(player.getPosition()))
                 );
             }
-            game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "JAIL", "Masuk penjara");
+            if (player.isJailed()) {
+                uiManager.printMessage("Kamu mendarat di Petak Pergi ke Penjara!");
+                game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "JAIL", "Masuk penjara");
+            } else {
+                uiManager.printMessage("Kamu hanya mampir di penjara.");
+                game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "JAIL", "Mampir ke penjara");
+            }
             break;
         case Tile::TileType::Go:
             uiManager.printMessage("Kamu berada di Petak Mulai.");

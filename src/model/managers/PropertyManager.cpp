@@ -142,6 +142,10 @@ bool PropertyManager::canBuildHouse(const Board& board, const Player& player, co
         return street->getOwner() == &player;
     })) return false;
 
+    if (any_of(streets.begin(), streets.end(), [](const shared_ptr<StreetTile>& street) {
+        return street->isMortgaged();
+    })) return false;
+
     int minBuildingLevel = min_element(streets.begin(), streets.end(), [](const shared_ptr<StreetTile>& first, const shared_ptr<StreetTile>& second) {
         return first->getBuildingLevel() < second->getBuildingLevel();
     })->get()->getBuildingLevel();
@@ -159,6 +163,10 @@ bool PropertyManager::canBuildHotel(const Board& board, const Player& player, co
 
     if (!all_of(streets.begin(), streets.end(), [&](const shared_ptr<StreetTile>& street) {
         return street->getOwner() == &player;
+    })) return false;
+
+    if (any_of(streets.begin(), streets.end(), [](const shared_ptr<StreetTile>& street) {
+        return street->isMortgaged();
     })) return false;
 
     int minBuildingLevel = min_element(streets.begin(), streets.end(), [](const shared_ptr<StreetTile>& first, const shared_ptr<StreetTile>& second) {

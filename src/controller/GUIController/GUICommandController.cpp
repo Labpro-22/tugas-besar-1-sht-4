@@ -271,7 +271,11 @@ void GUICommandController::rollDice() {
                 "Double tiga kali memindahkan bidak dari " + tileCode(controller_.backendGame_, previousPosition) +
                     " ke " + tileCode(controller_.backendGame_, player.getPosition()) + "."
             );
-            controller_.addLog(player.getUsername(), "JAIL", "Masuk penjara karena double tiga kali berturut-turut.");
+            if (player.isJailed()) {
+                controller_.addLog(player.getUsername(), "JAIL", "Masuk penjara karena double tiga kali berturut-turut.");
+            } else {
+                controller_.addLog(player.getUsername(), "JAIL", "Mampir ke penjara karena double tiga kali berturut-turut.");
+            }
             controller_.syncViewFromBackend();
             finishTurnAfterDiceIfReady();
             return;
@@ -332,12 +336,6 @@ void GUICommandController::applyManualDice() {
             const int previousPosition = player.getPosition();
             controller_.backendGame_.getJailManager().sendToJail(player);
             player.moveTo(backendJailIndex(controller_.backendGame_));
-            controller_.addLog(
-                player.getUsername(),
-                "GERAK",
-                "Double tiga kali memindahkan bidak dari " + tileCode(controller_.backendGame_, previousPosition) +
-                    " ke " + tileCode(controller_.backendGame_, player.getPosition()) + "."
-            );
             controller_.addLog(player.getUsername(), "JAIL", "Masuk penjara karena double tiga kali berturut-turut.");
             controller_.syncViewFromBackend();
             finishTurnAfterDiceIfReady();

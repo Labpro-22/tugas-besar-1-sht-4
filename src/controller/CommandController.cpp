@@ -529,7 +529,6 @@ bool CommandController::handleTripleDoubleJail(Player& player) const {
         return false;
     }
 
-    uiManager.printMessage("Dadu double tiga kali berturut-turut! Kamu masuk penjara.");
     game.getJailManager().sendToJail(player);
     {
         const int previousPosition = player.getPosition();
@@ -547,12 +546,23 @@ bool CommandController::handleTripleDoubleJail(Player& player) const {
                 (toTile != nullptr ? toTile->getCode() : to_string(player.getPosition()))
         );
     }
-    game.getLogManager().addLog(
-        game.getCurrentTurn(),
-        player.getUsername(),
-        "JAIL",
-        "Masuk penjara karena double tiga kali berturut-turut"
-    );
+    if (player.isJailed()) {
+        uiManager.printMessage("Dadu double tiga kali berturut-turut! Kamu masuk penjara.");
+        game.getLogManager().addLog(
+            game.getCurrentTurn(),
+            player.getUsername(),
+            "JAIL",
+            "Masuk penjara karena double tiga kali berturut-turut"
+        );
+    } else {
+        uiManager.printMessage("Dadu double tiga kali berturut-turut! Kamu hanya mampir di penjara.");
+        game.getLogManager().addLog(
+            game.getCurrentTurn(),
+            player.getUsername(),
+            "JAIL",
+            "Mampir ke penjara karena double tiga kali berturut-turut"
+        );
+    }
     return true;
 }
 
