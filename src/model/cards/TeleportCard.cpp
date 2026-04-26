@@ -2,10 +2,18 @@
 #include "model/Game.hpp"
 #include "model/Player.hpp"
 #include "model/Board.hpp"
+#include "model/tiles/Tile.hpp"
 
 #include <string>
 
 using namespace std;
+
+namespace {
+string tileCode(const Game& game, int position) {
+    auto tile = game.getBoard().getTile(position);
+    return tile != nullptr ? tile->getCode() : to_string(position);
+}
+}
 
 TeleportCard::TeleportCard()
     : HandCard(), targetTileIndex(-1) {}
@@ -37,9 +45,17 @@ void TeleportCard::apply(Game& game, Player& player) {
     auto tile = board.getTile(targetTileIndex);
     if (!tile) return;
 
+    const int previousPosition = player.getPosition();
     string targetCode = tile->getCode();
 
     game.getMovementManager().movePlayerTo(player, targetTileIndex);
+
+    game.getLogManager().addLog(
+        game.getCurrentTurn(),
+        player.getUsername(),
+        "GERAK",
+        "TeleportCard memindahkan bidak dari " + tileCode(game, previousPosition) + " ke " + tileCode(game, player.getPosition())
+    );
 
     game.getLogManager().addLog(
         game.getCurrentTurn(),

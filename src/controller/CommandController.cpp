@@ -380,6 +380,22 @@ int CommandController::wrappedMove(Game& game, Player& player, int steps) const 
     }
 
     player.moveTo(newPosition);
+    string fromCode = to_string(oldPosition);
+    string toCode = to_string(newPosition);
+    shared_ptr<Tile> fromTile = board.getTile(oldPosition);
+    shared_ptr<Tile> toTile = board.getTile(newPosition);
+    if (fromTile != nullptr) {
+        fromCode = fromTile->getCode();
+    }
+    if (toTile != nullptr) {
+        toCode = toTile->getCode();
+    }
+    game.getLogManager().addLog(
+        game.getCurrentTurn(),
+        player.getUsername(),
+        "GERAK",
+        "Bergerak " + to_string(steps) + " petak dari " + fromCode + " ke " + toCode
+    );
     return newPosition;
 }
 
@@ -516,8 +532,20 @@ bool CommandController::handleTripleDoubleJail(Player& player) const {
     uiManager.printMessage("Dadu double tiga kali berturut-turut! Kamu masuk penjara.");
     game.getJailManager().sendToJail(player);
     {
+        const int previousPosition = player.getPosition();
         const int jailIndex = game.getBoard().getTileIndex("PEN");
         player.moveTo(jailIndex >= 0 ? jailIndex : 11);
+        shared_ptr<Tile> fromTile = game.getBoard().getTile(previousPosition);
+        shared_ptr<Tile> toTile = game.getBoard().getTile(player.getPosition());
+        game.getLogManager().addLog(
+            game.getCurrentTurn(),
+            player.getUsername(),
+            "GERAK",
+            "Double tiga kali memindahkan bidak dari " +
+                (fromTile != nullptr ? fromTile->getCode() : to_string(previousPosition)) +
+                " ke " +
+                (toTile != nullptr ? toTile->getCode() : to_string(player.getPosition()))
+        );
     }
     game.getLogManager().addLog(
         game.getCurrentTurn(),
@@ -559,9 +587,7 @@ void CommandController::handleRollDice() {
         game.getCurrentTurn(),
         player.getUsername(),
         "DADU",
-        "Lempar: " + to_string(die1) + "+" + to_string(die2) + "=" +
-        to_string(total) + " -> mendarat di " + destination->getName() +
-        " (" + destination->getCode() + ")"
+        "Lempar: " + to_string(die1) + "+" + to_string(die2) + "=" + to_string(total)
     );
 
     TileController tileController(game, uiManager);
@@ -598,9 +624,7 @@ void CommandController::handleSetDice(int x, int y) {
         game.getCurrentTurn(),
         player.getUsername(),
         "DADU",
-        "Atur dadu: " + to_string(x) + "+" + to_string(y) + "=" +
-        to_string(total) + " -> mendarat di " + destination->getName() +
-        " (" + destination->getCode() + ")"
+        "Atur dadu: " + to_string(x) + "+" + to_string(y) + "=" + to_string(total)
     );
 
     TileController tileController(game, uiManager);
@@ -1037,7 +1061,6 @@ void CommandController::handleUseCard() {
     }
     CardController cardController(game, uiManager);
     cardController.useHandCard(player, choice - 1);
-    game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "KARTU", cardNames[choice - 1]);
 }
 
 int CommandController::parseRecentLogCount(const string& input) const {

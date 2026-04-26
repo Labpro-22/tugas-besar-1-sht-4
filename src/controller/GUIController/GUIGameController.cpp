@@ -534,8 +534,7 @@ void GUIGameController::syncViewFromBackend() {
 
     std::vector<LogItem> logs;
     const std::vector<LogManager::LogEntry>& backendLogs = backendGame_.getLogManager().getLogs();
-    const int firstLog = std::max(0, static_cast<int>(backendLogs.size()) - kMaxLogEntries);
-    for (int index = firstLog; index < static_cast<int>(backendLogs.size()); index++) {
+    for (int index = 0; index < static_cast<int>(backendLogs.size()); index++) {
         logs.push_back(makeLogItemFromBackend(backendLogs.at(index)));
     }
     view.setLogs(logs);
@@ -916,15 +915,15 @@ void GUIGameController::updateToasts(float deltaTime) {
 
 void GUIGameController::addLog(const std::string& actor, const std::string& action, const std::string& detail) {
     if (backendGame_.isGameRunning() || !backendGame_.getPlayers().empty()) {
-        backendGame_.getLogManager().addLog(backendGame_.getCurrentTurn(), actor, action, detail);
+        const int turn = backendGame_.getCurrentTurn();
+        backendGame_.getLogManager().addLog(turn, actor, action, detail);
+        GameState& game = appState_.getGame();
+        game.getLogs().push_back({turn, actor, action, detail});
         return;
     }
 
     GameState& game = appState_.getGame();
     game.getLogs().push_back({game.getTurn(), actor, action, detail});
-    if (static_cast<int>(game.getLogs().size()) > kMaxLogEntries) {
-        game.getLogs().erase(game.getLogs().begin());
-    }
 }
 
 void GUIGameController::maybeOpenLiquidation() {
@@ -1053,13 +1052,26 @@ TileInfo GUIGameController::makeTileInfoFromBackend(const Tile& tile) const {
             baseRent = street->getRentLevels().front();
         }
     } else if (ownable != nullptr) {
-        RentContext rentContext = backendGame_.getPropertyManager().createRentContext(
-            backendGame_.getBoard(),
-            backendGame_.getConfigManager(),
-            backendGame_.getDice(),
-            *ownable
-        );
-        baseRent = ownable->calculateRent(rentContext);
+        if (dynamic_cast<const UtilityTile*>(ownable) != nullptr) {
+            RentContext rentContext = backendGame_.getPropertyManager().createRentContext(
+                backendGame_.getBoard(),
+                backendGame_.getConfigManager(),
+                backendGame_.getDice(),
+                *ownable
+            );
+            baseRent = rentContext.getUtilityMultiplier();
+            if (baseRent <= 0) {
+                baseRent = backendGame_.getConfigManager().getUtilityMultiplier(1);
+            }
+        } else {
+            RentContext rentContext = backendGame_.getPropertyManager().createRentContext(
+                backendGame_.getBoard(),
+                backendGame_.getConfigManager(),
+                backendGame_.getDice(),
+                *ownable
+            );
+            baseRent = ownable->calculateRent(rentContext);
+        }
     }
 
     return {

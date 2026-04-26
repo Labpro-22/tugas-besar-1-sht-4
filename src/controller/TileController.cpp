@@ -381,8 +381,20 @@ void TileController::resolveLanding(Tile& tile, Player& player) {
             uiManager.printMessage("Kamu mendarat di Petak Pergi ke Penjara!");
             game.getJailManager().sendToJail(player);
             {
+                const int previousPosition = player.getPosition();
                 const int jailIndex = game.getBoard().getTileIndex("PEN");
                 player.moveTo(jailIndex >= 0 ? jailIndex : 11);
+                shared_ptr<Tile> previousTile = game.getBoard().getTile(previousPosition);
+                shared_ptr<Tile> jailTile = game.getBoard().getTile(player.getPosition());
+                game.getLogManager().addLog(
+                    game.getCurrentTurn(),
+                    player.getUsername(),
+                    "GERAK",
+                    "Petak Pergi ke Penjara memindahkan bidak dari " +
+                        (previousTile != nullptr ? previousTile->getCode() : to_string(previousPosition)) +
+                        " ke " +
+                        (jailTile != nullptr ? jailTile->getCode() : to_string(player.getPosition()))
+                );
             }
             game.getLogManager().addLog(game.getCurrentTurn(), player.getUsername(), "JAIL", "Masuk penjara");
             break;
@@ -919,6 +931,7 @@ bool TileController::handleJailTurn(Player& player) {
 
         uiManager.printMessage("Double! Kamu keluar dari penjara dan bergerak.");
         const int boardSize = game.getBoard().getBoardSize();
+        const int previousPosition = player.getPosition();
         int destinationIndex = player.getPosition() + total;
         if (boardSize > 0) {
             destinationIndex = ((destinationIndex - 1) % boardSize) + 1;
@@ -941,9 +954,16 @@ bool TileController::handleJailTurn(Player& player) {
             game.getCurrentTurn(),
             player.getUsername(),
             "DADU",
-            "Keluar penjara: " + to_string(die1) + "+" + to_string(die2) + "=" +
-            to_string(total) + " -> mendarat di " + destination->getName() +
-            " (" + destination->getCode() + ")"
+            "Keluar penjara: " + to_string(die1) + "+" + to_string(die2) + "=" + to_string(total)
+        );
+        shared_ptr<Tile> previousTile = game.getBoard().getTile(previousPosition);
+        game.getLogManager().addLog(
+            game.getCurrentTurn(),
+            player.getUsername(),
+            "GERAK",
+            "Bergerak " + to_string(total) + " petak dari " +
+                (previousTile != nullptr ? previousTile->getCode() : to_string(previousPosition)) +
+                " ke " + destination->getCode()
         );
         resolveLanding(*destination, player);
         return true;

@@ -275,7 +275,6 @@ void OverlayRenderer::drawIncomeTax(GUIGameController& session, const UiToolkit&
     const Rectangle modal = toolkit.drawModalShell(state.getOverlay().getAnim(), 0.50f, 0.48f);
     const Font font = toolkit.font();
     const int flatTax = session.flatIncomeTax();
-    const int percentageTax = session.percentageIncomeTax();
     const PlayerInfo& player = game.getPlayers().at(game.getCurrentPlayer());
 
     DrawTextEx(font, "PPh", {modal.x + 28.0f, modal.y + 28.0f}, 34.0f, 1.0f, toolkit.theme().getInk());
@@ -289,7 +288,7 @@ void OverlayRenderer::drawIncomeTax(GUIGameController& session, const UiToolkit&
     DrawTextEx(font, toolkit.formatMoney(effectiveMoneyFor(player, flatTax)).c_str(), {flatRect.x + 18.0f, flatRect.y + 56.0f}, 30.0f, 1.0f, toolkit.theme().getCoral());
     DrawTextEx(font, "Tetap, cepat, aman untuk wealth besar.", {flatRect.x + 18.0f, flatRect.y + 96.0f}, 17.0f, 1.0f, toolkit.theme().getInkMuted());
     DrawTextEx(font, "Persentase", {percentRect.x + 18.0f, percentRect.y + 16.0f}, 24.0f, 1.0f, toolkit.theme().getInk());
-    DrawTextEx(font, toolkit.formatMoney(effectiveMoneyFor(player, percentageTax)).c_str(), {percentRect.x + 18.0f, percentRect.y + 56.0f}, 30.0f, 1.0f, toolkit.theme().getTeal());
+    DrawTextEx(font, "Dihitung saat dibayar", {percentRect.x + 18.0f, percentRect.y + 56.0f}, 22.0f, 1.0f, toolkit.theme().getTeal());
     DrawTextEx(font, "10% dari total kekayaan saat ini.", {percentRect.x + 18.0f, percentRect.y + 96.0f}, 17.0f, 1.0f, toolkit.theme().getInkMuted());
 
     if (toolkit.drawButton("Bayar Flat", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 220.0f, 42.0f}, toolkit.theme().getCoral(), toolkit.theme().getPaperSoft(), true, 20.0f)) {
@@ -683,17 +682,29 @@ void OverlayRenderer::drawSave(GUIGameController& session, const UiToolkit& tool
 }
 
 void OverlayRenderer::drawLogs(GUIGameController& session, const UiToolkit& toolkit) const {
-    const AppState& state = session.state();
+    AppState& state = session.state();
     const Rectangle modal = toolkit.drawModalShell(state.getOverlay().getAnim(), 0.66f, 0.78f);
     const Font font = toolkit.font();
     DrawTextEx(font, "Log History", {modal.x + 28.0f, modal.y + 28.0f}, 34.0f, 1.0f, toolkit.theme().getInk());
+    DrawTextEx(font, ("Total " + std::to_string(state.getGame().getLogs().size()) + " log").c_str(), {modal.x + 228.0f, modal.y + 38.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
 
     const Rectangle scroller = {modal.x + 28.0f, modal.y + 86.0f, modal.width - 56.0f, modal.height - 160.0f};
     toolkit.drawPanel(scroller, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getTeal(), 0.06f), toolkit.withAlpha(toolkit.theme().getInkMuted(), 0.10f), 0.0f);
 
-    float y = scroller.y + 14.0f;
+    const int visibleRows = std::max(1, static_cast<int>((scroller.height - 28.0f) / 64.0f));
     const int count = static_cast<int>(state.getGame().getLogs().size());
-    for (int index = std::max(0, count - 12); index < count; index++) {
+    const int maxFirst = std::max(0, count - visibleRows);
+    int first = std::max(0, std::min(state.getOverlay().getSelectedIndex(), maxFirst));
+    const float wheel = GetMouseWheelMove();
+    if (wheel > 0.0f) {
+        first = std::max(0, first - 1);
+    } else if (wheel < 0.0f) {
+        first = std::min(maxFirst, first + 1);
+    }
+    state.getOverlay().setSelectedIndex(first);
+
+    float y = scroller.y + 14.0f;
+    for (int index = first; index < std::min(count, first + visibleRows); index++) {
         const LogItem& log = state.getGame().getLogs().at(index);
         const Rectangle row = {scroller.x + 14.0f, y, scroller.width - 28.0f, 58.0f};
         DrawRectangleRec(row, toolkit.mix(toolkit.theme().getPaperSoft(), toolkit.theme().getPaper(), 0.35f));
@@ -703,6 +714,14 @@ void OverlayRenderer::drawLogs(GUIGameController& session, const UiToolkit& tool
         y += 64.0f;
     }
 
+    const bool canPageUp = first > 0;
+    const bool canPageDown = first < maxFirst;
+    if (toolkit.drawButton("Sebelumnya", {modal.x + 28.0f, modal.y + modal.height - 62.0f, 132.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), canPageUp, 18.0f)) {
+        state.getOverlay().setSelectedIndex(std::max(0, first - visibleRows));
+    }
+    if (toolkit.drawButton("Berikutnya", {modal.x + 172.0f, modal.y + modal.height - 62.0f, 132.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), canPageDown, 18.0f)) {
+        state.getOverlay().setSelectedIndex(std::min(maxFirst, first + visibleRows));
+    }
     if (toolkit.drawButton("Tutup", {modal.x + modal.width - 120.0f, modal.y + modal.height - 62.0f, 92.0f, 42.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), true, 20.0f)) {
         session.closeOverlay();
     }

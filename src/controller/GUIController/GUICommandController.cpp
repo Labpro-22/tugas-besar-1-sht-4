@@ -54,6 +54,11 @@ int backendJailIndex(Game& game) {
     }
     return 1;
 }
+
+std::string tileCode(Game& game, int position) {
+    std::shared_ptr<Tile> tile = game.getBoard().getTile(position);
+    return tile != nullptr ? tile->getCode() : std::to_string(position);
+}
 }
 
 GUICommandController::GUICommandController(GUIControllerContext& controller)
@@ -137,6 +142,9 @@ void GUICommandController::openSave() {
 }
 
 void GUICommandController::openLogs() {
+    controller_.syncViewFromBackend();
+    const int count = static_cast<int>(controller_.appState_.getGame().getLogs().size());
+    controller_.appState_.getOverlay().setSelectedIndex(count);
     openOverlay(OverlayType::Logs);
 }
 
@@ -187,6 +195,9 @@ void GUICommandController::startTurn() {
         controller_.addLog(player.getUsername(), "START_TURN", "Memulai giliran.");
 
         std::shared_ptr<HandCard> drawnCard = controller_.backendGame_.getCardManager().giveStartTurnCard(player);
+        if (drawnCard != nullptr) {
+            controller_.addLog(player.getUsername(), "KARTU", "Mendapat kartu kemampuan " + drawnCard->getName() + ".");
+        }
         controller_.syncViewFromBackend();
         controller_.addToast("Giliran " + player.getUsername() + " dimulai.", playerAccent(controller_.currentBackendPlayerIndex()));
         if (drawnCard != nullptr) {
@@ -251,8 +262,15 @@ void GUICommandController::rollDice() {
         controller_.diceRolledThisTurn_ = true;
 
         if (controller_.backendGame_.getTurnManager().getConsecutiveDoubles() >= 3) {
+            const int previousPosition = player.getPosition();
             controller_.backendGame_.getJailManager().sendToJail(player);
             player.moveTo(backendJailIndex(controller_.backendGame_));
+            controller_.addLog(
+                player.getUsername(),
+                "GERAK",
+                "Double tiga kali memindahkan bidak dari " + tileCode(controller_.backendGame_, previousPosition) +
+                    " ke " + tileCode(controller_.backendGame_, player.getPosition()) + "."
+            );
             controller_.addLog(player.getUsername(), "JAIL", "Masuk penjara karena double tiga kali berturut-turut.");
             controller_.syncViewFromBackend();
             finishTurnAfterDiceIfReady();
@@ -311,8 +329,15 @@ void GUICommandController::applyManualDice() {
         closeOverlay();
 
         if (controller_.backendGame_.getTurnManager().getConsecutiveDoubles() >= 3) {
+            const int previousPosition = player.getPosition();
             controller_.backendGame_.getJailManager().sendToJail(player);
             player.moveTo(backendJailIndex(controller_.backendGame_));
+            controller_.addLog(
+                player.getUsername(),
+                "GERAK",
+                "Double tiga kali memindahkan bidak dari " + tileCode(controller_.backendGame_, previousPosition) +
+                    " ke " + tileCode(controller_.backendGame_, player.getPosition()) + "."
+            );
             controller_.addLog(player.getUsername(), "JAIL", "Masuk penjara karena double tiga kali berturut-turut.");
             controller_.syncViewFromBackend();
             finishTurnAfterDiceIfReady();

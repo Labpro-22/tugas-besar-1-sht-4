@@ -111,12 +111,14 @@ void GUICardController::storeDrawnCard() {
     try {
         Player& player = controller_.backendGame_.getCurrentPlayer();
         std::shared_ptr<HandCard> handCard;
+        std::string actionType = "KARTU";
         if (controller_.pendingChanceCard_ != nullptr) {
             handCard = std::dynamic_pointer_cast<HandCard>(controller_.pendingChanceCard_);
             if (handCard == nullptr) {
                 controller_.addToast("Kartu ini harus langsung diterapkan.", RED);
                 return;
             }
+            actionType = "KSP";
             controller_.pendingChanceCard_.reset();
         } else if (controller_.pendingCommunityChestCard_ != nullptr) {
             handCard = std::dynamic_pointer_cast<HandCard>(controller_.pendingCommunityChestCard_);
@@ -124,6 +126,7 @@ void GUICardController::storeDrawnCard() {
                 controller_.addToast("Kartu ini harus langsung diterapkan.", RED);
                 return;
             }
+            actionType = "DNU";
             controller_.pendingCommunityChestCard_.reset();
         } else {
             controller_.closeOverlay();
@@ -131,7 +134,7 @@ void GUICardController::storeDrawnCard() {
         }
 
         player.addHandCard(handCard);
-        controller_.addLog(player.getUsername(), "KARTU", "Menyimpan kartu " + handCard->getName() + " ke tangan.");
+        controller_.addLog(player.getUsername(), actionType, "Mengambil kartu " + handCard->getName() + " dan menyimpannya ke tangan.");
         controller_.addToast("Kartu tersimpan di tangan.", SKYBLUE);
         controller_.closeOverlay();
         controller_.syncViewFromBackend();

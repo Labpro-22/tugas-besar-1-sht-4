@@ -219,8 +219,10 @@ void GameplayScreenRenderer::drawBoardPanel(
     detailLines.emplace_back(ownerText, 18.0f, toolkit.theme().getInk(), 8.0f);
     if (toolkit.tileIsOwnable(tile)) {
         const PlayerInfo& currentPlayer = state.getGame().getPlayers().at(state.getGame().getCurrentPlayer());
+        const bool utilityTile = tile.getKind() == TileKind::Utility;
+        const int rentDisplay = utilityTile ? tile.getBaseRent() : session.computeRent(tile);
         detailLines.emplace_back("Harga: " + toolkit.formatMoney(effectiveMoneyFor(currentPlayer, tile.getPrice())), 18.0f, toolkit.theme().getInkMuted(), 6.0f);
-        detailLines.emplace_back("Sewa: " + toolkit.formatMoney(effectiveMoneyFor(currentPlayer, session.computeRent(tile))), 18.0f, toolkit.theme().getInkMuted(), 6.0f);
+        detailLines.emplace_back("Sewa: " + toolkit.formatMoney(utilityTile ? rentDisplay : effectiveMoneyFor(currentPlayer, rentDisplay)), 18.0f, toolkit.theme().getInkMuted(), 6.0f);
         if (toolkit.tileIsStreet(tile)) {
             detailLines.emplace_back("Bangunan: " + std::to_string(tile.getBuildings()), 18.0f, toolkit.theme().getInkMuted(), 0.0f);
         }

@@ -671,6 +671,7 @@ void GUITileController::auctionPass() {
     }
     auction.setSelectedBidder(nextActive);
     overlay.setAuction(auction);
+    controller_.syncViewFromBackend();
     finalizeAuction();
 }
 
@@ -698,6 +699,7 @@ void GUITileController::finalizeAuction() {
     } else if (ownable != nullptr) {
         ownable->setOwner(nullptr);
         ownable->setOwnershipStatus(OwnershipStatus::BANK);
+        controller_.addLog("BANK", "LELANG", "Tidak ada pemenang untuk " + ownable->getName() + ".");
         controller_.addToast("Tidak ada pemenang lelang.", RED);
     }
 
@@ -726,14 +728,16 @@ void GUITileController::payIncomeTax(bool useFlatTax) {
         const int actualTax = player.effectiveCost(tax);
         if (player.isShieldActive()) {
             player.setShieldActive(false);
+            controller_.addLog(player.getUsername(), "PAJAK", "Shield menahan PPh.");
             controller_.addToast("Shield menahan pajak.", playerAccent(controller_.currentBackendPlayerIndex()));
         } else if (player.getMoney() < actualTax) {
             controller_.backendGame_.getBankruptcyManager().beginBankruptcySession(player, nullptr, tax, true);
+            controller_.addLog(player.getUsername(), "PAJAK", "Dana kurang untuk membayar PPh M" + std::to_string(actualTax) + ".");
             controller_.addToast("Dana kurang untuk membayar pajak.", RED);
         } else {
             player -= tax;
+            controller_.addLog(player.getUsername(), "PAJAK", "Membayar PPh M" + std::to_string(actualTax) + ".");
         }
-        controller_.addLog(player.getUsername(), "PAJAK", "Membayar PPh M" + std::to_string(actualTax) + ".");
         controller_.closeOverlay();
         controller_.syncViewFromBackend();
         controller_.maybeOpenLiquidation();
@@ -756,14 +760,16 @@ void GUITileController::payLuxuryTax() {
         const int actualTax = player.effectiveCost(tax);
         if (player.isShieldActive()) {
             player.setShieldActive(false);
+            controller_.addLog(player.getUsername(), "PAJAK", "Shield menahan PBM.");
             controller_.addToast("Shield menahan pajak.", playerAccent(controller_.currentBackendPlayerIndex()));
         } else if (player.getMoney() < actualTax) {
             controller_.backendGame_.getBankruptcyManager().beginBankruptcySession(player, nullptr, tax, true);
+            controller_.addLog(player.getUsername(), "PAJAK", "Dana kurang untuk membayar PBM M" + std::to_string(actualTax) + ".");
             controller_.addToast("Dana kurang untuk membayar pajak.", RED);
         } else {
             player -= tax;
+            controller_.addLog(player.getUsername(), "PAJAK", "Membayar PBM M" + std::to_string(actualTax) + ".");
         }
-        controller_.addLog(player.getUsername(), "PAJAK", "Membayar PBM M" + std::to_string(actualTax) + ".");
         controller_.closeOverlay();
         controller_.syncViewFromBackend();
         controller_.maybeOpenLiquidation();
@@ -1283,6 +1289,17 @@ int GUITileController::moveBackendPlayer(Player& player, int steps) {
     }
 
     player.moveTo(newPosition);
+    std::string fromCode = std::to_string(oldPosition);
+    std::string toCode = std::to_string(newPosition);
+    std::shared_ptr<Tile> fromTile = controller_.backendGame_.getBoard().getTile(oldPosition);
+    std::shared_ptr<Tile> toTile = controller_.backendGame_.getBoard().getTile(newPosition);
+    if (fromTile != nullptr) {
+        fromCode = fromTile->getCode();
+    }
+    if (toTile != nullptr) {
+        toCode = toTile->getCode();
+    }
+    controller_.addLog(player.getUsername(), "GERAK", "Bergerak " + std::to_string(steps) + " petak dari " + fromCode + " ke " + toCode + ".");
     return newPosition;
 }
 
@@ -1330,6 +1347,7 @@ void GUITileController::resolveBackendLanding(int backendTileIndex, bool fromMov
                 const int actualRent = player.effectiveCost(rent);
                 if (player.isShieldActive()) {
                     player.setShieldActive(false);
+                    controller_.addLog(player.getUsername(), "SEWA", "Shield menahan sewa ke " + owner->getUsername() + ".");
                     controller_.addToast("Shield menahan sewa.", playerAccent(controller_.currentBackendPlayerIndex()));
                     break;
                 }
@@ -1374,6 +1392,7 @@ void GUITileController::resolveBackendLanding(int backendTileIndex, bool fromMov
                 const int actualRent = player.effectiveCost(rent);
                 if (player.isShieldActive()) {
                     player.setShieldActive(false);
+                    controller_.addLog(player.getUsername(), "SEWA", "Shield menahan sewa ke " + owner->getUsername() + ".");
                     controller_.addToast("Shield menahan sewa.", playerAccent(controller_.currentBackendPlayerIndex()));
                     break;
                 }
@@ -1412,8 +1431,22 @@ void GUITileController::resolveBackendLanding(int backendTileIndex, bool fromMov
                     controller_.addToast("Shield menahan efek jail.", playerAccent(controller_.currentBackendPlayerIndex()));
                     break;
                 }
-                controller_.backendGame_.getJailManager().sendToJail(player);
-                player.moveTo(controller_.backendTileIndexFromUi(findJailIndex()));
+                {
+                    const int previousPosition = player.getPosition();
+                    std::string fromCode = std::to_string(previousPosition);
+                    std::shared_ptr<Tile> previousTile = controller_.backendGame_.getBoard().getTile(previousPosition);
+                    if (previousTile != nullptr) {
+                        fromCode = previousTile->getCode();
+                    }
+                    controller_.backendGame_.getJailManager().sendToJail(player);
+                    player.moveTo(controller_.backendTileIndexFromUi(findJailIndex()));
+                    std::string toCode = std::to_string(player.getPosition());
+                    std::shared_ptr<Tile> jailTile = controller_.backendGame_.getBoard().getTile(player.getPosition());
+                    if (jailTile != nullptr) {
+                        toCode = jailTile->getCode();
+                    }
+                    controller_.addLog(player.getUsername(), "GERAK", "Petak Pergi ke Penjara memindahkan bidak dari " + fromCode + " ke " + toCode + ".");
+                }
                 controller_.addLog(player.getUsername(), "JAIL", fromMovement ? "Efek kartu/perpindahan." : "Mendarat di Go To Jail.");
                 controller_.addToast("Masuk penjara.", tileToolkit.theme().getDanger());
                 break;

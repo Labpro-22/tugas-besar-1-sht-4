@@ -1,10 +1,18 @@
 #include "model/cards/LassoCard.hpp"
 #include "model/Game.hpp"
 #include "model/Player.hpp"
+#include "model/tiles/Tile.hpp"
 
 #include <vector>
 
 using namespace std;
+
+namespace {
+string tileCode(const Game& game, int position) {
+    auto tile = game.getBoard().getTile(position);
+    return tile != nullptr ? tile->getCode() : to_string(position);
+}
+}
 
 LassoCard::LassoCard()
     : HandCard(), targetPlayer(nullptr) {}
@@ -33,7 +41,15 @@ void LassoCard::apply(Game& game, Player& player) {
     if (!targetPlayer) return;
 
     int myPos = player.getPosition();
+    const int previousTargetPosition = targetPlayer->getPosition();
     targetPlayer->moveTo(myPos);
+
+    game.getLogManager().addLog(
+        game.getCurrentTurn(),
+        targetPlayer->getUsername(),
+        "GERAK",
+        "LassoCard menarik bidak dari " + tileCode(game, previousTargetPosition) + " ke " + tileCode(game, targetPlayer->getPosition())
+    );
 
     game.getLogManager().addLog(
         game.getCurrentTurn(),
