@@ -371,13 +371,10 @@ void OverlayRenderer::drawJail(GUIGameController& session, const UiToolkit& tool
     const Rectangle choices = {modal.x + 28.0f, modal.y + 146.0f, modal.width - 56.0f, 120.0f};
     toolkit.drawPanel(choices, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getNavy(), 0.08f), toolkit.withAlpha(toolkit.theme().getInkMuted(), 0.10f), 0.0f);
     DrawTextEx(font, ("Denda keluar: " + toolkit.formatMoney(effectiveFine)).c_str(), {choices.x + 18.0f, choices.y + 18.0f}, 21.0f, 1.0f, toolkit.theme().getInk());
-    DrawTextEx(font, "Pilih cara keluar dari jail pada giliran ini.", {choices.x + 18.0f, choices.y + 58.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
+    DrawTextEx(font, "Bayar denda atau coba roll double pada giliran ini.", {choices.x + 18.0f, choices.y + 58.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
 
     if (toolkit.drawButton("Bayar Denda", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 150.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), player.isJailed(), 20.0f)) {
         session.payJailFine();
-    }
-    if (toolkit.drawButton("Pakai Kartu", {modal.x + 194.0f, modal.y + modal.height - 64.0f, 156.0f, 42.0f}, toolkit.mix(toolkit.theme().getGold(), WHITE, 0.14f), toolkit.theme().getInk(), player.isJailed() && !player.getHandCards().empty(), 20.0f)) {
-        session.useJailCard();
     }
     if (player.isJailed()) {
         const bool canAttemptRoll = player.getFailedJailRolls() < 3;
