@@ -84,6 +84,11 @@ std::string ownershipStatusText(OwnershipStatus status) {
     return "MORTGAGED";
 }
 
+std::string deedOwnershipStatusText(const OwnableTile& tile) {
+    if (tile.isMortgaged()) return ownershipStatusText(OwnershipStatus::MORTGAGED);
+    return ownershipStatusText(tile.getOwnershipStatus());
+}
+
 std::string buildingText(const StreetTile& tile) {
     if (tile.hasHotel()) {
         return "Hotel";
@@ -288,7 +293,7 @@ TileDeedInfo GUITileController::deedInfoForTile(const TileInfo& tile) const {
         moneyRowValues,
         detailRowLabels,
         detailRowValues,
-        ownershipStatusText(ownable->getOwnershipStatus()),
+        deedOwnershipStatusText(*ownable),
         ownerName
     );
 }

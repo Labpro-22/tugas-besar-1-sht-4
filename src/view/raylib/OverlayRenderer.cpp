@@ -125,7 +125,10 @@ void OverlayRenderer::drawTileDetail(GUIGameController& session, const UiToolkit
         if (!deed.getOwnerName().empty() && deed.getOwnerName() != "BANK") {
             status += " (" + deed.getOwnerName() + ")";
         }
-        drawRow("Status", status, y, toolkit.theme().getInk());
+        const Color statusColor = deed.getOwnershipStatus() == "MORTGAGED"
+            ? toolkit.theme().getCoral()
+            : toolkit.theme().getInk();
+        drawRow("Status", status, y, statusColor);
     } else {
         DrawTextEx(font, ("Kode: " + tile.getCode()).c_str(), {deedRect.x + 18.0f, deedRect.y + 18.0f}, 20.0f, 1.0f, toolkit.theme().getInk());
         DrawTextEx(font, "Petak ini memiliki efek khusus saat pemain mendarat.", {deedRect.x + 18.0f, deedRect.y + 58.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
