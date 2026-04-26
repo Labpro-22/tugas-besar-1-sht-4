@@ -153,7 +153,8 @@ void GameController::runTurn() {
 
     if (player.isComputerPlayer()) {
         if (!player.hasUsedHandCardThisTurn() && player.countCards() > 0
-                && ComputerDecisionMaker::rollThreshold(50)) {
+                && !game.getTurnManager().hasDiceRolledOnceThisTurn()
+                && ComputerDecisionMaker::rollThreshold(10)) {
             uiManager.printMessage("[COM " + player.getUsername() + "] Mencoba menggunakan kartu kemampuan.");
             const bool ok = commandController->processCommand("GUNAKAN_KEMAMPUAN");
             if (ok && isPlayerActionCommand("GUNAKAN_KEMAMPUAN")) {
@@ -308,7 +309,12 @@ bool GameController::isCommandValidThisTurn(const string& input) const {
         return false;
     }
 
-    if (rolledThisTurn && (command == "LEMPAR_DADU" || command == "ATUR_DADU" || command == "GUNAKAN_KEMAMPUAN")) {
+    if (rolledThisTurn && (command == "LEMPAR_DADU" || command == "ATUR_DADU")) {
+        return false;
+    }
+
+    if (command == "GUNAKAN_KEMAMPUAN" &&
+        (rolledThisTurn || diceRolledThisTurn || game.getTurnManager().hasDiceRolledOnceThisTurn())) {
         return false;
     }
 

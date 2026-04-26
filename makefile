@@ -20,7 +20,7 @@ TOOLCHAIN_BIN  ?= C:/raylib/w64devkit/bin
 TOOLCHAIN_PREFIX ?= $(TOOLCHAIN_BIN)
 
 CXX      := $(TOOLCHAIN_BIN)/g++
-CXXFLAGS := -Wall -Wextra -std=c++17 -B$(TOOLCHAIN_PREFIX)/ -Iinclude -I$(RAYLIB_INCLUDE)
+CXXFLAGS := -Wall -Wextra -std=c++17 -MMD -B$(TOOLCHAIN_PREFIX)/ -Iinclude -isystem $(RAYLIB_INCLUDE)
 LDFLAGS  := -L$(RAYLIB_LIB)
 LDLIBS   := -lraylib -lopengl32 -lgdi32 -lwinmm
 EXEEXT   := .exe
@@ -40,7 +40,7 @@ TOOLCHAIN_BIN  ?= /mnt/c/raylib/w64devkit/bin
 TOOLCHAIN_PREFIX ?= C:/raylib/w64devkit/bin
 
 CXX      := cmd.exe /C C:/raylib/w64devkit/bin/g++.exe
-CXXFLAGS := -Wall -Wextra -std=c++17 -B$(TOOLCHAIN_PREFIX)/ -Iinclude -I$(RAYLIB_INCLUDE)
+CXXFLAGS := -Wall -Wextra -std=c++17 -MMD -B$(TOOLCHAIN_PREFIX)/ -Iinclude -isystem $(RAYLIB_INCLUDE)
 LDFLAGS  := -L$(RAYLIB_LIB)
 LDLIBS   := -lraylib -lopengl32 -lgdi32 -lwinmm
 EXEEXT   := .exe
@@ -57,7 +57,7 @@ RAYLIB_CFLAGS := $(shell pkg-config --cflags raylib 2>/dev/null)
 RAYLIB_LIBS   := $(shell pkg-config --libs raylib 2>/dev/null)
 
 CXX      := g++
-CXXFLAGS := -Wall -Wextra -std=c++17 -Iinclude $(RAYLIB_CFLAGS)
+CXXFLAGS := -Wall -Wextra -std=c++17 -MMD -Iinclude $(RAYLIB_CFLAGS)
 LDFLAGS  :=
 LDLIBS   := $(if $(strip $(RAYLIB_LIBS)),$(RAYLIB_LIBS),-lraylib -lGL -lm -lpthread -ldl -lrt -lX11)
 EXEEXT   :=
@@ -95,6 +95,7 @@ SRCS := $(call rwildcard,$(SRC_DIR)/,*.cpp)
 # 2. Dynamic Object Mapping
 # Mengubah path src/xxx/yyy.cpp menjadi build/xxx/yyy.o
 OBJS := $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
+DEPS := $(OBJS:.o=.d)
 
 # Main targets
 all: directories $(TARGET)
@@ -130,3 +131,5 @@ clean:
 rebuild: clean all
 
 .PHONY: all clean rebuild run directories
+
+-include $(DEPS)

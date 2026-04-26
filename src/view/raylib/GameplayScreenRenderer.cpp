@@ -106,6 +106,14 @@ void GameplayScreenRenderer::drawBoardPanel(
 
     state.getGame().setHoveredTile(-1);
 
+    const float referenceCell = squareSize / static_cast<float>(kGridCells);
+    const float currentCell = squareSize / static_cast<float>(session.gridCellCount());
+    const float tileScale = std::min(1.0f, currentCell / referenceCell);
+    const float codeFontSize = std::max(8.0f, 12.0f * tileScale);
+    const float nameFontSize = std::max(10.0f, 15.0f * tileScale);
+    const float tilePadding = std::max(4.0f, 8.0f * tileScale);
+    const float ownerDotRadius = std::max(3.0f, 5.0f * tileScale);
+
     for (const TileInfo& tile : state.getGame().getBoard()) {
         const Rectangle tileRect = session.boardTileRect(square, tile.getIndex());
         const bool hovered = interactive && toolkit.isHovered(tileRect);
@@ -122,15 +130,16 @@ void GameplayScreenRenderer::drawBoardPanel(
         }
 
         DrawRectangleRec(toolkit.inset(tileRect, 2.0f), fill);
-        DrawRectangleRec({tileRect.x + 2.0f, tileRect.y + 2.0f, tileRect.width - 4.0f, 8.0f}, tile.getAccent());
+        DrawRectangleRec({tileRect.x + 2.0f, tileRect.y + 2.0f, tileRect.width - 4.0f, std::max(4.0f, 8.0f * tileScale)}, tile.getAccent());
         DrawRectangleLinesEx(toolkit.inset(tileRect, 1.0f), 1.0f, toolkit.withAlpha(toolkit.theme().getInkMuted(), 0.25f));
 
-        DrawTextEx(font, tile.getCode().c_str(), {tileRect.x + 8.0f, tileRect.y + 16.0f}, 12.0f, 1.0f, toolkit.theme().getInkMuted());
-        toolkit.drawWrappedText(tile.getName(), {tileRect.x + 8.0f, tileRect.y + 32.0f, tileRect.width - 16.0f, tileRect.height - 38.0f}, 15.0f, toolkit.theme().getInk(), 3.0f, 3);
+        DrawTextEx(font, tile.getCode().c_str(), {tileRect.x + tilePadding, tileRect.y + 12.0f * tileScale + 4.0f}, codeFontSize, 1.0f, toolkit.theme().getInkMuted());
+        const float nameTop = tileRect.y + codeFontSize + 12.0f * tileScale + 4.0f;
+        toolkit.drawWrappedText(tile.getName(), {tileRect.x + tilePadding, nameTop, tileRect.width - tilePadding * 2.0f, std::max(0.0f, tileRect.height - (nameTop - tileRect.y) - 4.0f)}, nameFontSize, toolkit.theme().getInk(), nameFontSize * 0.2f, 3);
 
         if (tile.getOwnerIndex() >= 0) {
             const Color ownerColor = state.getGame().getPlayers().at(tile.getOwnerIndex()).getAccent();
-            DrawCircle(static_cast<int>(tileRect.x + tileRect.width - 12.0f), static_cast<int>(tileRect.y + 18.0f), 5.0f, ownerColor);
+            DrawCircle(static_cast<int>(tileRect.x + tileRect.width - ownerDotRadius - 4.0f), static_cast<int>(tileRect.y + ownerDotRadius + 12.0f * tileScale), ownerDotRadius, ownerColor);
         }
 
         if (interactive && hovered && IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
@@ -138,7 +147,7 @@ void GameplayScreenRenderer::drawBoardPanel(
         }
     }
 
-    const float cellSize = square.width / static_cast<float>(kGridCells);
+    const float cellSize = square.width / static_cast<float>(session.gridCellCount());
     const Rectangle center = {
         square.x + cellSize,
         square.y + cellSize,

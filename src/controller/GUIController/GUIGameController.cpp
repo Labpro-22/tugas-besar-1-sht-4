@@ -229,6 +229,8 @@ int GUIGameController::computeNetWorth(int playerIndex) const { return tileContr
 
 int GUIGameController::jailFineAmount() const { return tileController_.jailFineAmount(); }
 
+int GUIGameController::gridCellCount() const { return tileController_.gridCellCount(); }
+
 Rectangle GUIGameController::boardTileRect(Rectangle square, int index) const { return tileController_.boardTileRect(square, index); }
 
 void GUIGameController::setSelectedTile(int tileIndex) { tileController_.setSelectedTile(tileIndex); }
@@ -387,7 +389,7 @@ void GUIGameController::buySelectedProperty() { tileController_.buySelectedPrope
 
 void GUIGameController::skipSelectedPurchase() { tileController_.skipSelectedPurchase(); }
 
-void GUIGameController::auctionRaiseBid(int amount) { tileController_.auctionRaiseBid(amount); }
+void GUIGameController::auctionPlaceBid(int targetBid) { tileController_.auctionPlaceBid(targetBid); }
 
 void GUIGameController::auctionPass() { tileController_.auctionPass(); }
 
@@ -432,6 +434,19 @@ void GUIGameController::liquidateSelectedTile() { tileController_.liquidateSelec
 void GUIGameController::mortgageLiquidationSelectedTile() { tileController_.mortgageLiquidationSelectedTile(); }
 
 void GUIGameController::declareBankrupt() { tileController_.declareBankrupt(); }
+
+bool GUIGameController::canUseHandCardNow() const {
+    if (!backendGame_.isGameRunning() ||
+        backendGame_.getPlayers().empty() ||
+        !guiTurnStarted_) {
+        return false;
+    }
+
+    const Player& player = backendGame_.getCurrentPlayer();
+    return !player.hasUsedHandCardThisTurn() &&
+           player.countCards() > 0 &&
+           !backendGame_.getTurnManager().hasDiceRolledOnceThisTurn();
+}
 
 bool GUIGameController::isLiquidationRequired() const {
     if (!backendGame_.isGameRunning() || backendGame_.getPlayers().empty()) {
@@ -555,12 +570,7 @@ bool GUIGameController::handleComputerOverlay() {
                 int bid = 0;
                 stream >> ignored >> bid;
                 if (bid >= minimumBid && bid <= bidder.getMoney()) {
-                    const int raise = std::max(1, bid - auction.getHighestBid());
-                    if (auction.getHighestBid() + raise <= bidder.getMoney()) {
-                        auctionRaiseBid(raise);
-                    } else {
-                        auctionPass();
-                    }
+                    auctionPlaceBid(bid);
                 } else {
                     auctionPass();
                 }
@@ -725,7 +735,8 @@ bool GUIGameController::handleComputerFreeTurn() {
 
     if (!player.hasUsedHandCardThisTurn() &&
         player.countCards() > 0 &&
-        ComputerDecisionMaker::rollThreshold(50)) {
+        !backendGame_.getTurnManager().hasDiceRolledOnceThisTurn() &&
+        ComputerDecisionMaker::rollThreshold(10)) {
         std::vector<int> usableCards;
         for (int index = 0; index < player.countCards(); index++) {
             if (canComputerUseCard(player, index)) {

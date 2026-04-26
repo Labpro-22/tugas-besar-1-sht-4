@@ -48,6 +48,7 @@ public:
     int computeTileAssetValue(const view::raylibgui::TileInfo& tile) const;
     int computeNetWorth(int playerIndex) const;
     int jailFineAmount() const;
+    int gridCellCount() const;
     Rectangle boardTileRect(Rectangle square, int index) const;
 
     void setSelectedTile(int tileIndex);
@@ -87,7 +88,7 @@ public:
     void buySelectedProperty();
     void skipSelectedPurchase();
 
-    void auctionRaiseBid(int amount);
+    void auctionPlaceBid(int targetBid);
     void auctionPass();
     void finalizeAuction();
 
@@ -114,6 +115,7 @@ public:
     void liquidateSelectedTile();
     void mortgageLiquidationSelectedTile();
     void declareBankrupt();
+    bool canUseHandCardNow() const;
     bool isLiquidationRequired() const;
 
     void syncViewFromBackend();

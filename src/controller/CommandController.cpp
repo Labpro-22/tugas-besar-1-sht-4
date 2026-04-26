@@ -982,6 +982,10 @@ void CommandController::handleUseCard() {
         uiManager.printError("Penggunaan kartu dibatasi maksimal 1 kali dalam 1 giliran.");
         return;
     }
+    if (game.getTurnManager().hasDiceRolledOnceThisTurn()) {
+        uiManager.printError("Kartu hanya bisa dipakai di awal giliran sebelum lempar dadu.");
+        return;
+    }
 
     vector<shared_ptr<HandCard>> cards = game.getCardManager().getHandCards(player);
     if (cards.empty()) {

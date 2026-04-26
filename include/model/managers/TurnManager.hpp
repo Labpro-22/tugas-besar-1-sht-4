@@ -12,6 +12,7 @@ private:
     vector<int> turnOrder;
     bool rolledThisTurn;
     bool actionTakenThisTurn;
+    bool diceRolledOnceThisTurn;
     int consecutiveDoubles;
     int turnCount;
 
@@ -36,6 +37,7 @@ public:
     const vector<int>& getTurnOrder() const;
     bool isRolledThisTurn() const;
     bool hasActionTakenThisTurn() const;
+    bool hasDiceRolledOnceThisTurn() const;
     int getConsecutiveDoubles() const;
     int getTurnCount() const;
 
@@ -43,6 +45,7 @@ public:
     void setTurnOrder(const vector<int>& order);
     void setRolledThisTurn(bool rolled);
     void setActionTakenThisTurn(bool taken);
+    void setDiceRolledOnceThisTurn(bool value);
     void setConsecutiveDoubles(int doubles);
     void setTurnCount(int count);
 };

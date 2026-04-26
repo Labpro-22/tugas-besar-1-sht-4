@@ -218,11 +218,20 @@ int GUITileController::jailFineAmount() const {
     return controller_.backendGame_.getConfigManager().getJailFine();
 }
 
+int GUITileController::gridCellCount() const {
+    const int boardSize = static_cast<int>(controller_.appState_.getGame().getBoard().size());
+    if (boardSize < 4) {
+        return kGridCells;
+    }
+    return (boardSize + 7) / 4;
+}
+
 Rectangle GUITileController::boardTileRect(Rectangle square, int index) const {
-    const int edge = kGridCells - 1;
+    const int gridCells = gridCellCount();
+    const int edge = gridCells - 1;
     const int perimeter = edge * 4;
     const int normalized = perimeter > 0 ? ((index % perimeter) + perimeter) % perimeter : index;
-    const float cell = square.width / static_cast<float>(kGridCells);
+    const float cell = square.width / static_cast<float>(gridCells);
 
     int row = 0;
     int column = 0;
@@ -433,7 +442,7 @@ void GUITileController::skipSelectedPurchase() {
     openAuctionForTile(tileIndex);
 }
 
-void GUITileController::auctionRaiseBid(int amount) {
+void GUITileController::auctionPlaceBid(int targetBid) {
     OverlayState& overlay = controller_.appState_.getOverlay();
     AuctionState auction = overlay.getAuction();
     const int bidderIndex = auction.getSelectedBidder();
@@ -445,15 +454,21 @@ void GUITileController::auctionRaiseBid(int amount) {
         return;
     }
 
-    const int nextBid = std::max(auction.getHighestBid() + amount, auction.getHighestBid() + 1);
+    const bool hasBidder = auction.getHighestBidder() >= 0;
+    const int minimumBid = hasBidder ? auction.getHighestBid() + 1 : 0;
+    if (targetBid < minimumBid) {
+        controller_.addToast("Bid harus minimal M" + std::to_string(minimumBid) + ".", RED);
+        return;
+    }
+
     Player& bidder = controller_.backendGame_.getPlayers().at(bidderIndex);
-    if (bidder.getMoney() < nextBid) {
+    if (bidder.getMoney() < targetBid) {
         controller_.addToast("Bidder tidak punya uang cukup.", RED);
         return;
     }
 
-    controller_.backendGame_.getAuctionManager().placeBid(bidder, nextBid);
-    auction.setHighestBid(nextBid);
+    controller_.backendGame_.getAuctionManager().placeBid(bidder, targetBid);
+    auction.setHighestBid(targetBid);
     auction.setHighestBidder(bidderIndex);
 
     int nextActive = bidderIndex;
@@ -468,7 +483,7 @@ void GUITileController::auctionRaiseBid(int amount) {
     }
     auction.setSelectedBidder(nextActive);
     overlay.setAuction(auction);
-    controller_.addLog(bidder.getUsername(), "BID", "Menawar M" + std::to_string(nextBid) + ".");
+    controller_.addLog(bidder.getUsername(), "BID", "Menawar M" + std::to_string(targetBid) + ".");
     controller_.syncViewFromBackend();
     finalizeAuction();
 }

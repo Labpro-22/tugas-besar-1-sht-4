@@ -1,6 +1,10 @@
 #include "view/raylib/OverlayRenderer.hpp"
 
 #include <algorithm>
+#include <cctype>
+#include <exception>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace view::raylibgui {
@@ -139,13 +143,62 @@ void OverlayRenderer::drawAuction(GUIGameController& session, const UiToolkit& t
     }
 
     const float bidButtonY = modal.y + modal.height - 138.0f;
-    if (toolkit.drawButton("+50", {modal.x + 28.0f, bidButtonY, 90.0f, 42.0f}, toolkit.mix(toolkit.theme().getGold(), WHITE, 0.16f), toolkit.theme().getInk(), true, 20.0f)) {
-        session.auctionRaiseBid(50);
+    const bool hasBidder = auction.getHighestBidder() >= 0;
+    const int minimumBid = hasBidder ? auction.getHighestBid() + 1 : 0;
+    DrawTextEx(font, ("Min. bid: " + toolkit.formatMoney(minimumBid)).c_str(), {modal.x + 28.0f, bidButtonY - 50.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
+    DrawTextEx(font, "Nilai bid:", {modal.x + 28.0f, bidButtonY - 26.0f}, 18.0f, 1.0f, toolkit.theme().getInk());
+
+    toolkit.drawTextField(state, "auction-bid", auction.getBidInput(), "ketik nilai bid", {modal.x + 120.0f, bidButtonY, 200.0f, 42.0f}, 12);
+    if (!auction.getBidError().empty()) {
+        DrawTextEx(font, auction.getBidError().c_str(), {modal.x + 28.0f, bidButtonY + 50.0f}, 17.0f, 1.0f, toolkit.theme().getDanger());
     }
-    if (toolkit.drawButton("+100", {modal.x + 128.0f, bidButtonY, 100.0f, 42.0f}, toolkit.mix(toolkit.theme().getGold(), WHITE, 0.22f), toolkit.theme().getInk(), true, 20.0f)) {
-        session.auctionRaiseBid(100);
+
+    if (toolkit.drawButton("Bid", {modal.x + 332.0f, bidButtonY, 110.0f, 42.0f}, toolkit.mix(toolkit.theme().getGold(), WHITE, 0.18f), toolkit.theme().getInk(), true, 20.0f)) {
+        const std::string raw = auction.getBidInput();
+        std::string trimmed;
+        for (char ch : raw) {
+            if (!std::isspace(static_cast<unsigned char>(ch))) {
+                trimmed.push_back(ch);
+            }
+        }
+
+        if (trimmed.empty()) {
+            auction.setBidError("Masukkan nilai bid terlebih dahulu.");
+        } else if (trimmed.find_first_not_of("0123456789") != std::string::npos) {
+            auction.setBidError("Nilai bid harus berupa angka non-negatif.");
+        } else {
+            int targetBid = -1;
+            try {
+                targetBid = std::stoi(trimmed);
+            } catch (const std::exception&) {
+                auction.setBidError("Nilai bid terlalu besar atau tidak valid.");
+            }
+
+            if (targetBid >= 0) {
+                if (targetBid < minimumBid) {
+                    auction.setBidError(hasBidder
+                        ? "Bid harus lebih besar dari " + toolkit.formatMoney(auction.getHighestBid()) + "."
+                        : "Bid minimal " + toolkit.formatMoney(minimumBid) + ".");
+                } else {
+                    const int bidderIndex = auction.getSelectedBidder();
+                    const bool affordable = bidderIndex < 0 || bidderIndex >= static_cast<int>(game.getPlayers().size())
+                        ? true
+                        : targetBid <= game.getPlayers().at(bidderIndex).getMoney();
+                    if (!affordable) {
+                        auction.setBidError("Saldo bidder aktif tidak cukup.");
+                    } else {
+                        auction.setBidError("");
+                        auction.setBidInput("");
+                        session.auctionPlaceBid(targetBid);
+                    }
+                }
+            }
+        }
     }
-    if (toolkit.drawButton("Pass", {modal.x + 244.0f, bidButtonY, 90.0f, 42.0f}, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getCoral(), 0.18f), toolkit.theme().getInk(), true, 20.0f)) {
+
+    if (toolkit.drawButton("Pass", {modal.x + 452.0f, bidButtonY, 90.0f, 42.0f}, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getCoral(), 0.18f), toolkit.theme().getInk(), true, 20.0f)) {
+        auction.setBidError("");
+        auction.setBidInput("");
         session.auctionPass();
     }
     if (toolkit.drawButton("Selesaikan", {modal.x + modal.width - 184.0f, bidButtonY, 156.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), true, 20.0f)) {
@@ -293,9 +346,10 @@ void OverlayRenderer::drawCards(GUIGameController& session, const UiToolkit& too
         }
     }
 
-    const bool canUse = !player.getHandCards().empty() && state.getGame().isTurnStarted() && !state.getGame().isRolledThisTurn();
-    const std::string hint = state.getGame().isRolledThisTurn()
-        ? "Kartu hanya bisa digunakan sebelum lempar dadu."
+    const bool hasCards = !player.getHandCards().empty();
+    const bool canUse = session.canUseHandCardNow();
+    const std::string hint = (!canUse && hasCards && state.getGame().isTurnStarted())
+        ? "Kartu hanya bisa digunakan di awal giliran sebelum lempar dadu."
         : "Kartu Teleport akan menuju tile yang sedang dipilih di board.";
     DrawTextEx(font, hint.c_str(), {modal.x + 28.0f, modal.y + modal.height - 104.0f}, 16.0f, 1.0f, state.getGame().isRolledThisTurn() ? toolkit.theme().getCoral() : toolkit.theme().getTeal());
     if (toolkit.drawButton("Gunakan", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 120.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), canUse, 20.0f)) {

@@ -70,8 +70,8 @@ void GUICardController::useSelectedHandCard() {
             controller_.addToast("Kartu kemampuan sudah dipakai pada turn ini.", RED);
             return;
         }
-        if (controller_.backendGame_.getTurnManager().isRolledThisTurn()) {
-            controller_.addToast("Kartu hanya bisa digunakan sebelum lempar dadu.", RED);
+        if (controller_.backendGame_.getTurnManager().hasDiceRolledOnceThisTurn()) {
+            controller_.addToast("Kartu hanya bisa dipakai di awal giliran sebelum lempar dadu.", RED);
             return;
         }
 
@@ -180,7 +180,7 @@ void GUICardController::dropSelectedHandCard() {
     try {
         Player& player = controller_.backendGame_.getCurrentPlayer();
         const bool voluntaryDrop = controller_.appState_.getOverlay().getType() == OverlayType::Cards;
-        if (voluntaryDrop && controller_.backendGame_.getTurnManager().isRolledThisTurn()) {
+        if (voluntaryDrop && controller_.backendGame_.getTurnManager().hasDiceRolledOnceThisTurn()) {
             controller_.addToast("Kartu hanya bisa dibuang sebelum lempar dadu.", RED);
             return;
         }

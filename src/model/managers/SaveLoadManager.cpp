@@ -455,6 +455,7 @@ void SaveLoadManager::loadTurnState(Game& game, istream& in) {
     tm.setCurrentPlayerIndex(activeIdx);
     tm.setRolledThisTurn(false);
     tm.setActionTakenThisTurn(false);
+    tm.setDiceRolledOnceThisTurn(false);
     tm.setConsecutiveDoubles(0);
     tm.setTurnCount(game.getGameContext().getCurrentTurn());
 }

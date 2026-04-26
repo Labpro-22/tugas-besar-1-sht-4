@@ -445,13 +445,17 @@ public:
         int selectedBidder,
         int highestBid,
         int highestBidder,
-        std::vector<bool> passed
+        std::vector<bool> passed,
+        std::string bidInput = {},
+        std::string bidError = {}
     )
         : tileIndex_(tileIndex),
           selectedBidder_(selectedBidder),
           highestBid_(highestBid),
           highestBidder_(highestBidder),
-          passed_(std::move(passed)) {}
+          passed_(std::move(passed)),
+          bidInput_(std::move(bidInput)),
+          bidError_(std::move(bidError)) {}
 
     int getTileIndex() const { return tileIndex_; }
     void setTileIndex(int value) { tileIndex_ = value; }
@@ -464,6 +468,11 @@ public:
     std::vector<bool>& getPassed() { return passed_; }
     const std::vector<bool>& getPassed() const { return passed_; }
     void setPassed(std::vector<bool> value) { passed_ = std::move(value); }
+    const std::string& getBidInput() const { return bidInput_; }
+    std::string& getBidInput() { return bidInput_; }
+    void setBidInput(std::string value) { bidInput_ = std::move(value); }
+    const std::string& getBidError() const { return bidError_; }
+    void setBidError(std::string value) { bidError_ = std::move(value); }
 
 private:
     int tileIndex_ = -1;
@@ -471,6 +480,8 @@ private:
     int highestBid_ = 0;
     int highestBidder_ = -1;
     std::vector<bool> passed_;
+    std::string bidInput_;
+    std::string bidError_;
 };
 
 class OverlayState {

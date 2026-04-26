@@ -40,7 +40,7 @@ int ComputerDecisionMaker::decideFestival(int maxIndex) {
 string ComputerDecisionMaker::decideAuctionAction(int minimumBid, int playerMoney, bool forcedBid) {
     const int minBid = max(0, minimumBid);
     if (playerMoney < minBid) return "PASS";
-    if (!forcedBid && randomInt(1, 2) == 1) return "PASS";
+    if (!forcedBid && !rollThreshold(25)) return "PASS";
     return "BID " + to_string(randomInt(minBid, playerMoney));
 }
 

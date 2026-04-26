@@ -152,5 +152,6 @@ void Application::handleLoadGame() {
 
 void Application::exitApplication() {
     running = false;
-    uiManager.printMessage("Terima kasih telah bermain.");
+    uiManager.printMessage("The moment you stop taking a step forward, you are taking a step backward");
+    uiManager.printMessage("13524010 - Audric Yusuf Maynard Simatupang");  
 }

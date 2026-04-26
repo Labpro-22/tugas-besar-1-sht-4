@@ -123,7 +123,11 @@ bool UiToolkit::isHovered(Rectangle rect) const {
 
 std::string UiToolkit::formatMoney(int value) const {
     std::ostringstream stream;
-    stream << "Rp" << value;
+    if (value < 0) {
+        stream << "M-" << -value;
+    } else {
+        stream << "M" << value;
+    }
     return stream.str();
 }
 
