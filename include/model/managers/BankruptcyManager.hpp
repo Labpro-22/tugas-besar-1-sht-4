@@ -11,7 +11,8 @@ using namespace std;
 
 class BankruptcyManager {
 public:
-    struct DebtSession {
+    class DebtSession {
+    public:
         Player* debtor;
         Player* creditor;
         int amount;
