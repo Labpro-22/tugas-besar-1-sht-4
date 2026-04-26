@@ -159,6 +159,7 @@ GUIGameController::GUIGameController()
       tileController_(controllerContext_) {
     appState_.setRng(std::mt19937(static_cast<unsigned int>(std::time(nullptr))));
     appState_.setSaveSlots(createInitialSaveSlots());
+    refreshDefaultConfigPreview();
 }
 
 AppState& GUIGameController::state() {
@@ -275,11 +276,32 @@ void GUIGameController::openRandomCardDraw(int deckKey) { cardController_.openRa
 
 void GUIGameController::openGameOver() { commandController_.openGameOver(); }
 
+int GUIGameController::defaultConfigStartingCash() const { return defaultConfigStartingCash_; }
+
+int GUIGameController::defaultConfigTurnLimit() const { return defaultConfigTurnLimit_; }
+
+void GUIGameController::refreshDefaultConfigPreview() {
+    try {
+        backendGame_.getConfigManager().loadAllConfigs();
+        const int configStartingCash = backendGame_.getConfigManager().getInitialBalance();
+        const int configTurnLimit = backendGame_.getConfigManager().getMaxTurn();
+        defaultConfigStartingCash_ = configStartingCash > 0 ? configStartingCash : 1500;
+        defaultConfigTurnLimit_ = configTurnLimit;
+    } catch (...) {
+        defaultConfigStartingCash_ = 1500;
+        defaultConfigTurnLimit_ = 50;
+    }
+}
+
 void GUIGameController::startFreshSession() {
     try {
         closeOverlay();
         backendGame_ = Game();
         backendGame_.getConfigManager().loadAllConfigs();
+        const int configStartingCash = backendGame_.getConfigManager().getInitialBalance();
+        const int configTurnLimit = backendGame_.getConfigManager().getMaxTurn();
+        defaultConfigStartingCash_ = configStartingCash > 0 ? configStartingCash : 1500;
+        defaultConfigTurnLimit_ = configTurnLimit;
 
         std::vector<Player>& players = backendGame_.getPlayers();
         players.clear();
@@ -287,9 +309,10 @@ void GUIGameController::startFreshSession() {
         const int computerPlayerCount = std::max(0, std::min(appState_.getComputerPlayerCount(), playerCount));
         const int humanPlayerCount = playerCount - computerPlayerCount;
         appState_.setComputerPlayerCount(computerPlayerCount);
-        const int startingCash = appState_.getStartingCash() > 0
-            ? appState_.getStartingCash()
-            : backendGame_.getConfigManager().getInitialBalance();
+        const bool useDefaultConfig = appState_.getNewGameConfigMode() == NewGameConfigMode::DefaultConfig;
+        const int startingCash = useDefaultConfig
+            ? defaultConfigStartingCash_
+            : (appState_.getStartingCash() > 0 ? appState_.getStartingCash() : defaultConfigStartingCash_);
 
         for (int index = 0; index < humanPlayerCount; index++) {
             std::string name = appState_.getPlayerNames().at(index);
@@ -329,7 +352,7 @@ void GUIGameController::startFreshSession() {
         std::shuffle(players.begin(), players.end(), appState_.getRng());
 
         backendGame_.startNewGame();
-        if (appState_.getTurnLimit() > 0) {
+        if (!useDefaultConfig && appState_.getTurnLimit() > 0) {
             backendGame_.getGameContext().setMaxTurn(appState_.getTurnLimit());
         }
 

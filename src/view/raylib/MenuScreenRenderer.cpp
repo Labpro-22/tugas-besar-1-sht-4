@@ -165,7 +165,7 @@ void MenuScreenRenderer::drawNewGame(GUIGameController& session, const UiToolkit
     DrawTextEx(font, "Game Baru", {card.x + 28.0f, card.y + 26.0f}, 34.0f, 1.0f, toolkit.theme().getInk());
     DrawTextEx(
         font,
-        "Atur pemain manusia, pemain COM, saldo awal, dan batas turn.",
+        "Atur pemain manusia, pemain COM, dan sumber config.",
         {card.x + 28.0f, card.y + 66.0f},
         19.0f,
         1.0f,
@@ -228,17 +228,39 @@ void MenuScreenRenderer::drawNewGame(GUIGameController& session, const UiToolkit
         }
     }
 
-    int startingCash = state.getStartingCash();
-    drawStepper(toolkit, "Saldo awal", startingCash, 1000, 3000, 100, {card.x + card.width * 0.58f, card.y + 162.0f, card.width * 0.32f, 82.0f});
-    state.setStartingCash(startingCash);
-    int turnLimit = state.getTurnLimit();
-    drawStepper(toolkit, "Batas turn", turnLimit, 12, 60, 2, {card.x + card.width * 0.58f, card.y + 266.0f, card.width * 0.32f, 82.0f});
-    state.setTurnLimit(turnLimit);
+    const float configX = card.x + card.width * 0.58f;
+    const float configW = card.width * 0.34f;
+    DrawTextEx(font, "Sumber config", {configX, card.y + 124.0f}, 22.0f, 1.0f, toolkit.theme().getInk());
+    const bool defaultConfig = state.getNewGameConfigMode() == NewGameConfigMode::DefaultConfig;
+    if (toolkit.drawChip("Bawaan", {configX, card.y + 158.0f, 118.0f, 44.0f}, defaultConfig, toolkit.theme().getTeal())) {
+        state.setNewGameConfigMode(NewGameConfigMode::DefaultConfig);
+    }
+    if (toolkit.drawChip("Atur sendiri", {configX + 134.0f, card.y + 158.0f, 154.0f, 44.0f}, !defaultConfig, toolkit.theme().getGold())) {
+        state.setNewGameConfigMode(NewGameConfigMode::CustomConfig);
+    }
+
+    const bool customConfig = state.getNewGameConfigMode() == NewGameConfigMode::CustomConfig;
+    if (customConfig) {
+        int startingCash = state.getStartingCash();
+        drawStepper(toolkit, "Saldo awal", startingCash, 1000, 3000, 100, {configX, card.y + 224.0f, configW, 82.0f});
+        state.setStartingCash(startingCash);
+        int turnLimit = state.getTurnLimit();
+        drawStepper(toolkit, "Batas turn", turnLimit, 12, 60, 2, {configX, card.y + 328.0f, configW, 82.0f});
+        state.setTurnLimit(turnLimit);
+    } else {
+        const Rectangle defaultSummary = {configX, card.y + 224.0f, configW, 154.0f};
+        toolkit.drawPanel(defaultSummary, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getTeal(), 0.08f), toolkit.withAlpha(toolkit.theme().getInkMuted(), 0.10f), 0.0f);
+        DrawTextEx(font, "config/misc.txt", {defaultSummary.x + 18.0f, defaultSummary.y + 18.0f}, 22.0f, 1.0f, toolkit.theme().getInk());
+        DrawTextEx(font, ("Saldo awal: " + toolkit.formatMoney(session.defaultConfigStartingCash())).c_str(), {defaultSummary.x + 18.0f, defaultSummary.y + 58.0f}, 19.0f, 1.0f, toolkit.theme().getInkMuted());
+        const std::string turnLimitText = session.defaultConfigTurnLimit() > 0 ? std::to_string(session.defaultConfigTurnLimit()) : "Tanpa batas";
+        DrawTextEx(font, ("Batas turn: " + turnLimitText).c_str(), {defaultSummary.x + 18.0f, defaultSummary.y + 92.0f}, 19.0f, 1.0f, toolkit.theme().getInkMuted());
+    }
+
     int computerPlayers = state.getComputerPlayerCount();
-    drawStepper(toolkit, "Pemain COM", computerPlayers, 0, state.getPlayerCount(), 1, {card.x + card.width * 0.58f, card.y + 370.0f, card.width * 0.32f, 82.0f});
+    drawStepper(toolkit, "Pemain COM", computerPlayers, 0, state.getPlayerCount(), 1, {configX, customConfig ? card.y + 432.0f : card.y + 404.0f, configW, 82.0f});
     state.setComputerPlayerCount(std::max(0, std::min(computerPlayers, state.getPlayerCount())));
 
-    const Rectangle note = {card.x + card.width * 0.58f, card.y + 474.0f, card.width * 0.34f, 150.0f};
+    const Rectangle note = {configX, customConfig ? card.y + 536.0f : card.y + 506.0f, configW, customConfig ? 112.0f : 132.0f};
     toolkit.drawPanel(note, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getGold(), 0.08f), toolkit.withAlpha(toolkit.theme().getInkMuted(), 0.10f), 0.0f);
     DrawTextEx(font, "Alur Giliran", {note.x + 18.0f, note.y + 18.0f}, 24.0f, 1.0f, toolkit.theme().getInk());
     const std::vector<std::string> flow = {
@@ -249,8 +271,8 @@ void MenuScreenRenderer::drawNewGame(GUIGameController& session, const UiToolkit
 
     float flowY = note.y + 58.0f;
     for (const std::string& line : flow) {
-        toolkit.drawWrappedText(line, {note.x + 18.0f, flowY, note.width - 36.0f, 28.0f}, 18.0f, toolkit.theme().getInkMuted());
-        flowY += 30.0f;
+        toolkit.drawWrappedText(line, {note.x + 18.0f, flowY, note.width - 36.0f, 24.0f}, 16.0f, toolkit.theme().getInkMuted());
+        flowY += 26.0f;
     }
 
     if (toolkit.drawButton("Kembali", {card.x + 30.0f, card.y + card.height - 86.0f, 150.0f, 52.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), true, 22.0f)) {

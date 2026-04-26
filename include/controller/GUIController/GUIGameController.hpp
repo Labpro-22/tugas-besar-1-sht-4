@@ -73,6 +73,9 @@ public:
     void openRandomCardDraw(int deckKey);
     void openGameOver();
 
+    int defaultConfigStartingCash() const;
+    int defaultConfigTurnLimit() const;
+
     void startFreshSession();
     void loadSessionFromSlot(int slotIndex);
     void startTurn();
@@ -132,6 +135,8 @@ private:
     bool guiTurnStarted_ = false;
     bool diceRolledThisTurn_ = false;
     float computerActionCooldown_ = 0.0f;
+    int defaultConfigStartingCash_ = 1500;
+    int defaultConfigTurnLimit_ = 50;
     std::shared_ptr<ChanceCard> pendingChanceCard_;
     std::shared_ptr<CommunityChestCard> pendingCommunityChestCard_;
     GUIControllerContext controllerContext_;
@@ -149,6 +154,7 @@ private:
     bool canComputerUseCard(const Player& player, int cardIndex) const;
     bool prepareComputerCard(Player& player, int cardIndex);
     bool isBackendPlayerComputer(int playerIndex) const;
+    void refreshDefaultConfigPreview();
     int activeLiquidationPlayerIndex() const;
 
     int uiTileIndexFromBackend(int backendIndex) const;

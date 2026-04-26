@@ -95,6 +95,11 @@ enum class Screen {
     Gameplay,
 };
 
+enum class NewGameConfigMode {
+    DefaultConfig,
+    CustomConfig,
+};
+
 enum class OverlayType {
     None,
     TileDetail,
@@ -652,6 +657,7 @@ public:
         int computerPlayerCount = 1,
         int startingCash = 1800,
         int turnLimit = 24,
+        NewGameConfigMode newGameConfigMode = NewGameConfigMode::DefaultConfig,
         std::string activeField = {},
         std::string saveInput = "save-1",
         std::string loadInput = "save-1",
@@ -669,6 +675,7 @@ public:
           computerPlayerCount_(computerPlayerCount),
           startingCash_(startingCash),
           turnLimit_(turnLimit),
+          newGameConfigMode_(newGameConfigMode),
           activeField_(std::move(activeField)),
           saveInput_(std::move(saveInput)),
           loadInput_(std::move(loadInput)),
@@ -697,6 +704,8 @@ public:
     void setStartingCash(int value) { startingCash_ = value; }
     int getTurnLimit() const { return turnLimit_; }
     void setTurnLimit(int value) { turnLimit_ = value; }
+    NewGameConfigMode getNewGameConfigMode() const { return newGameConfigMode_; }
+    void setNewGameConfigMode(NewGameConfigMode value) { newGameConfigMode_ = value; }
     const std::string& getActiveField() const { return activeField_; }
     void setActiveField(std::string value) { activeField_ = std::move(value); }
     std::string& getActiveField() { return activeField_; }
@@ -728,6 +737,7 @@ private:
     int computerPlayerCount_ = 1;
     int startingCash_ = 1800;
     int turnLimit_ = 24;
+    NewGameConfigMode newGameConfigMode_ = NewGameConfigMode::DefaultConfig;
     std::string activeField_;
     std::string saveInput_ = "save-1";
     std::string loadInput_ = "save-1";
