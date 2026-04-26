@@ -33,9 +33,7 @@ void RaylibGuiApp::run() {
         }
 
         overlayRenderer_.draw(controller_, toolkit_);
-        if (controller_.state().getScreen() == Screen::Gameplay) {
-            gameplayRenderer_.drawToasts(controller_, toolkit_);
-        }
+        gameplayRenderer_.drawToasts(controller_, toolkit_);
 
         EndDrawing();
     }

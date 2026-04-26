@@ -522,6 +522,9 @@ void ConfigManager::loadPropertyConfig(const string& filename) {
         const int id = parseInt(row[0], filename, "ID");
         const string code = row[1];
 
+        if (id < 1) {
+            throw FileException("ID properti harus >= 1 pada file " + filename + ": " + row[0]);
+        }
         if (code.empty()) {
             throw FileException("Kode properti kosong pada file " + filename);
         }
@@ -680,6 +683,9 @@ void ConfigManager::loadActionTileConfig(const string& filename) {
         const string& tileType = row[3];
         const string& color = row[4];
 
+        if (id < 1) {
+            throw FileException("ID petak aksi harus >= 1 pada file " + filename + ": " + row[0]);
+        }
         if (code.empty()) {
             throw FileException("Kode petak aksi kosong pada file " + filename);
         }
@@ -692,9 +698,16 @@ void ConfigManager::loadActionTileConfig(const string& filename) {
         const string normalizedType = toUpperCopy(tileType);
         if (
             normalizedType != "SPESIAL" &&
+            normalizedType != "SPECIAL" &&
+            normalizedType != "PETAKSPESIAL" &&
             normalizedType != "KARTU" &&
+            normalizedType != "CARD" &&
+            normalizedType != "PETAKKARTU" &&
             normalizedType != "PAJAK" &&
-            normalizedType != "FESTIVAL"
+            normalizedType != "TAX" &&
+            normalizedType != "PETAKPAJAK" &&
+            normalizedType != "FESTIVAL" &&
+            normalizedType != "PETAKFESTIVAL"
         ) {
             throw FileException(
                 "Jenis petak aksi tidak valid pada file " +
@@ -818,6 +831,9 @@ int ConfigManager::getInitialBalance() const {
 }
 
 void ConfigManager::validateDefaultBoardLayout() const {
+    constexpr int minBoardSize = 20;
+    constexpr int maxBoardSize = 60;
+
     int maxTileId = 0;
     for (const auto& entry : propertyCodeById) {
         maxTileId = max(maxTileId, entry.first);
@@ -826,9 +842,10 @@ void ConfigManager::validateDefaultBoardLayout() const {
         maxTileId = max(maxTileId, entry.first);
     }
 
-    if (maxTileId < 20 || maxTileId > 60) {
+    if (maxTileId < minBoardSize || maxTileId > maxBoardSize) {
         throw FileException(
-            "Jumlah petak papan harus antara 20 dan 60. "
+            "Jumlah petak papan harus antara " + to_string(minBoardSize) +
+            " dan " + to_string(maxBoardSize) + ". "
             "Ditemukan ID terbesar: " + to_string(maxTileId)
         );
     }
@@ -849,22 +866,72 @@ void ConfigManager::validateDefaultBoardLayout() const {
         }
     }
 
+    for (const auto& entry : propertyCodeById) {
+        const string normalizedCode = toUpperCopy(entry.second);
+        if (normalizedCode == "GO" || normalizedCode == "PEN") {
+            throw FileException(
+                "Kode " + entry.second +
+                " hanya boleh digunakan untuk petak aksi SPESIAL, bukan properti."
+            );
+        }
+    }
+
     int goCount = 0;
     int penCount = 0;
     for (const auto& entry : actionTileConfigs) {
         const string code = toUpperCopy(entry.second.getCode());
-        if (code == "GO") goCount++;
-        if (code == "PEN") penCount++;
+        const string type = toUpperCopy(entry.second.getTileType());
+
+        if (type == "SPESIAL" || type == "SPECIAL" || type == "PETAKSPESIAL") {
+            if (code == "GO") {
+                goCount++;
+            } else if (code == "PEN") {
+                penCount++;
+            } else if (code != "BBP" && code != "PPJ") {
+                throw FileException(
+                    "Kode petak spesial tidak dikenal pada aksi.txt ID " +
+                    to_string(entry.first) + ": " + entry.second.getCode()
+                );
+            }
+            continue;
+        }
+
+        if (type == "KARTU" || type == "CARD" || type == "PETAKKARTU") {
+            if (code != "DNU" && code != "KSP") {
+                throw FileException(
+                    "Kode petak kartu tidak dikenal pada aksi.txt ID " +
+                    to_string(entry.first) + ": " + entry.second.getCode()
+                );
+            }
+            continue;
+        }
+
+        if (type == "PAJAK" || type == "TAX" || type == "PETAKPAJAK") {
+            if (code != "PPH" && code != "PBM") {
+                throw FileException(
+                    "Kode petak pajak tidak dikenal pada aksi.txt ID " +
+                    to_string(entry.first) + ": " + entry.second.getCode()
+                );
+            }
+            continue;
+        }
+
+        if (type != "FESTIVAL" && type != "PETAKFESTIVAL") {
+            throw FileException(
+                "Jenis petak aksi tidak dikenal pada aksi.txt ID " +
+                to_string(entry.first) + ": " + entry.second.getTileType()
+            );
+        }
     }
 
     if (goCount != 1) {
         throw FileException(
-            "Papan harus memiliki tepat 1 petak GO/Start di aksi.txt. Ditemukan: " + to_string(goCount)
+            "Papan harus memiliki tepat 1 Petak Mulai (GO) bertipe SPESIAL di aksi.txt. Ditemukan: " + to_string(goCount)
         );
     }
     if (penCount != 1) {
         throw FileException(
-            "Papan harus memiliki tepat 1 petak PEN (Penjara) di aksi.txt. Ditemukan: " + to_string(penCount)
+            "Papan harus memiliki tepat 1 Petak Penjara (kode PEN) bertipe SPESIAL di aksi.txt. Ditemukan: " + to_string(penCount)
         );
     }
 }

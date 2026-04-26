@@ -289,9 +289,10 @@ void GUIGameController::refreshDefaultConfigPreview() {
         const int configTurnLimit = backendGame_.getConfigManager().getMaxTurn();
         defaultConfigStartingCash_ = configStartingCash > 0 ? configStartingCash : 1500;
         defaultConfigTurnLimit_ = configTurnLimit;
-    } catch (...) {
+    } catch (const std::exception& exception) {
         defaultConfigStartingCash_ = 1500;
         defaultConfigTurnLimit_ = 50;
+        addToast(exception.what(), RED, 6.0f);
     }
 }
 
@@ -365,7 +366,7 @@ void GUIGameController::startFreshSession() {
         syncViewFromBackend();
         commandController_.startTurn();
     } catch (const std::exception& exception) {
-        addToast(exception.what(), RED);
+        addToast(exception.what(), RED, 6.0f);
     }
 }
 
@@ -388,7 +389,7 @@ void GUIGameController::loadSessionFromSlot(int slotIndex) {
         syncViewFromBackend();
         addToast("Permainan dimuat dari " + filename + ".", SKYBLUE);
     } catch (const std::exception& exception) {
-        addToast(exception.what(), RED);
+        addToast(exception.what(), RED, 6.0f);
     }
 }
 
