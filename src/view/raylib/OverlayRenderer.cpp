@@ -383,9 +383,11 @@ void OverlayRenderer::drawJail(GUIGameController& session, const UiToolkit& tool
 
 void OverlayRenderer::drawCards(GUIGameController& session, const UiToolkit& toolkit) const {
     AppState& state = session.state();
-    const Rectangle modal = toolkit.drawModalShell(state.getOverlay().getAnim(), 0.62f, 0.70f);
+    OverlayState& overlay = state.getOverlay();
+    const Rectangle modal = toolkit.drawModalShell(overlay.getAnim(), 0.66f, 0.82f);
     const Font font = toolkit.font();
     const PlayerInfo& player = state.getGame().getPlayers().at(state.getGame().getCurrentPlayer());
+    const int cardCount = static_cast<int>(player.getHandCards().size());
 
     DrawTextEx(font, "Kartu Kemampuan", {modal.x + 28.0f, modal.y + 28.0f}, 34.0f, 1.0f, toolkit.theme().getInk());
     DrawTextEx(font, "Gunakan kartu dari tangan pemain aktif.", {modal.x + 28.0f, modal.y + 68.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
@@ -393,25 +395,134 @@ void OverlayRenderer::drawCards(GUIGameController& session, const UiToolkit& too
     if (player.getHandCards().empty()) {
         toolkit.drawWrappedText("Belum ada kartu di tangan.", {modal.x + 28.0f, modal.y + 126.0f, modal.width - 56.0f, 60.0f}, 20.0f, toolkit.theme().getCoral());
     } else {
-        for (int index = 0; index < static_cast<int>(player.getHandCards().size()); index++) {
+        int selectedCard = overlay.getSelectedIndex();
+        if (selectedCard < 0 || selectedCard >= cardCount) {
+            selectedCard = 0;
+            overlay.setSelectedIndex(0);
+            overlay.setSelectedPlayer(-1);
+        }
+
+        const CardInfo& activeCard = player.getHandCards().at(selectedCard);
+        const bool teleportSelected = activeCard.getEffect() == CardEffect::TeleportAnywhere;
+        const bool demolitionSelected = activeCard.getEffect() == CardEffect::DemolishBuilding;
+        const bool targetRequired = teleportSelected || demolitionSelected;
+        const float rowHeight = targetRequired ? 64.0f : 84.0f;
+        const float rowGap = 8.0f;
+        const float listTop = modal.y + 122.0f;
+        const int visibleCards = std::min(cardCount, 4);
+
+        for (int index = 0; index < visibleCards; index++) {
             const CardInfo& card = player.getHandCards().at(index);
-            const Rectangle cardRect = {modal.x + 28.0f, modal.y + 122.0f + index * 96.0f, modal.width - 56.0f, 84.0f};
+            const Rectangle cardRect = {modal.x + 28.0f, listTop + index * (rowHeight + rowGap), modal.width - 56.0f, rowHeight};
             toolkit.drawPanel(cardRect, toolkit.mix(toolkit.theme().getPaperSoft(), card.getAccent(), 0.14f), toolkit.withAlpha(card.getAccent(), 0.24f), 0.0f);
-            DrawTextEx(font, card.getTitle().c_str(), {cardRect.x + 18.0f, cardRect.y + 14.0f}, 24.0f, 1.0f, toolkit.theme().getInk());
-            toolkit.drawWrappedText(card.getDescription(), {cardRect.x + 18.0f, cardRect.y + 44.0f, cardRect.width - 140.0f, 30.0f}, 17.0f, toolkit.theme().getInkMuted(), 3.0f, 2);
+            DrawTextEx(font, card.getTitle().c_str(), {cardRect.x + 18.0f, cardRect.y + 10.0f}, targetRequired ? 21.0f : 24.0f, 1.0f, toolkit.theme().getInk());
+            toolkit.drawWrappedText(card.getDescription(), {cardRect.x + 18.0f, cardRect.y + (targetRequired ? 36.0f : 44.0f), cardRect.width - 140.0f, targetRequired ? 18.0f : 30.0f}, targetRequired ? 14.0f : 17.0f, toolkit.theme().getInkMuted(), 3.0f, targetRequired ? 1 : 2);
             if (toolkit.drawButton(index == state.getOverlay().getSelectedIndex() ? "Terpilih" : "Pilih", {cardRect.x + cardRect.width - 96.0f, cardRect.y + 22.0f, 78.0f, 36.0f}, index == state.getOverlay().getSelectedIndex() ? card.getAccent() : toolkit.mix(toolkit.theme().getPaper(), card.getAccent(), 0.16f), index == state.getOverlay().getSelectedIndex() ? toolkit.theme().getPaperSoft() : toolkit.theme().getInk(), true, 16.0f)) {
-                state.getOverlay().setSelectedIndex(index);
+                overlay.setSelectedIndex(index);
+                overlay.setSelectedPlayer(-1);
+            }
+        }
+
+        if (targetRequired) {
+            const std::vector<int> targets = teleportSelected
+                ? session.currentTeleportCardTargets()
+                : session.currentDemolitionCardTargets();
+            const float targetTop = listTop + visibleCards * (rowHeight + rowGap) + 8.0f;
+            const float footerHintY = modal.y + modal.height - 106.0f;
+            const Rectangle targetPanel = {
+                modal.x + 28.0f,
+                targetTop,
+                modal.width - 56.0f,
+                std::max(120.0f, footerHintY - targetTop - 12.0f)
+            };
+            toolkit.drawPanel(targetPanel, toolkit.mix(toolkit.theme().getPaper(), activeCard.getAccent(), 0.09f), toolkit.withAlpha(activeCard.getAccent(), 0.22f), 0.0f);
+            DrawTextEx(font, teleportSelected ? "Pilih Tujuan Teleport" : "Pilih Sasaran Demolition", {targetPanel.x + 16.0f, targetPanel.y + 14.0f}, 19.0f, 1.0f, toolkit.theme().getInk());
+
+            if (targets.empty()) {
+                toolkit.drawWrappedText(
+                    teleportSelected ? "Tidak ada petak yang valid untuk TeleportCard." : "Tidak ada properti lawan yang punya bangunan.",
+                    {targetPanel.x + 16.0f, targetPanel.y + 48.0f, targetPanel.width - 32.0f, 46.0f},
+                    18.0f,
+                    toolkit.theme().getCoral()
+                );
+            } else {
+                const int selectedTarget = overlay.getSelectedPlayer();
+                const int optionCount = static_cast<int>(targets.size());
+                const int columns = optionCount >= 30 ? 8 : (optionCount >= 16 ? 6 : (optionCount >= 9 ? 4 : std::max(1, std::min(3, optionCount))));
+                const int rows = (optionCount + columns - 1) / columns;
+                const float gap = 6.0f;
+                const float gridTop = targetPanel.y + 48.0f;
+                const float gridHeight = std::max(48.0f, targetPanel.height - 86.0f);
+                const float buttonWidth = (targetPanel.width - 32.0f - (columns - 1) * gap) / columns;
+                const float buttonHeight = std::max(20.0f, std::min(34.0f, (gridHeight - (rows - 1) * gap) / rows));
+
+                for (int index = 0; index < optionCount; index++) {
+                    const TileInfo& targetTile = state.getGame().getBoard().at(targets.at(index));
+                    const int row = index / columns;
+                    const int column = index % columns;
+                    const Rectangle button = {
+                        targetPanel.x + 16.0f + column * (buttonWidth + gap),
+                        gridTop + row * (buttonHeight + gap),
+                        buttonWidth,
+                        buttonHeight
+                    };
+                    const bool selected = selectedTarget == index;
+                    if (toolkit.drawButton(
+                            targetTile.getCode(),
+                            button,
+                            selected ? targetTile.getAccent() : toolkit.mix(toolkit.theme().getPaperSoft(), targetTile.getAccent(), 0.16f),
+                            selected ? toolkit.theme().getPaperSoft() : toolkit.theme().getInk(),
+                            true,
+                            14.0f)) {
+                        overlay.setSelectedPlayer(index);
+                    }
+                }
+
+                if (selectedTarget >= 0 && selectedTarget < optionCount) {
+                    const TileInfo& targetTile = state.getGame().getBoard().at(targets.at(selectedTarget));
+                    std::string detail = "Target: " + targetTile.getName() + " (" + targetTile.getCode() + ")";
+                    if (demolitionSelected) {
+                        const std::string ownerName = targetTile.getOwnerIndex() >= 0 &&
+                                                      targetTile.getOwnerIndex() < static_cast<int>(state.getGame().getPlayers().size())
+                            ? state.getGame().getPlayers().at(targetTile.getOwnerIndex()).getName()
+                            : "BANK";
+                        const std::string building = targetTile.getBuildings() >= 5
+                            ? "Hotel"
+                            : std::to_string(targetTile.getBuildings()) + " rumah";
+                        detail += " - " + ownerName + ", " + building;
+                    }
+                    DrawTextEx(font, detail.c_str(), {targetPanel.x + 16.0f, targetPanel.y + targetPanel.height - 28.0f}, 16.0f, 1.0f, toolkit.theme().getInkMuted());
+                } else {
+                    DrawTextEx(font, "Pilih satu target sebelum menekan Gunakan.", {targetPanel.x + 16.0f, targetPanel.y + targetPanel.height - 28.0f}, 16.0f, 1.0f, toolkit.theme().getCoral());
+                }
             }
         }
     }
 
     const bool hasCards = !player.getHandCards().empty();
     const bool canUse = session.canUseHandCardNow();
+    bool targetReady = true;
+    bool selectedTargetCard = false;
+    if (hasCards) {
+        const int selectedCard = std::max(0, std::min(state.getOverlay().getSelectedIndex(), cardCount - 1));
+        const CardInfo& activeCard = player.getHandCards().at(selectedCard);
+        selectedTargetCard = activeCard.getEffect() == CardEffect::TeleportAnywhere ||
+                             activeCard.getEffect() == CardEffect::DemolishBuilding;
+        if (selectedTargetCard) {
+            const std::vector<int> targets = activeCard.getEffect() == CardEffect::TeleportAnywhere
+                ? session.currentTeleportCardTargets()
+                : session.currentDemolitionCardTargets();
+            targetReady = state.getOverlay().getSelectedPlayer() >= 0 &&
+                          state.getOverlay().getSelectedPlayer() < static_cast<int>(targets.size());
+        }
+    }
     const std::string hint = (!canUse && hasCards && state.getGame().isTurnStarted())
         ? "Kartu hanya bisa digunakan di awal giliran sebelum lempar dadu."
-        : "Kartu Teleport akan menuju tile yang sedang dipilih di board.";
-    DrawTextEx(font, hint.c_str(), {modal.x + 28.0f, modal.y + modal.height - 104.0f}, 16.0f, 1.0f, state.getGame().isRolledThisTurn() ? toolkit.theme().getCoral() : toolkit.theme().getTeal());
-    if (toolkit.drawButton("Gunakan", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 120.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), canUse, 20.0f)) {
+        : (selectedTargetCard && !targetReady
+            ? "Pilih target kartu terlebih dahulu."
+            : "Kartu dipakai di awal giliran dan akan mengikuti efek landing normal.");
+    DrawTextEx(font, hint.c_str(), {modal.x + 28.0f, modal.y + modal.height - 104.0f}, 16.0f, 1.0f, (!targetReady || state.getGame().isRolledThisTurn()) ? toolkit.theme().getCoral() : toolkit.theme().getTeal());
+    if (toolkit.drawButton("Gunakan", {modal.x + 28.0f, modal.y + modal.height - 64.0f, 120.0f, 42.0f}, toolkit.theme().getTeal(), toolkit.theme().getPaperSoft(), canUse && targetReady, 20.0f)) {
         session.useSelectedHandCard();
     }
     if (toolkit.drawButton("Buang", {modal.x + 164.0f, modal.y + modal.height - 64.0f, 120.0f, 42.0f}, toolkit.mix(toolkit.theme().getCoral(), WHITE, 0.18f), toolkit.theme().getInk(), canUse, 20.0f)) {

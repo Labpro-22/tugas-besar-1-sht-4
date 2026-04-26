@@ -483,6 +483,14 @@ bool GUIGameController::isLiquidationRequired() const {
            backendGame_.getCurrentPlayer().getMoney() < 0;
 }
 
+std::vector<int> GUIGameController::currentTeleportCardTargets() const {
+    return cardController_.teleportTargetOptions();
+}
+
+std::vector<int> GUIGameController::currentDemolitionCardTargets() const {
+    return cardController_.demolitionTargetOptions();
+}
+
 void GUIGameController::syncViewFromBackend() {
     const GameState previous = appState_.getGame();
     GameState view;
@@ -1128,8 +1136,10 @@ CardInfo GUIGameController::makeCardInfoFromBackend(const Card& card) const {
     } else if (dynamic_cast<const DiscountCard*>(&card) != nullptr) {
         effect = CardEffect::ActivateDiscount;
         accent = toolkit.theme().getGold();
-    } else if (dynamic_cast<const LassoCard*>(&card) != nullptr ||
-               dynamic_cast<const DemolitionCard*>(&card) != nullptr) {
+    } else if (dynamic_cast<const DemolitionCard*>(&card) != nullptr) {
+        effect = CardEffect::DemolishBuilding;
+        accent = toolkit.theme().getCoral();
+    } else if (dynamic_cast<const LassoCard*>(&card) != nullptr) {
         effect = CardEffect::ActivateShield;
         accent = toolkit.theme().getCoral();
     }

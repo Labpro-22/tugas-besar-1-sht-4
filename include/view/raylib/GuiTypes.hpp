@@ -153,6 +153,7 @@ enum class CardEffect {
     TeleportAnywhere,
     ActivateShield,
     ActivateDiscount,
+    DemolishBuilding,
 };
 
 class CardInfo {

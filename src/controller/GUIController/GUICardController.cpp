@@ -6,13 +6,16 @@
 #include "model/cards/DemolitionCard.hpp"
 #include "model/cards/HandCard.hpp"
 #include "model/cards/LassoCard.hpp"
+#include "model/cards/MoveCard.hpp"
 #include "model/cards/ShieldCard.hpp"
 #include "model/cards/TeleportCard.hpp"
+#include "model/tiles/OwnableTile.hpp"
 #include "model/tiles/StreetTile.hpp"
 #include "model/tiles/Tile.hpp"
 
 #include <algorithm>
 #include <exception>
+#include <iterator>
 #include <memory>
 #include <string>
 #include <vector>
@@ -29,6 +32,7 @@ GUICardController::GUICardController(GUIControllerContext& controller)
 
 void GUICardController::openCards() {
     controller_.appState_.getOverlay().setSelectedIndex(0);
+    controller_.appState_.getOverlay().setSelectedPlayer(-1);
     controller_.openOverlay(OverlayType::Cards);
 }
 
@@ -77,8 +81,11 @@ void GUICardController::useSelectedHandCard() {
 
         const int selected = std::max(0, std::min(controller_.appState_.getOverlay().getSelectedIndex(), static_cast<int>(cards.size()) - 1));
         const int previousPosition = player.getPosition();
+        const bool shouldResolveLanding =
+            std::dynamic_pointer_cast<TeleportCard>(cards.at(selected)) != nullptr ||
+            std::dynamic_pointer_cast<MoveCard>(cards.at(selected)) != nullptr;
         if (!configureSelectedHandCard(player, selected)) {
-            controller_.addToast("Target kartu tidak tersedia.", RED);
+            controller_.addToast("Pilih target kartu yang valid terlebih dahulu.", RED);
             return;
         }
         controller_.backendGame_.getCardManager().useHandCard(controller_.backendGame_, player, selected);
@@ -88,7 +95,7 @@ void GUICardController::useSelectedHandCard() {
         player.moveTo(normalizedPosition);
         controller_.addToast("Kartu digunakan.", SKYBLUE);
         controller_.closeOverlay();
-        if (normalizedPosition != controller_.normalizedBackendTileIndex(previousPosition)) {
+        if (shouldResolveLanding || normalizedPosition != controller_.normalizedBackendTileIndex(previousPosition)) {
             controller_.resolveBackendLanding(normalizedPosition, true);
         } else {
             controller_.syncViewFromBackend();
@@ -242,6 +249,41 @@ void GUICardController::useJailCard() {
     }
 }
 
+std::vector<int> GUICardController::teleportTargetOptions() const {
+    std::vector<int> targets;
+    for (const std::shared_ptr<Tile>& tile : controller_.backendGame_.getBoard().getTiles()) {
+        if (tile != nullptr) {
+            targets.push_back(controller_.uiTileIndexFromBackend(tile->getIndex()));
+        }
+    }
+    std::sort(targets.begin(), targets.end());
+    return targets;
+}
+
+std::vector<int> GUICardController::demolitionTargetOptions() const {
+    std::vector<int> targets;
+    if (controller_.backendGame_.getPlayers().empty()) {
+        return targets;
+    }
+
+    const Player& player = controller_.backendGame_.getCurrentPlayer();
+    for (const Player& opponent : controller_.backendGame_.getPlayers()) {
+        if (&opponent == &player || opponent.isBankrupt()) {
+            continue;
+        }
+
+        for (OwnableTile* property : controller_.backendGame_.getPropertyManager().getOwnedProperties(controller_.backendGame_.getBoard(), opponent)) {
+            StreetTile* street = dynamic_cast<StreetTile*>(property);
+            if (street != nullptr && street->getBuildingLevel() > 0) {
+                targets.push_back(controller_.uiTileIndexFromBackend(street->getIndex()));
+            }
+        }
+    }
+
+    std::sort(targets.begin(), targets.end());
+    return targets;
+}
+
 bool GUICardController::currentPlayerNeedsForceDrop() const {
     if (controller_.backendGame_.getPlayers().empty()) {
         return false;
@@ -298,7 +340,24 @@ bool GUICardController::configureSelectedHandCard(Player& player, int cardIndex)
     }
 
     if (std::shared_ptr<TeleportCard> teleport = std::dynamic_pointer_cast<TeleportCard>(cards.at(cardIndex))) {
-        teleport->setTargetTileIndex(controller_.backendTileIndexFromUi(controller_.appState_.getGame().getSelectedTile()));
+        const std::vector<int> targets = teleportTargetOptions();
+        if (targets.empty()) {
+            return false;
+        }
+
+        int targetOption = controller_.appState_.getOverlay().getSelectedPlayer();
+        if (player.isComputerPlayer()) {
+            const int selectedTile = controller_.appState_.getGame().getSelectedTile();
+            const auto selected = std::find(targets.begin(), targets.end(), selectedTile);
+            targetOption = selected != targets.end()
+                ? static_cast<int>(std::distance(targets.begin(), selected))
+                : 0;
+        }
+        if (targetOption < 0 || targetOption >= static_cast<int>(targets.size())) {
+            return false;
+        }
+
+        teleport->setTargetTileIndex(controller_.backendTileIndexFromUi(targets.at(targetOption)));
         return true;
     }
 
@@ -321,26 +380,29 @@ bool GUICardController::configureSelectedHandCard(Player& player, int cardIndex)
     }
 
     if (std::shared_ptr<DemolitionCard> demolition = std::dynamic_pointer_cast<DemolitionCard>(cards.at(cardIndex))) {
-        StreetTile* selectedStreet = controller_.streetFromUi(controller_.appState_.getGame().getSelectedTile());
-        if (selectedStreet != nullptr &&
-            selectedStreet->getOwner() != nullptr &&
-            selectedStreet->getOwner() != &player &&
-            selectedStreet->getBuildingLevel() > 0) {
-            demolition->setTargetStreet(selectedStreet);
-            return true;
+        const std::vector<int> targets = demolitionTargetOptions();
+        if (targets.empty()) {
+            return false;
         }
 
-        for (const std::shared_ptr<Tile>& tile : controller_.backendGame_.getBoard().getTiles()) {
-            StreetTile* street = dynamic_cast<StreetTile*>(tile.get());
-            if (street != nullptr &&
-                street->getOwner() != nullptr &&
-                street->getOwner() != &player &&
-                street->getBuildingLevel() > 0) {
-                demolition->setTargetStreet(street);
-                return true;
-            }
+        int targetOption = controller_.appState_.getOverlay().getSelectedPlayer();
+        if (player.isComputerPlayer()) {
+            targetOption = 0;
         }
-        return false;
+        if (targetOption < 0 || targetOption >= static_cast<int>(targets.size())) {
+            return false;
+        }
+
+        StreetTile* targetStreet = controller_.streetFromUi(targets.at(targetOption));
+        if (targetStreet == nullptr ||
+            targetStreet->getOwner() == nullptr ||
+            targetStreet->getOwner() == &player ||
+            targetStreet->getBuildingLevel() <= 0) {
+            return false;
+        }
+
+        demolition->setTargetStreet(targetStreet);
+        return true;
     }
 
     return true;

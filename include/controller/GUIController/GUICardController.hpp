@@ -18,6 +18,9 @@ public:
     void dropSelectedHandCard();
     void useJailCard();
 
+    std::vector<int> teleportTargetOptions() const;
+    std::vector<int> demolitionTargetOptions() const;
+
     bool currentPlayerNeedsForceDrop() const;
     void maybeOpenForceDrop();
 

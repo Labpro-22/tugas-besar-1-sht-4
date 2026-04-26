@@ -122,6 +122,8 @@ public:
     void declareBankrupt();
     bool canUseHandCardNow() const;
     bool isLiquidationRequired() const;
+    std::vector<int> currentTeleportCardTargets() const;
+    std::vector<int> currentDemolitionCardTargets() const;
 
     void syncViewFromBackend();
 
