@@ -252,7 +252,11 @@ void GUICommandController::rollDice() {
         if (controller_.backendGame_.getTurnManager().getConsecutiveDoubles() >= 3) {
             controller_.backendGame_.getJailManager().sendToJail(player);
             player.moveTo(backendJailIndex(controller_.backendGame_));
-            controller_.addLog(player.getUsername(), "JAIL", "Masuk penjara karena double tiga kali berturut-turut.");
+            if (player.isJailed()) {
+                controller_.addLog(player.getUsername(), "JAIL", "Masuk penjara karena double tiga kali berturut-turut.");
+            } else {
+                controller_.addLog(player.getUsername(), "JAIL", "Mampir ke penjara karena double tiga kali berturut-turut.");
+            }
             controller_.syncViewFromBackend();
             finishTurnAfterDiceIfReady();
             return;
@@ -312,7 +316,11 @@ void GUICommandController::applyManualDice() {
         if (controller_.backendGame_.getTurnManager().getConsecutiveDoubles() >= 3) {
             controller_.backendGame_.getJailManager().sendToJail(player);
             player.moveTo(backendJailIndex(controller_.backendGame_));
-            controller_.addLog(player.getUsername(), "JAIL", "Masuk penjara karena double tiga kali berturut-turut.");
+            if (player.isJailed()) {
+                controller_.addLog(player.getUsername(), "JAIL", "Masuk penjara karena double tiga kali berturut-turut.");
+            } else {
+                controller_.addLog(player.getUsername(), "JAIL", "Mampir ke penjara karena double tiga kali berturut-turut.");
+            }
             controller_.syncViewFromBackend();
             finishTurnAfterDiceIfReady();
             return;
