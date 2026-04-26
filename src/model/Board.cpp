@@ -235,7 +235,7 @@ int Board::getTileIndex(const string& code) const {
     auto it = find_if(tiles.begin(), tiles.end(), [&](const shared_ptr<Tile>& tile) {
         return tile->getCode() == code;
     });
-    if (it == tiles.end()) return 0;
+    if (it == tiles.end()) return -1;
     return (*it)->getIndex();
 }
 
