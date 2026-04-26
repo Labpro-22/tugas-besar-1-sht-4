@@ -1265,6 +1265,7 @@ std::vector<int> GUITileController::currentPlayerRedeemOptions() const {
 }
 
 int GUITileController::moveBackendPlayer(Player& player, int steps) {
+    UiToolkit tileToolkit;
     const int boardSize = controller_.backendGame_.getBoard().getBoardSize();
     if (boardSize <= 0) {
         return player.getPosition();
@@ -1303,6 +1304,7 @@ int GUITileController::moveBackendPlayer(Player& player, int steps) {
 }
 
 void GUITileController::resolveBackendLanding(int backendTileIndex, bool fromMovement) {
+    UiToolkit tileToolkit;
     if (!controller_.backendGame_.isGameRunning() || controller_.backendGame_.getPlayers().empty()) {
         return;
     }

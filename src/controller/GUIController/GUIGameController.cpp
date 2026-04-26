@@ -1124,6 +1124,7 @@ PlayerInfo GUIGameController::makePlayerInfoFromBackend(const Player& player, in
 }
 
 CardInfo GUIGameController::makeCardInfoFromBackend(const Card& card) const {
+    UiToolkit toolkit;
     CardKind kind = dynamic_cast<const HandCard*>(&card) != nullptr ? CardKind::Hand : CardKind::Instant;
     CardEffect effect = CardEffect::GainMoney;
     Color accent = SKYBLUE;
