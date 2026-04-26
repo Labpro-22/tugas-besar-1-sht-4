@@ -721,7 +721,7 @@ public:
         NewGameConfigMode newGameConfigMode = NewGameConfigMode::DefaultConfig,
         std::string activeField = {},
         std::string saveInput = "save-1",
-        std::string loadInput = "save-1",
+        std::string loadInput = {},
         std::vector<SaveSlot> saveSlots = {},
         int selectedSave = 0,
         std::mt19937 rng = std::mt19937(0),
@@ -801,7 +801,7 @@ private:
     NewGameConfigMode newGameConfigMode_ = NewGameConfigMode::DefaultConfig;
     std::string activeField_;
     std::string saveInput_ = "save-1";
-    std::string loadInput_ = "save-1";
+    std::string loadInput_;
     std::vector<SaveSlot> saveSlots_;
     int selectedSave_ = 0;
     std::mt19937 rng_ = std::mt19937(0);

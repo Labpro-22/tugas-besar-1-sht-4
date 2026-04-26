@@ -112,7 +112,7 @@ void MenuScreenRenderer::drawMainMenu(GUIGameController& session, const UiToolki
     }
     if (toolkit.drawButton("Load Game", {buttonX, buttonStartY + buttonHeight + buttonGap, buttonW, buttonHeight}, toolkit.theme().getCoral(), toolkit.theme().getPaperSoft(), true, 25.0f)) {
         state.setScreen(Screen::LoadGame);
-        state.getActiveField().clear();
+        state.setActiveField("load-name");
     }
     if (toolkit.drawButton("Panduan", {buttonX, buttonStartY + 2.0f * (buttonHeight + buttonGap), buttonW, buttonHeight}, toolkit.theme().getGold(), toolkit.theme().getInk(), true, 25.0f)) {
         state.setScreen(Screen::Tutorial);
@@ -294,56 +294,28 @@ void MenuScreenRenderer::drawLoadGame(GUIGameController& session, const UiToolki
     DrawTextEx(font, "Load Game", {card.x + 28.0f, card.y + 26.0f}, 34.0f, 1.0f, toolkit.theme().getInk());
     DrawTextEx(
         font,
-        "Pilih save yang tersedia untuk melanjutkan permainan.",
+        "Masukkan nama file save untuk melanjutkan permainan.",
         {card.x + 28.0f, card.y + 66.0f},
         19.0f,
         1.0f,
         toolkit.theme().getInkMuted()
     );
 
-    const float slotWidth = (card.width - 76.0f) / 3.0f;
-    for (int index = 0; index < static_cast<int>(state.getSaveSlots().size()); index++) {
-        const SaveSlot& slot = state.getSaveSlots().at(index);
-        const Rectangle slotRect = {card.x + 28.0f + index * (slotWidth + 10.0f), card.y + 130.0f, slotWidth, 240.0f};
-        toolkit.drawPanel(slotRect, toolkit.mix(toolkit.theme().getPaperSoft(), slot.getAccent(), 0.10f), toolkit.withAlpha(slot.getAccent(), 0.35f), 0.0f);
-        toolkit.drawBadge("Turn " + std::to_string(slot.getTurn()), {slotRect.x + 18.0f, slotRect.y + 18.0f, 84.0f, 30.0f}, toolkit.mix(slot.getAccent(), WHITE, 0.26f), toolkit.theme().getInk());
-        toolkit.drawBadge(std::to_string(slot.getPlayerCount()) + "P", {slotRect.x + 112.0f, slotRect.y + 18.0f, 52.0f, 30.0f}, toolkit.mix(toolkit.theme().getPaperSoft(), slot.getAccent(), 0.18f), toolkit.theme().getInk());
-        DrawTextEx(font, slot.getName().c_str(), {slotRect.x + 18.0f, slotRect.y + 68.0f}, 26.0f, 1.0f, toolkit.theme().getInk());
-        toolkit.drawWrappedText(slot.getSubtitle(), {slotRect.x + 18.0f, slotRect.y + 104.0f, slotRect.width - 36.0f, 70.0f}, 18.0f, toolkit.theme().getInkMuted());
-        if (toolkit.drawButton(index == state.getSelectedSave() ? "Terpilih" : "Pilih Slot", {slotRect.x + 18.0f, slotRect.y + slotRect.height - 62.0f, slotRect.width - 36.0f, 44.0f}, index == state.getSelectedSave() ? slot.getAccent() : toolkit.mix(toolkit.theme().getPaper(), slot.getAccent(), 0.18f), index == state.getSelectedSave() ? toolkit.theme().getPaperSoft() : toolkit.theme().getInk(), true, 20.0f)) {
-            state.setSelectedSave(index);
-        }
-    }
-
-    DrawTextEx(font, "Nama save", {card.x + 28.0f, card.y + 420.0f}, 22.0f, 1.0f, toolkit.theme().getInk());
-    toolkit.drawTextField(state, "load-name", state.getLoadInput(), "nama save", {card.x + 28.0f, card.y + 454.0f, 360.0f, 56.0f}, 24);
+    DrawTextEx(font, "Nama file", {card.x + 28.0f, card.y + 144.0f}, 22.0f, 1.0f, toolkit.theme().getInk());
+    toolkit.drawTextField(state, "load-name", state.getLoadInput(), "nama file save", {card.x + 28.0f, card.y + 178.0f, 430.0f, 56.0f}, 32);
     toolkit.drawWrappedText(
-        "Masukkan nama save jika ingin memuat file tertentu.",
-        {card.x + 28.0f, card.y + 522.0f, 380.0f, 62.0f},
+        "Ketik nama file yang ingin dimuat. Ekstensi .txt boleh ditulis langsung atau akan ditambahkan otomatis.",
+        {card.x + 28.0f, card.y + 250.0f, 520.0f, 72.0f},
         17.0f,
         toolkit.theme().getInkMuted()
     );
-
-    const Rectangle notes = {card.x + 450.0f, card.y + 418.0f, card.width - 478.0f, 170.0f};
-    toolkit.drawPanel(notes, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getTeal(), 0.08f), toolkit.withAlpha(toolkit.theme().getInkMuted(), 0.10f), 0.0f);
-    DrawTextEx(font, "Ringkasan Save", {notes.x + 18.0f, notes.y + 18.0f}, 24.0f, 1.0f, toolkit.theme().getInk());
-    const std::vector<std::string> distinctions = {
-        "Save 1: permainan tengah dengan aset tersebar.",
-        "Save 2: pemain berada di jail dan aset tergadai.",
-        "Save 3: duel akhir menjelang batas turn.",
-    };
-    float distinctionY = notes.y + 58.0f;
-    for (const std::string& text : distinctions) {
-        toolkit.drawWrappedText(text, {notes.x + 18.0f, distinctionY, notes.width - 36.0f, 34.0f}, 18.0f, toolkit.theme().getInkMuted());
-        distinctionY += 34.0f;
-    }
 
     if (toolkit.drawButton("Kembali", {card.x + 28.0f, card.y + card.height - 82.0f, 150.0f, 52.0f}, toolkit.mix(toolkit.theme().getNavy(), WHITE, 0.18f), toolkit.theme().getPaperSoft(), true, 22.0f)) {
         state.setScreen(Screen::MainMenu);
         state.getActiveField().clear();
     }
     if (toolkit.drawButton("Load Game", {card.x + card.width - 222.0f, card.y + card.height - 82.0f, 194.0f, 52.0f}, toolkit.theme().getCoral(), toolkit.theme().getPaperSoft(), true, 22.0f)) {
-        session.loadSessionFromSlot(state.getSelectedSave());
+        session.loadSessionFromInput();
     }
 }
 

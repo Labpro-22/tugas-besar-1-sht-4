@@ -78,7 +78,7 @@ public:
     int defaultConfigTurnLimit() const;
 
     void startFreshSession();
-    void loadSessionFromSlot(int slotIndex);
+    void loadSessionFromInput();
     void startTurn();
     void rollDice();
     void applyManualDice();
@@ -175,6 +175,4 @@ private:
     view::raylibgui::PlayerInfo makePlayerInfoFromBackend(const Player& player, int playerIndex) const;
     view::raylibgui::CardInfo makeCardInfoFromBackend(const Card& card) const;
     view::raylibgui::LogItem makeLogItemFromBackend(const LogManager::LogEntry& entry) const;
-
-    std::vector<view::raylibgui::SaveSlot> createInitialSaveSlots() const;
 };

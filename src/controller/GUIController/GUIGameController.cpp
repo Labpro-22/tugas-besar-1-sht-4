@@ -35,7 +35,6 @@
 #include <cctype>
 #include <ctime>
 #include <exception>
-#include <fstream>
 #include <memory>
 #include <random>
 #include <sstream>
@@ -124,10 +123,18 @@ bool hasTxtExtension(const std::string& filename) {
 }
 
 std::string withTxtExtension(std::string filename) {
-    if (filename.empty()) {
-        filename = "save-1";
-    }
     return hasTxtExtension(filename) ? filename : filename + ".txt";
+}
+
+std::string trimWhitespace(const std::string& value) {
+    const std::string whitespace = " \t\n\r\f\v";
+    const std::size_t first = value.find_first_not_of(whitespace);
+    if (first == std::string::npos) {
+        return "";
+    }
+
+    const std::size_t last = value.find_last_not_of(whitespace);
+    return value.substr(first, last - first + 1);
 }
 
 }
@@ -158,7 +165,6 @@ GUIGameController::GUIGameController()
       commandController_(controllerContext_),
       tileController_(controllerContext_) {
     appState_.setRng(std::mt19937(static_cast<unsigned int>(std::time(nullptr))));
-    appState_.setSaveSlots(createInitialSaveSlots());
     refreshDefaultConfigPreview();
 }
 
@@ -370,11 +376,11 @@ void GUIGameController::startFreshSession() {
     }
 }
 
-void GUIGameController::loadSessionFromSlot(int slotIndex) {
-    appState_.setSelectedSave(slotIndex);
-    std::string filename = appState_.getLoadInput();
-    if (filename.empty() && slotIndex >= 0 && slotIndex < static_cast<int>(appState_.getSaveSlots().size())) {
-        filename = appState_.getSaveSlots().at(slotIndex).getName();
+void GUIGameController::loadSessionFromInput() {
+    std::string filename = trimWhitespace(appState_.getLoadInput());
+    if (filename.empty()) {
+        addToast("Masukkan nama file save terlebih dahulu.", RED, 4.0f);
+        return;
     }
     filename = withTxtExtension(filename);
 
@@ -1152,10 +1158,3 @@ LogItem GUIGameController::makeLogItemFromBackend(const LogManager::LogEntry& en
     return {entry.getTurnNumber(), entry.getUsername(), entry.getActionType(), entry.getDetail()};
 }
 
-std::vector<SaveSlot> GUIGameController::createInitialSaveSlots() const {
-    return {
-        {"save-1.txt", "File save lokal", 1, kMinPlayers, toolkit.theme().getCoral()},
-        {"save-2.txt", "File save lokal", 1, kMinPlayers, toolkit.theme().getTeal()},
-        {"save-3.txt", "File save lokal", 1, kMinPlayers, toolkit.theme().getGold()},
-    };
-}
