@@ -209,8 +209,12 @@ void OverlayRenderer::drawAuction(GUIGameController& session, const UiToolkit& t
     const float bidButtonY = modal.y + modal.height - 138.0f;
     const bool hasBidder = auction.getHighestBidder() >= 0;
     const int minimumBid = hasBidder ? auction.getHighestBid() + 1 : 0;
+    const bool canPass = session.canActiveAuctionBidderPass();
     DrawTextEx(font, ("Min. bid: " + toolkit.formatMoney(minimumBid)).c_str(), {modal.x + 28.0f, bidButtonY - 50.0f}, 18.0f, 1.0f, toolkit.theme().getInkMuted());
     DrawTextEx(font, "Nilai bid:", {modal.x + 28.0f, bidButtonY - 26.0f}, 18.0f, 1.0f, toolkit.theme().getInk());
+    if (!canPass) {
+        DrawTextEx(font, "Pemain terakhir wajib bid.", {modal.x + 160.0f, bidButtonY - 50.0f}, 18.0f, 1.0f, toolkit.theme().getDanger());
+    }
 
     toolkit.drawTextField(state, "auction-bid", auction.getBidInput(), "ketik nilai bid", {modal.x + 120.0f, bidButtonY, 200.0f, 42.0f}, 12);
     if (!auction.getBidError().empty()) {
@@ -247,7 +251,7 @@ void OverlayRenderer::drawAuction(GUIGameController& session, const UiToolkit& t
                     const int bidderIndex = auction.getSelectedBidder();
                     const bool affordable = bidderIndex < 0 || bidderIndex >= static_cast<int>(game.getPlayers().size())
                         ? true
-                        : targetBid <= game.getPlayers().at(bidderIndex).getMoney();
+                        : effectiveMoneyFor(game.getPlayers().at(bidderIndex), targetBid) <= game.getPlayers().at(bidderIndex).getMoney();
                     if (!affordable) {
                         auction.setBidError("Saldo bidder aktif tidak cukup.");
                     } else {
@@ -260,7 +264,7 @@ void OverlayRenderer::drawAuction(GUIGameController& session, const UiToolkit& t
         }
     }
 
-    if (toolkit.drawButton("Pass", {modal.x + 452.0f, bidButtonY, 90.0f, 42.0f}, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getCoral(), 0.18f), toolkit.theme().getInk(), true, 20.0f)) {
+    if (toolkit.drawButton("Pass", {modal.x + 452.0f, bidButtonY, 90.0f, 42.0f}, toolkit.mix(toolkit.theme().getPaper(), toolkit.theme().getCoral(), 0.18f), toolkit.theme().getInk(), canPass, 20.0f)) {
         auction.setBidError("");
         auction.setBidInput("");
         session.auctionPass();

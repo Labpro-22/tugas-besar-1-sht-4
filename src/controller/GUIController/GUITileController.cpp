@@ -521,6 +521,16 @@ bool GUITileController::canCurrentPlayerAffordSelectedPurchase() const {
     return controller_.backendGame_.getPlayers().at(playerIndex).getMoney() >= currentPurchasePrice();
 }
 
+bool GUITileController::canActiveAuctionBidderPass() const {
+    const AuctionState& auction = controller_.appState_.getOverlay().getAuction();
+    if (auction.getHighestBidder() >= 0) {
+        return true;
+    }
+
+    const int remaining = static_cast<int>(std::count(auction.getPassed().begin(), auction.getPassed().end(), false));
+    return remaining > 1;
+}
+
 int GUITileController::currentPurchasePrice() const {
     const OwnableTile* ownable = controller_.ownableFromUi(controller_.appState_.getOverlay().getTileIndex());
     if (ownable == nullptr) {
@@ -597,6 +607,14 @@ void GUITileController::auctionPlaceBid(int targetBid) {
     auction.setHighestBid(targetBid);
     auction.setHighestBidder(bidderIndex);
 
+    std::vector<bool> passed(controller_.backendGame_.getPlayers().size(), false);
+    for (int index = 0; index < static_cast<int>(controller_.backendGame_.getPlayers().size()); index++) {
+        if (controller_.backendGame_.getPlayers().at(index).isBankrupt()) {
+            passed.at(index) = true;
+        }
+    }
+    auction.setPassed(passed);
+
     int nextActive = bidderIndex;
     for (int checked = 0; checked < static_cast<int>(controller_.backendGame_.getPlayers().size()); checked++) {
         const int nextIndex = (bidderIndex + checked + 1) % static_cast<int>(controller_.backendGame_.getPlayers().size());
@@ -619,6 +637,12 @@ void GUITileController::auctionPass() {
     AuctionState auction = overlay.getAuction();
     const int bidderIndex = auction.getSelectedBidder();
     if (bidderIndex < 0 || bidderIndex >= static_cast<int>(controller_.backendGame_.getPlayers().size())) {
+        return;
+    }
+    if (!canActiveAuctionBidderPass()) {
+        auction.setBidError("Pemain terakhir wajib melakukan bid.");
+        overlay.setAuction(auction);
+        controller_.addToast("Pemain terakhir wajib bid.", RED);
         return;
     }
 

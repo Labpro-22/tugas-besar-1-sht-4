@@ -408,6 +408,8 @@ void GUIGameController::adjustManualDie(int dieIndex, int delta) { commandContro
 
 bool GUIGameController::canCurrentPlayerAffordSelectedPurchase() const { return tileController_.canCurrentPlayerAffordSelectedPurchase(); }
 
+bool GUIGameController::canActiveAuctionBidderPass() const { return tileController_.canActiveAuctionBidderPass(); }
+
 int GUIGameController::currentPurchasePrice() const { return tileController_.currentPurchasePrice(); }
 
 void GUIGameController::buySelectedProperty() { tileController_.buySelectedProperty(); }
@@ -588,13 +590,14 @@ bool GUIGameController::handleComputerOverlay() {
 
             Player& bidder = backendGame_.getPlayers().at(bidderIndex);
             const int minimumBid = auction.getHighestBidder() < 0 ? 0 : auction.getHighestBid() + 1;
-            const std::string decision = ComputerDecisionMaker::decideAuctionAction(minimumBid, bidder.getMoney(), false);
+            const bool forcedBid = !canActiveAuctionBidderPass();
+            const std::string decision = ComputerDecisionMaker::decideAuctionAction(minimumBid, bidder.getMoney(), forcedBid);
             if (decision.rfind("BID ", 0) == 0) {
                 std::istringstream stream(decision);
                 std::string ignored;
                 int bid = 0;
                 stream >> ignored >> bid;
-                if (bid >= minimumBid && bid <= bidder.getMoney()) {
+                if (bid >= minimumBid && bidder.getMoney() >= bidder.effectiveCost(bid)) {
                     auctionPlaceBid(bid);
                 } else {
                     auctionPass();

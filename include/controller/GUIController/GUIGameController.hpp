@@ -88,6 +88,7 @@ public:
     void adjustManualDie(int dieIndex, int delta);
 
     bool canCurrentPlayerAffordSelectedPurchase() const;
+    bool canActiveAuctionBidderPass() const;
     int currentPurchasePrice() const;
     void buySelectedProperty();
     void skipSelectedPurchase();

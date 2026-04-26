@@ -38,6 +38,7 @@ public:
     void triggerTileEvent(int tileIndex, bool fromMovement = false);
 
     bool canCurrentPlayerAffordSelectedPurchase() const;
+    bool canActiveAuctionBidderPass() const;
     int currentPurchasePrice() const;
     void buySelectedProperty();
     void skipSelectedPurchase();
