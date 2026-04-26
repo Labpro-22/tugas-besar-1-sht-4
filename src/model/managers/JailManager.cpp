@@ -27,7 +27,7 @@ void JailManager::sendToJail(Player& player) {
 
 void JailManager::payJailFine(Player& player, int amount) {
     if (player.getMoney() < amount){
-        throw ForcedInsufficientFundsException(amount, player.getMoney());
+        throw InsufficientFundsException(amount, player.getMoney());
     }
     player -= amount;
 }

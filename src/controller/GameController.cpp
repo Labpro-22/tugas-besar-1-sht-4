@@ -1,5 +1,6 @@
 #include "controller/GameController.hpp"
 
+#include "model/NimonException.hpp"
 #include "controller/CommandController.hpp"
 #include "controller/TileController.hpp"
 #include "model/Game.hpp"
@@ -227,16 +228,17 @@ void GameController::handleStartTurn(bool resumeExistingTurn) {
         return;
     }
 
-    shared_ptr<HandCard> drawnCard = game.getCardManager().giveStartTurnCard(player);
-    if (drawnCard) {
-        uiManager.printCardDrawn(
-            "Kemampuan Spesial (Manual)",
-            drawnCard->getName(),
-            drawnCard->getDescription()
-        );
-    }
-
-    if (game.getCardManager().needsForceDrop(player)) {
+    try {
+        shared_ptr<HandCard> drawnCard = game.getCardManager().giveStartTurnCard(player);
+        if (drawnCard) {
+            uiManager.printCardDrawn(
+                "Kemampuan Spesial (Manual)",
+                drawnCard->getName(),
+                drawnCard->getDescription()
+            );
+        }
+    } catch (const CardSlotFullException& e) {
+        uiManager.printError(e.what());
         tileController->handleForceDrop(player);
     }
 

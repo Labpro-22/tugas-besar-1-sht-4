@@ -18,15 +18,13 @@ private:
     CardDeck<ChanceCard> chanceDeck;
     CardDeck<CommunityChestCard> communityChestDeck;
     CardDeck<HandCard> handDeck;
-    bool forceDropActive;
 
 public:
     CardManager();
     CardManager(
         const CardDeck<ChanceCard>& chanceDeck,
         const CardDeck<CommunityChestCard>& communityChestDeck,
-        const CardDeck<HandCard>& handDeck,
-        bool forceDropActive
+        const CardDeck<HandCard>& handDeck
     );
     CardManager(const CardManager& other);
     ~CardManager();
@@ -45,7 +43,6 @@ public:
     void reshuffleIfNeeded();
     shared_ptr<HandCard> giveStartTurnCard(Player& player);
     void beginForceDrop(Game& game, Player& player);
-    bool needsForceDrop(const Player& player) const;
     void useHandCard(Game& game, Player& player, int cardIndex);
     void updateTemporaryEffects(Player& player);
     void dropHandCard(Player& player, int cardIndex);

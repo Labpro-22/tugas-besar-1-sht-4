@@ -179,6 +179,10 @@ int TileController::liquidationValue(Game& game, Player& player) const {
 
 
 void TileController::acquireProperty(Player& player, OwnableTile& property, int price) const {
+    int effectivePrice = player.effectiveCost(price);
+    if (player.getMoney() < effectivePrice) {
+        throw InsufficientFundsException(effectivePrice, player.getMoney());
+    }
     player -= price;
     property.setOwner(&player);
     property.setOwnershipStatus(OwnershipStatus::OWNED);
@@ -395,17 +399,21 @@ void TileController::handleStreetPurchase(StreetTile& tile) {
         );
 
         const bool wantsToBuy = uiManager.readYesNo();
-        if (wantsToBuy && player.getMoney() >= player.effectiveCost(tile.getPurchasePrice())) {
-            acquireProperty(player, tile, tile.getPurchasePrice());
-            uiManager.printMessage(tile.getName() + " kini menjadi milikmu!");
-            uiManager.printMessage("Uang tersisa: M" + to_string(player.getMoney()));
-            game.getLogManager().addLog(
-                game.getCurrentTurn(),
-                player.getUsername(),
-                "BELI",
-                "Membeli " + tile.getName() + " (" + tile.getCode() + ") seharga M" + to_string(purchasePrice)
-            );
-            return;
+        if (wantsToBuy) {
+            try {
+                acquireProperty(player, tile, tile.getPurchasePrice());
+                uiManager.printMessage(tile.getName() + " kini menjadi milikmu!");
+                uiManager.printMessage("Uang tersisa: M" + to_string(player.getMoney()));
+                game.getLogManager().addLog(
+                    game.getCurrentTurn(),
+                    player.getUsername(),
+                    "BELI",
+                    "Membeli " + tile.getName() + " (" + tile.getCode() + ") seharga M" + to_string(purchasePrice)
+                );
+                return;
+            } catch (const InsufficientFundsException& e) {
+                uiManager.printError(e.what());
+            }
         }
 
         uiManager.printMessage("Properti ini akan masuk ke sistem lelang...");
@@ -552,7 +560,11 @@ void TileController::handleAuction(OwnableTile& tile, Player* triggerPlayer) {
                 continue;
             }
             if (currentPlayer->getMoney() < amount) {
-                uiManager.printError("Bid tidak boleh melebihi uang pemain.");
+                try {
+                    throw InsufficientFundsException(amount, currentPlayer->getMoney());
+                } catch (const InsufficientFundsException& e) {
+                    uiManager.printError(e.what());
+                }
                 continue;
             }
 

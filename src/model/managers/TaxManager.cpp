@@ -30,7 +30,7 @@ int TaxManager::calculateTotalWealth(int playerMoney, const vector<OwnableTile*>
 
 void TaxManager::processTaxPayment(Player& player, int taxAmount) {
     if (taxAmount > player.getMoney()) {
-        throw ForcedInsufficientFundsException(taxAmount, player.getMoney());
+        throw InsufficientFundsException(taxAmount, player.getMoney());
     }
     player -= taxAmount;
 }

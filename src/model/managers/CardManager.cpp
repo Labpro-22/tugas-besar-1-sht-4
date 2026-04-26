@@ -1,4 +1,5 @@
 #include "model/managers/CardManager.hpp"
+#include "model/NimonException.hpp"
 #include "model/cards/ChanceCard.hpp"
 #include "model/cards/CommunityChestCard.hpp"
 #include "model/cards/HandCard.hpp"
@@ -24,25 +25,21 @@ using namespace std;
 CardManager::CardManager()
     : chanceDeck(),
       communityChestDeck(),
-      handDeck(),
-      forceDropActive(false)
+      handDeck()
 {}
 
 CardManager::CardManager(
     const CardDeck<ChanceCard>& chanceDeck,
     const CardDeck<CommunityChestCard>& communityChestDeck,
-    const CardDeck<HandCard>& handDeck,
-    bool forceDropActive
+    const CardDeck<HandCard>& handDeck
 ) : chanceDeck(chanceDeck),
     communityChestDeck(communityChestDeck),
-    handDeck(handDeck),
-    forceDropActive(forceDropActive) {}
+    handDeck(handDeck) {}
 
 CardManager::CardManager(const CardManager& other)
     : chanceDeck(other.chanceDeck),
       communityChestDeck(other.communityChestDeck),
-      handDeck(other.handDeck),
-      forceDropActive(other.forceDropActive) {}
+      handDeck(other.handDeck) {}
 
 CardManager::~CardManager() {}
 
@@ -51,7 +48,6 @@ CardManager& CardManager::operator=(const CardManager& other) {
         chanceDeck = other.chanceDeck;
         communityChestDeck = other.communityChestDeck;
         handDeck = other.handDeck;
-        forceDropActive = other.forceDropActive;
     }
     return *this;
 }
@@ -168,14 +164,11 @@ shared_ptr<HandCard> CardManager::giveStartTurnCard(Player& player) {
 
     player.addHandCard(card);
 
-    if (needsForceDrop(player)) {
-        forceDropActive = true;
+    if (player.countCards() > 3) {
+        throw CardSlotFullException();
     }
-    
+
     return card;
-}
-bool CardManager::needsForceDrop(const Player& player) const {
-    return player.countCards() > 3;
 }
 
 void CardManager::beginForceDrop(Game& game, Player& player) {

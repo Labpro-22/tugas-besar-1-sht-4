@@ -19,11 +19,6 @@ class InsufficientFundsException : public NimonException {
             : NimonException("Uang tidak cukup. Dibutuhkan: M" + std::to_string(required) + ", Tersedia: M" + std::to_string(available)) {}
 };
 
-class ForcedInsufficientFundsException : public NimonException {
-    public:
-        ForcedInsufficientFundsException(int required, int available)
-            : NimonException("Uang tidak cukup. Dibutuhkan : M" + std::to_string(required) + ", Tersedia: M" + std::to_string(available) + ". Pengecekkan Bankcruptcy..."){}
-};
 
 class CardSlotFullException : public NimonException {
 public:
