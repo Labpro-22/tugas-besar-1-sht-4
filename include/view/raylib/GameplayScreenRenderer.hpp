@@ -10,6 +10,8 @@ public:
     void drawToasts(const GUIGameController& controller, const UiToolkit& toolkit) const;
 
 private:
+    static int effectiveMoneyFor(const PlayerInfo& player, int amount);
+
     void drawCurrentPlayerPanel(
         const GUIGameController& controller,
         const UiToolkit& toolkit,

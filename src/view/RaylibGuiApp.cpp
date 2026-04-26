@@ -4,18 +4,13 @@
 
 using namespace view::raylibgui;
 
-namespace {
-constexpr const char* kGuiFontPath = "assets/fonts/gui.ttf";
-constexpr int kGuiFontBaseSize = 64;
-}
-
 RaylibGuiApp::RaylibGuiApp() {}
 
 void RaylibGuiApp::run() {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
     InitWindow(1440, 900, "NIMONSPOLI");
     SetTargetFPS(60);
-    toolkit_.loadFont(kGuiFontPath, kGuiFontBaseSize);
+    toolkit_.loadFont(GuiFontPath, GuiFontBaseSize);
 
     while (!WindowShouldClose() && !controller_.state().isQuitRequested()) {
         const float deltaTime = GetFrameTime();

@@ -44,10 +44,8 @@
 
 using namespace view::raylibgui;
 
-namespace {
-UiToolkit toolkit;
-
-Color playerAccent(int index) {
+Color GUIGameController::playerAccent(int index) {
+    UiToolkit toolkit;
     switch (index) {
         case 0: return toolkit.theme().getCoral();
         case 1: return toolkit.theme().getTeal();
@@ -56,7 +54,7 @@ Color playerAccent(int index) {
     }
 }
 
-std::string normalizeKey(std::string value) {
+std::string GUIGameController::normalizeKey(std::string value) {
     std::string normalized;
     for (char ch : value) {
         if (std::isalnum(static_cast<unsigned char>(ch))) {
@@ -66,7 +64,8 @@ std::string normalizeKey(std::string value) {
     return normalized;
 }
 
-Color groupAccent(const std::string& group) {
+Color GUIGameController::groupAccent(const std::string& group) {
+    UiToolkit toolkit;
     const std::string key = normalizeKey(group);
     if (key == "COKLAT" || key == "BROWN") return {142, 96, 70, 255};
     if (key == "BIRUMUDA" || key == "LIGHTBLUE") return {86, 165, 197, 255};
@@ -80,7 +79,8 @@ Color groupAccent(const std::string& group) {
     return toolkit.colorForGroup(group);
 }
 
-Color kindAccent(TileKind kind, const std::string& group) {
+Color GUIGameController::kindAccent(TileKind kind, const std::string& group) {
+    UiToolkit toolkit;
     if (kind == TileKind::Street) return groupAccent(group);
     if (kind == TileKind::Railroad) return toolkit.theme().getNavy();
     if (kind == TileKind::Utility) return toolkit.theme().getTeal();
@@ -93,7 +93,7 @@ Color kindAccent(TileKind kind, const std::string& group) {
     return toolkit.theme().getPaper();
 }
 
-std::string tileFlavor(TileKind kind) {
+std::string GUIGameController::tileFlavor(TileKind kind) {
     switch (kind) {
         case TileKind::Go: return "Petak mulai. Pemain mendapat bonus saat melewati GO.";
         case TileKind::Street: return "Properti street yang dapat dibeli, dibangun, digadai, dan menarik sewa.";
@@ -111,7 +111,7 @@ std::string tileFlavor(TileKind kind) {
     return "";
 }
 
-bool hasTxtExtension(const std::string& filename) {
+bool GUIGameController::hasTxtExtension(const std::string& filename) {
     if (filename.size() < 4) {
         return false;
     }
@@ -122,11 +122,11 @@ bool hasTxtExtension(const std::string& filename) {
     return suffix == ".txt";
 }
 
-std::string withTxtExtension(std::string filename) {
+std::string GUIGameController::withTxtExtension(std::string filename) {
     return hasTxtExtension(filename) ? filename : filename + ".txt";
 }
 
-std::string trimWhitespace(const std::string& value) {
+std::string GUIGameController::trimWhitespace(const std::string& value) {
     const std::string whitespace = " \t\n\r\f\v";
     const std::size_t first = value.find_first_not_of(whitespace);
     if (first == std::string::npos) {
@@ -135,8 +135,6 @@ std::string trimWhitespace(const std::string& value) {
 
     const std::size_t last = value.find_last_not_of(whitespace);
     return value.substr(first, last - first + 1);
-}
-
 }
 
 GUIGameController::GUIGameController()

@@ -9,6 +9,8 @@ public:
     void draw(GUIGameController& controller, const UiToolkit& toolkit) const;
 
 private:
+    static int effectiveMoneyFor(const PlayerInfo& player, int amount);
+
     void drawTileDetail(GUIGameController& controller, const UiToolkit& toolkit) const;
     void drawPurchase(GUIGameController& controller, const UiToolkit& toolkit) const;
     void drawAuction(GUIGameController& controller, const UiToolkit& toolkit) const;

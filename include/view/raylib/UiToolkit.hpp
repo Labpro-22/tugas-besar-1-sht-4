@@ -93,6 +93,8 @@ public:
     void drawCloseHint(Rectangle modal) const;
 
 private:
+    static constexpr float GuiFontScale = 1.3f;
+
     Theme theme_;
     Font customFont_{};
     bool customFontLoaded_ = false;

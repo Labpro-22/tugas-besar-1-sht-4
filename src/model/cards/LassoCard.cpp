@@ -7,11 +7,9 @@
 
 using namespace std;
 
-namespace {
-string tileCode(const Game& game, int position) {
+string LassoCard::tileCode(const Game& game, int position) {
     auto tile = game.getBoard().getTile(position);
     return tile != nullptr ? tile->getCode() : to_string(position);
-}
 }
 
 LassoCard::LassoCard()

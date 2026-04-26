@@ -12,6 +12,9 @@ public:
     void run();
 
 private:
+    static constexpr const char* GuiFontPath = "assets/fonts/gui.ttf";
+    static constexpr int GuiFontBaseSize = 64;
+
     view::raylibgui::UiToolkit toolkit_;
     GUIGameController controller_;
     view::raylibgui::MenuScreenRenderer menuRenderer_;

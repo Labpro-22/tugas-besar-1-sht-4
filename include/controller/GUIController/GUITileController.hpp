@@ -5,6 +5,7 @@
 #include <vector>
 
 class Player;
+enum class OwnershipStatus;
 
 class GUITileController {
 public:
@@ -82,4 +83,14 @@ private:
     bool colorGroupHasBuildings(const StreetTile& tile) const;
     int sellColorGroupBuildings(Player& player, const StreetTile& tile) const;
     void returnPropertyToBank(OwnableTile& property) const;
+
+    static Color playerAccent(int index);
+    static std::string normalizeKey(std::string value);
+    static std::string upperCopy(std::string value);
+    static Color groupAccent(const std::string& group);
+    static std::string colorDisplayName(const std::string& group);
+    static std::string ownershipStatusText(OwnershipStatus status);
+    static std::string deedOwnershipStatusText(const OwnableTile& tile);
+    static std::string buildingText(const StreetTile& tile);
+    static Color kindAccent(view::raylibgui::TileKind kind, const std::string& group);
 };

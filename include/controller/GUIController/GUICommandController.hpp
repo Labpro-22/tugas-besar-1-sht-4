@@ -32,4 +32,10 @@ public:
 
 private:
     GUIControllerContext& controller_;
+
+    static Color playerAccent(int index);
+    static bool hasTxtExtension(const std::string& filename);
+    static std::string withTxtExtension(std::string filename);
+    static int backendJailIndex(Game& game);
+    static std::string tileCode(Game& game, int position);
 };

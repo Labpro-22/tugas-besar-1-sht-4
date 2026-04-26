@@ -16,10 +16,8 @@
 
 using namespace view::raylibgui;
 
-namespace {
-UiToolkit commandToolkit;
-
-Color playerAccent(int index) {
+Color GUICommandController::playerAccent(int index) {
+    UiToolkit commandToolkit;
     switch (index) {
         case 0: return commandToolkit.theme().getCoral();
         case 1: return commandToolkit.theme().getTeal();
@@ -28,7 +26,7 @@ Color playerAccent(int index) {
     }
 }
 
-bool hasTxtExtension(const std::string& filename) {
+bool GUICommandController::hasTxtExtension(const std::string& filename) {
     if (filename.size() < 4) {
         return false;
     }
@@ -39,14 +37,14 @@ bool hasTxtExtension(const std::string& filename) {
     return suffix == ".txt";
 }
 
-std::string withTxtExtension(std::string filename) {
+std::string GUICommandController::withTxtExtension(std::string filename) {
     if (filename.empty()) {
         filename = "save-1";
     }
     return hasTxtExtension(filename) ? filename : filename + ".txt";
 }
 
-int backendJailIndex(Game& game) {
+int GUICommandController::backendJailIndex(Game& game) {
     for (const std::shared_ptr<Tile>& tile : game.getBoard().getTiles()) {
         if (tile != nullptr && tile->onLand() == Tile::TileType::Jail) {
             return tile->getIndex();
@@ -55,10 +53,9 @@ int backendJailIndex(Game& game) {
     return 1;
 }
 
-std::string tileCode(Game& game, int position) {
+std::string GUICommandController::tileCode(Game& game, int position) {
     std::shared_ptr<Tile> tile = game.getBoard().getTile(position);
     return tile != nullptr ? tile->getCode() : std::to_string(position);
-}
 }
 
 GUICommandController::GUICommandController(GUIControllerContext& controller)

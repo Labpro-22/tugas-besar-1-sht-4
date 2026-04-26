@@ -11,6 +11,8 @@ class MoveCard : public HandCard {
 private:
     int steps;
 
+    static string tileCode(const Game& game, int position);
+
 public:
     MoveCard();
     MoveCard(const string& name, const string& description, bool used, int steps);

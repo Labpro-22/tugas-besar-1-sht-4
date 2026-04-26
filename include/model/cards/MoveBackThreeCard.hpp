@@ -16,4 +16,7 @@ public:
     MoveBackThreeCard& operator=(const MoveBackThreeCard& other);
 
     void apply(Game& game, Player& player) override;
+
+private:
+    static string tileCode(const Game& game, int position);
 };

@@ -9,6 +9,8 @@ public:
     void draw(GUIGameController& controller, const UiToolkit& toolkit) const;
 
 private:
+    static std::string professorName(int index);
+
     void drawMainMenu(GUIGameController& controller, const UiToolkit& toolkit) const;
     void drawNewGame(GUIGameController& controller, const UiToolkit& toolkit) const;
     void drawLoadGame(GUIGameController& controller, const UiToolkit& toolkit) const;

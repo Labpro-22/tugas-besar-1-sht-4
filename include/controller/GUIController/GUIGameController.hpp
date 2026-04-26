@@ -175,4 +175,13 @@ private:
     view::raylibgui::PlayerInfo makePlayerInfoFromBackend(const Player& player, int playerIndex) const;
     view::raylibgui::CardInfo makeCardInfoFromBackend(const Card& card) const;
     view::raylibgui::LogItem makeLogItemFromBackend(const LogManager::LogEntry& entry) const;
+
+    static Color playerAccent(int index);
+    static std::string normalizeKey(std::string value);
+    static Color groupAccent(const std::string& group);
+    static Color kindAccent(view::raylibgui::TileKind kind, const std::string& group);
+    static std::string tileFlavor(view::raylibgui::TileKind kind);
+    static bool hasTxtExtension(const std::string& filename);
+    static std::string withTxtExtension(std::string filename);
+    static std::string trimWhitespace(const std::string& value);
 };

@@ -5,9 +5,6 @@
 #include <sstream>
 
 namespace view::raylibgui {
-namespace {
-constexpr float kGuiFontScale = 1.3f;
-}
 
 UiToolkit::UiToolkit()
     : theme_(
@@ -64,7 +61,7 @@ void UiToolkit::unloadFont() {
 
 Font UiToolkit::font() const {
     Font guiFont = customFontLoaded_ ? customFont_ : GetFontDefault();
-    guiFont.baseSize = std::max(1, static_cast<int>(std::round(guiFont.baseSize / kGuiFontScale)));
+    guiFont.baseSize = std::max(1, static_cast<int>(std::round(guiFont.baseSize / GuiFontScale)));
     return guiFont;
 }
 

@@ -16,4 +16,7 @@ public:
     GoToJailCard& operator=(const GoToJailCard& other);
 
     void apply(Game& game, Player& player) override;
+
+private:
+    static string tileCode(const Game& game, int position);
 };

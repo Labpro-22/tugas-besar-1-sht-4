@@ -19,4 +19,6 @@ public:
     void apply(Game& game, Player& player) override;
 private:
     int targetTileIndex;
+
+    static string tileCode(const Game& game, int position);
 };

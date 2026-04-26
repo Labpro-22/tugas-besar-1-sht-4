@@ -5,10 +5,8 @@
 #include <vector>
 
 namespace view::raylibgui {
-namespace {
-std::string professorName(int index) {
+std::string MenuScreenRenderer::professorName(int index) {
     return index == 0 ? "ProfessorRayapSunggal" : "ProfessorRayapSunggal" + std::to_string(index + 1);
-}
 }
 
 void MenuScreenRenderer::draw(GUIGameController& session, const UiToolkit& toolkit) const {

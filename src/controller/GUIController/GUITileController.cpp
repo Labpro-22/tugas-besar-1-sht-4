@@ -20,10 +20,8 @@
 
 using namespace view::raylibgui;
 
-namespace {
-UiToolkit tileToolkit;
-
-Color playerAccent(int index) {
+Color GUITileController::playerAccent(int index) {
+    UiToolkit tileToolkit;
     switch (index) {
         case 0: return tileToolkit.theme().getCoral();
         case 1: return tileToolkit.theme().getTeal();
@@ -32,7 +30,7 @@ Color playerAccent(int index) {
     }
 }
 
-std::string normalizeKey(std::string value) {
+std::string GUITileController::normalizeKey(std::string value) {
     std::string normalized;
     for (char ch : value) {
         if (std::isalnum(static_cast<unsigned char>(ch))) {
@@ -42,14 +40,15 @@ std::string normalizeKey(std::string value) {
     return normalized;
 }
 
-std::string upperCopy(std::string value) {
+std::string GUITileController::upperCopy(std::string value) {
     std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
         return static_cast<char>(std::toupper(ch));
     });
     return value;
 }
 
-Color groupAccent(const std::string& group) {
+Color GUITileController::groupAccent(const std::string& group) {
+    UiToolkit tileToolkit;
     const std::string key = normalizeKey(group);
     if (key == "COKLAT" || key == "BROWN") return {142, 96, 70, 255};
     if (key == "BIRUMUDA" || key == "LIGHTBLUE") return {86, 165, 197, 255};
@@ -63,7 +62,7 @@ Color groupAccent(const std::string& group) {
     return tileToolkit.colorForGroup(group);
 }
 
-std::string colorDisplayName(const std::string& group) {
+std::string GUITileController::colorDisplayName(const std::string& group) {
     const std::string key = normalizeKey(group);
     if (key == "COKLAT" || key == "BROWN") return "COKLAT";
     if (key == "BIRUMUDA" || key == "LIGHTBLUE") return "BIRU MUDA";
@@ -78,18 +77,18 @@ std::string colorDisplayName(const std::string& group) {
     return "AKSI";
 }
 
-std::string ownershipStatusText(OwnershipStatus status) {
+std::string GUITileController::ownershipStatusText(OwnershipStatus status) {
     if (status == OwnershipStatus::BANK) return "BANK";
     if (status == OwnershipStatus::OWNED) return "OWNED";
     return "MORTGAGED";
 }
 
-std::string deedOwnershipStatusText(const OwnableTile& tile) {
+std::string GUITileController::deedOwnershipStatusText(const OwnableTile& tile) {
     if (tile.isMortgaged()) return ownershipStatusText(OwnershipStatus::MORTGAGED);
     return ownershipStatusText(tile.getOwnershipStatus());
 }
 
-std::string buildingText(const StreetTile& tile) {
+std::string GUITileController::buildingText(const StreetTile& tile) {
     if (tile.hasHotel()) {
         return "Hotel";
     }
@@ -99,7 +98,8 @@ std::string buildingText(const StreetTile& tile) {
     return std::to_string(tile.getBuildingLevel()) + " rumah";
 }
 
-Color kindAccent(TileKind kind, const std::string& group) {
+Color GUITileController::kindAccent(TileKind kind, const std::string& group) {
+    UiToolkit tileToolkit;
     if (kind == TileKind::Street) return groupAccent(group);
     if (kind == TileKind::Railroad) return tileToolkit.theme().getNavy();
     if (kind == TileKind::Utility) return tileToolkit.theme().getTeal();
@@ -110,7 +110,6 @@ Color kindAccent(TileKind kind, const std::string& group) {
     if (kind == TileKind::Jail || kind == TileKind::GoToJail) return tileToolkit.theme().getDanger();
     if (kind == TileKind::Go) return tileToolkit.theme().getGold();
     return tileToolkit.theme().getPaper();
-}
 }
 
 GUITileController::GUITileController(GUIControllerContext& controller)

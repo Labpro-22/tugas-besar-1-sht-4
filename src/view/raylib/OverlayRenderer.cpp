@@ -8,14 +8,12 @@
 #include <vector>
 
 namespace view::raylibgui {
-namespace {
-int effectiveMoneyFor(const PlayerInfo& player, int amount) {
+int OverlayRenderer::effectiveMoneyFor(const PlayerInfo& player, int amount) {
     const int discount = player.getDiscountPercent();
     if (discount <= 0) {
         return amount;
     }
     return std::max(0, amount * (100 - discount) / 100);
-}
 }
 
 void OverlayRenderer::draw(GUIGameController& session, const UiToolkit& toolkit) const {
